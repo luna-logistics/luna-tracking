@@ -24,18 +24,7 @@ create table if not exists public.admin_users (
 
 alter table public.admin_users enable row level security;
 
--- Only admins can read the table (would-be-admin themselves can't enumerate
--- other admins). The is_admin() helper below bypasses this via SECURITY
--- DEFINER, so a user can still check "am I an admin?".
-drop policy if exists "admin_users admin read" on public.admin_users;
-create policy "admin_users admin read" on public.admin_users for select
-  using (public.is_admin(auth.uid()));
-
-drop policy if exists "admin_users admin write" on public.admin_users;
-create policy "admin_users admin write" on public.admin_users for all
-  using (public.is_admin(auth.uid())) with check (public.is_admin(auth.uid()));
-
--- ─── is_admin() helper ─────────────────────────────────────────────────────
+-- ─── is_admin() helper — MUST be created BEFORE any policy references it ──
 -- SECURITY DEFINER runs with the table owner's rights, so the RLS-blocked
 -- admin_users read succeeds. `stable` because it's a pure lookup with no
 -- side effects — Postgres can cache it per statement.
@@ -54,11 +43,24 @@ $$;
 -- can safely reference it without granting extra rights) and authenticated.
 grant execute on function public.is_admin(uuid) to anon, authenticated;
 
--- ─── rewrite policies ──────────────────────────────────────────────────────
+-- ─── admin_users own policies (now that is_admin exists) ──────────────────
+-- Only admins can read the table (would-be-admin themselves can't enumerate
+-- other admins). is_admin() bypasses this via SECURITY DEFINER, so a user
+-- can still check "am I an admin?".
+drop policy if exists "admin_users admin read" on public.admin_users;
+create policy "admin_users admin read" on public.admin_users for select
+  using (public.is_admin(auth.uid()));
+
+drop policy if exists "admin_users admin write" on public.admin_users;
+create policy "admin_users admin write" on public.admin_users for all
+  using (public.is_admin(auth.uid())) with check (public.is_admin(auth.uid()));
+
+-- ─── rewrite policies on the other tables ─────────────────────────────────
 
 -- product_categories: everyone reads; only admins write.
 drop policy if exists "categories public read" on public.product_categories;
 drop policy if exists "categories auth write" on public.product_categories;
+drop policy if exists "categories admin write" on public.product_categories;
 create policy "categories public read" on public.product_categories for select using (true);
 create policy "categories admin write" on public.product_categories for all
   using (public.is_admin(auth.uid())) with check (public.is_admin(auth.uid()));
@@ -66,6 +68,7 @@ create policy "categories admin write" on public.product_categories for all
 -- products: everyone reads (public catalog); only admins write.
 drop policy if exists "products public read" on public.products;
 drop policy if exists "products auth write" on public.products;
+drop policy if exists "products admin write" on public.products;
 create policy "products public read" on public.products for select using (true);
 create policy "products admin write" on public.products for all
   using (public.is_admin(auth.uid())) with check (public.is_admin(auth.uid()));
@@ -78,6 +81,7 @@ create policy "products admin write" on public.products for all
 drop policy if exists "orders self read" on public.orders;
 drop policy if exists "orders self insert" on public.orders;
 drop policy if exists "orders auth update" on public.orders;
+drop policy if exists "orders admin update" on public.orders;
 create policy "orders self read" on public.orders for select
   using (auth.uid() = user_id or public.is_admin(auth.uid()));
 create policy "orders self insert" on public.orders for insert
@@ -92,6 +96,8 @@ create policy "orders admin update" on public.orders for update
 drop policy if exists "forwarding anon insert" on public.forwarding_requests;
 drop policy if exists "forwarding auth read" on public.forwarding_requests;
 drop policy if exists "forwarding auth update" on public.forwarding_requests;
+drop policy if exists "forwarding admin read" on public.forwarding_requests;
+drop policy if exists "forwarding admin update" on public.forwarding_requests;
 create policy "forwarding anon insert" on public.forwarding_requests for insert with check (true);
 create policy "forwarding admin read" on public.forwarding_requests for select
   using (public.is_admin(auth.uid()));
@@ -103,6 +109,7 @@ create policy "forwarding admin update" on public.forwarding_requests for update
 drop policy if exists "destination_cities public read" on public.destination_cities;
 drop policy if exists "destination_cities auth write" on public.destination_cities;
 drop policy if exists "destination_cities auth insert" on public.destination_cities;
+drop policy if exists "destination_cities admin write" on public.destination_cities;
 create policy "destination_cities public read" on public.destination_cities for select using (true);
 create policy "destination_cities admin write" on public.destination_cities for all
   using (public.is_admin(auth.uid())) with check (public.is_admin(auth.uid()));
