@@ -1,0 +1,32 @@
+# Cloudflare Pages response headers.
+#
+# Private / auth surfaces must never be indexed. These are SPA routes served
+# the home index.html as a fallback (no per-route noindex reaches a crawler
+# before JS), so noindex is set at the HTTP layer keyed on the REQUEST path.
+
+/admin
+  X-Robots-Tag: noindex
+/admin/*
+  X-Robots-Tag: noindex
+/compte
+  X-Robots-Tag: noindex
+/compte/*
+  X-Robots-Tag: noindex
+/en/account
+  X-Robots-Tag: noindex
+/en/account/*
+  X-Robots-Tag: noindex
+/connexion
+  X-Robots-Tag: noindex
+/inscription
+  X-Robots-Tag: noindex
+/en/login
+  X-Robots-Tag: noindex
+/en/signup
+  X-Robots-Tag: noindex
+/mot-de-passe-oublie
+  X-Robots-Tag: noindex
+/en/forgot-password
+  X-Robots-Tag: noindex
+/auth/*
+  X-Robots-Tag: noindex

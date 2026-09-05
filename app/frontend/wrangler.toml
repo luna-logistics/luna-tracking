@@ -1,0 +1,23 @@
+# Cloudflare Pages build config.
+#
+# The Pages project is created ONCE in the Cloudflare dashboard (see README →
+# manual steps). Its build settings mirror this file:
+#
+#   Framework preset:  Vite (or None; both work)
+#   Build command:     pnpm install --frozen-lockfile && pnpm build
+#   Build output:      dist
+#   Root directory:    app/frontend
+#   Node version:      20 (set as env: NODE_VERSION=20)
+#
+# Env vars set in Pages dashboard (Settings → Environment variables):
+#   VITE_SUPABASE_URL       = https://<ref>.supabase.co
+#   VITE_SUPABASE_ANON_KEY  = eyJ… (anon public key, safe to bundle)
+#
+# NO wrangler deploy is required for a Pages project — the repo push triggers
+# the build. This file exists for `wrangler pages dev` and `wrangler pages
+# deploy` if we ever want manual deploys; it is NOT the source of truth for
+# the automated build.
+
+name = "luna-tracking-logistics"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-01-01"

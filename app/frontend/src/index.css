@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* System-font stack for now — flag as future chantier if brand fonts land.
+       Kept as CSS variables so a future theme swap doesn't touch component code. */
+    --font-heading: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+
+    /* Neutral off-white page ground — pure white makes brand navy bands lose
+       their edge; a very soft slate warms it back up. */
+    --background: 210 20% 98%;
+    --foreground: 217 33% 17%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 217 33% 17%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 217 33% 17%;
+
+    /* PRIMARY = Luna navy (#002F67). Solid brand colour for headers,
+       primary buttons on the app surface, and accents. Cyan is used
+       separately as the CTA accent on dark surfaces. */
+    --primary: 213 100% 20%;
+    --primary-foreground: 210 20% 98%;
+
+    --secondary: 210 30% 94%;
+    --secondary-foreground: 217 33% 17%;
+
+    --muted: 210 30% 94%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 187 96% 51%;
+    --accent-foreground: 213 100% 15%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 210 20% 98%;
+
+    --border: 214 27% 88%;
+    --input: 214 27% 88%;
+    --ring: 213 100% 20%;
+
+    --radius: 0.65rem;
+  }
+
+  /* Admin shell uses a slightly denser palette with a dark structural sidebar
+     — same pattern proven on Homie Book (scoped to .admin-shell). */
+  .admin-shell {
+    --background: 210 25% 97%;
+    --foreground: 217 33% 17%;
+    --card: 0 0% 100%;
+    --primary: 213 100% 20%;
+    --primary-foreground: 210 20% 98%;
+    --border: 214 22% 86%;
+    --input: 214 22% 86%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+
+  html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-body);
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  img { content-visibility: auto; }
+
+  main { min-height: calc(100vh - 64px - 320px); }
+}
