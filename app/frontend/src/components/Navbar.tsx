@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Menu, X, User } from 'lucide-react';
+import { Menu, X, User, LayoutDashboard } from 'lucide-react';
 import { useState } from 'react';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { urlFor } from '@/lib/url/routes';
@@ -15,7 +15,7 @@ export function Navbar() {
   const { t, i18n } = useTranslation();
   const lang = i18n.language === 'en' ? 'en' : 'fr';
   const location = useLocation();
-  const { user, signOut } = useAuth();
+  const { user, isAdmin, signOut } = useAuth();
   const [open, setOpen] = useState(false);
 
   const isActive = (path: string) =>
@@ -66,6 +66,15 @@ export function Navbar() {
           <LanguageSwitcher variant="light" />
           {user ? (
             <>
+              {isAdmin && (
+                <Link
+                  to="/admin"
+                  className="inline-flex items-center gap-1 rounded-md bg-luna-cyan/20 px-3 py-2 text-sm font-semibold text-luna-navy hover:bg-luna-cyan/30"
+                >
+                  <LayoutDashboard className="h-4 w-4" />
+                  {t('nav.admin')}
+                </Link>
+              )}
               <Link
                 to={urlFor('account', lang)}
                 className="inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-luna-navy hover:bg-luna-navy/5"
@@ -128,6 +137,16 @@ export function Navbar() {
                 {l.label}
               </Link>
             ))}
+            {isAdmin && (
+              <Link
+                to="/admin"
+                onClick={() => setOpen(false)}
+                className="rounded-md bg-luna-cyan/20 px-3 py-2 text-sm font-semibold text-luna-navy hover:bg-luna-cyan/30 inline-flex items-center gap-1"
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                {t('nav.admin')}
+              </Link>
+            )}
             <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-3">
               <LanguageSwitcher variant="light" />
               {user ? (
