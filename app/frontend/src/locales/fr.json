@@ -122,7 +122,10 @@
     "forgot_title": "Mot de passe oublié",
     "forgot_intro": "Entrez votre e-mail — nous vous enverrons un lien pour réinitialiser votre mot de passe.",
     "forgot_submit": "Envoyer le lien",
-    "forgot_sent": "E-mail envoyé — vérifiez votre boîte de réception."
+    "forgot_sent": "E-mail envoyé — vérifiez votre boîte de réception.",
+    "social_separator": "ou",
+    "continue_with_google": "Continuer avec Google",
+    "continue_with_facebook": "Continuer avec Facebook"
   },
   "account": {
     "meta_title": "Mon espace — Luna Tracking Logistics",
@@ -159,6 +162,7 @@
     "sidebar_products": "Produits",
     "sidebar_orders": "Commandes",
     "sidebar_forwarding": "Demandes réexpédition",
+    "sidebar_auth_providers": "Connexions sociales",
     "products_title": "Catalogue produits",
     "products_intro": "Gérez le catalogue « Achat & Envoi ». Ajoutez un produit à la main, importez un lot en CSV, ou scannez un code-barres pour retrouver/ajouter rapidement.",
     "products_tab_list": "Liste",
@@ -336,6 +340,20 @@
     "col_status": "Statut",
     "items_summary_one": "{{count}} article",
     "items_summary_other": "{{count}} articles"
+  },
+  "admin_auth": {
+    "title": "Connexions sociales",
+    "intro": "Activez les boutons de connexion Google et Facebook sur les pages de connexion et d'inscription. Les identifiants client (Client ID + Client Secret) se configurent dans le tableau de bord Supabase — ce panneau contrôle uniquement la visibilité du bouton.",
+    "setup_title": "Marche à suivre",
+    "setup_step1": "Créez une application OAuth chez le fournisseur (Google Cloud Console pour Google, Meta for Developers pour Facebook) et récupérez son Client ID + Client Secret.",
+    "setup_step2": "Ouvrez le tableau de bord Supabase (bouton ci-dessous), section Authentication → Providers, activez le fournisseur et collez les identifiants.",
+    "setup_step3": "Revenez ici et basculez l'interrupteur — le bouton apparaît sur les pages de connexion et d'inscription.",
+    "open_supabase": "Ouvrir Supabase → Providers",
+    "col_provider": "Fournisseur",
+    "col_state": "État",
+    "col_toggle": "Actif",
+    "state_enabled": "Activé",
+    "state_disabled": "Désactivé"
   },
   "admin_gate": {
     "title": "Accès réservé",

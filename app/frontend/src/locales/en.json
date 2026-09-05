@@ -122,7 +122,10 @@
     "forgot_title": "Forgot password",
     "forgot_intro": "Enter your email — we'll send you a link to reset your password.",
     "forgot_submit": "Send the link",
-    "forgot_sent": "Email sent — check your inbox."
+    "forgot_sent": "Email sent — check your inbox.",
+    "social_separator": "or",
+    "continue_with_google": "Continue with Google",
+    "continue_with_facebook": "Continue with Facebook"
   },
   "account": {
     "meta_title": "My account — Luna Tracking Logistics",
@@ -159,6 +162,7 @@
     "sidebar_products": "Products",
     "sidebar_orders": "Orders",
     "sidebar_forwarding": "Forwarding leads",
+    "sidebar_auth_providers": "Social logins",
     "products_title": "Product catalog",
     "products_intro": "Manage the Shop & Ship catalog. Add one product manually, import a batch via CSV, or scan a barcode to look up / add quickly.",
     "products_tab_list": "List",
@@ -336,6 +340,20 @@
     "col_status": "Status",
     "items_summary_one": "{{count}} item",
     "items_summary_other": "{{count}} items"
+  },
+  "admin_auth": {
+    "title": "Social logins",
+    "intro": "Enable Google and Facebook sign-in buttons on the login and signup pages. Client credentials (Client ID + Client Secret) are configured in the Supabase dashboard — this panel only controls whether the button is visible.",
+    "setup_title": "How it works",
+    "setup_step1": "Create an OAuth application with the provider (Google Cloud Console for Google, Meta for Developers for Facebook) and copy its Client ID + Client Secret.",
+    "setup_step2": "Open the Supabase dashboard (button below), section Authentication → Providers, enable the provider and paste the credentials.",
+    "setup_step3": "Come back here and flip the switch — the button appears on the login and signup pages.",
+    "open_supabase": "Open Supabase → Providers",
+    "col_provider": "Provider",
+    "col_state": "State",
+    "col_toggle": "Enabled",
+    "state_enabled": "Enabled",
+    "state_disabled": "Disabled"
   },
   "admin_gate": {
     "title": "Admin only",

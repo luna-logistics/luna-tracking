@@ -33,7 +33,8 @@ export type RouteKey =
   | 'adminCities'
   | 'adminProducts'
   | 'adminOrders'
-  | 'adminForwarding';
+  | 'adminForwarding'
+  | 'adminAuthProviders';
 
 type RouteDef = {
   indexable: boolean;
@@ -61,6 +62,7 @@ export const ROUTES: Record<RouteKey, RouteDef> = {
   adminProducts:   { indexable: false, bilingual: false, fr: '/admin/produits',     en: '/admin/produits' },
   adminOrders:     { indexable: false, bilingual: false, fr: '/admin/commandes',    en: '/admin/commandes' },
   adminForwarding: { indexable: false, bilingual: false, fr: '/admin/demandes-reexpedition', en: '/admin/demandes-reexpedition' },
+  adminAuthProviders: { indexable: false, bilingual: false, fr: '/admin/auth-sociale', en: '/admin/auth-sociale' },
 };
 
 export function urlFor(key: RouteKey, lang: Lang = 'fr'): string {

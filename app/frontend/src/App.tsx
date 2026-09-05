@@ -37,6 +37,7 @@ const AdminCities = lazy(() => import('@/pages/AdminCities'));
 const AdminProducts = lazy(() => import('@/pages/AdminProducts'));
 const AdminOrders = lazy(() => import('@/pages/AdminOrders'));
 const AdminForwardingRequests = lazy(() => import('@/pages/AdminForwardingRequests'));
+const AdminAuthProviders = lazy(() => import('@/pages/AdminAuthProviders'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 
 const queryClient = new QueryClient();
@@ -122,6 +123,7 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
             <Route path="/admin/produits" element={<AdminProducts />} />
             <Route path="/admin/commandes" element={<AdminOrders />} />
             <Route path="/admin/demandes-reexpedition" element={<AdminForwardingRequests />} />
+            <Route path="/admin/auth-sociale" element={<AdminAuthProviders />} />
           </Route>
 
           <Route path="*" element={<PublicLayout><NotFound /></PublicLayout>} />

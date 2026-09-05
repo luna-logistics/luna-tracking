@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase';
 import { urlFor } from '@/lib/url/routes';
 import { toast } from '@/components/ui/sonner';
+import { SocialAuthButtons } from '@/components/SocialAuthButtons';
 
 export default function Login() {
   const { t, i18n } = useTranslation();
@@ -61,6 +62,8 @@ export default function Login() {
               {submitting ? t('common.loading') : t('auth.login_submit')}
             </Button>
           </form>
+
+          <SocialAuthButtons />
 
           <p className="mt-6 text-sm text-center text-slate-600">
             {t('auth.no_account')}{' '}
