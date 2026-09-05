@@ -23,10 +23,10 @@ export function Footer() {
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-12 grid gap-10 md:grid-cols-3">
           <div>
             <img
-              src="/brand/logo-on-navy.jpeg"
+              src="/brand/logo-luna-navbar2.png"
               alt={t('brand.name')}
               className="h-12 w-auto mb-4"
-              width={180}
+              width={192}
               height={48}
             />
             <p className="text-sm text-white/80 leading-relaxed">{t('footer.about_body')}</p>
