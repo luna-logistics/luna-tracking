@@ -32,16 +32,16 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/95 backdrop-blur">
-      <div className="mx-auto flex h-20 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
         <Link to={urlFor('home', lang)} className="flex items-center gap-2" aria-label={t('brand.name')}>
-          {/* Square 250×250 phoenix + wordmark. Displayed at 64×64 (h-16)
-              inside the h-20 navbar row so the wordmark stays readable. */}
+          {/* Horizontal 1600×400 (4:1) — phoenix + wordmark on one line. At
+              h-10 (40px) the width is 160px and the wordmark stays crisp. */}
           <img
-            src="/brand/logo-luna-250.png"
+            src="/brand/logo-luna-navbar.png"
             alt={t('brand.name')}
-            className="h-16 w-16 object-contain"
-            width={64}
-            height={64}
+            className="h-10 w-auto"
+            width={160}
+            height={40}
           />
         </Link>
 
