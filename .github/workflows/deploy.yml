@@ -51,19 +51,26 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 11
+          version: 11.17.0
           run_install: false
 
+      - name: Debug env
+        # Prints what the runner actually has BEFORE install — a bare
+        # "exit code 1" annotation was hiding what failed inside pnpm.
+        # This step never fails; it only shows.
+        run: |
+          echo "node: $(node --version)"
+          echo "pnpm: $(pnpm --version)"
+          echo "cwd:  $PWD"
+          echo "----- pwd contents -----"
+          ls -la
+          echo "----- pnpm-workspace.yaml -----"
+          cat pnpm-workspace.yaml || echo '(missing)'
+          echo "----- pnpm-lock.yaml head -----"
+          head -20 pnpm-lock.yaml || echo '(missing)'
+
       - name: Install dependencies
-        # --ignore-scripts skips ALL lifecycle scripts. pnpm ≥ 11 exits 1 on
-        # any ignored post-install (even in a non-interactive CI), and every
-        # workaround (allowBuilds map in workspace, .npmrc flag,
-        # onlyBuiltDependencies list) has some version/edge-case bite. The
-        # two scripts we DO want to run (@swc/core, esbuild) are optional
-        # native-compile bindings — both packages fall back to WASM /
-        # prebuilt binaries when the compile is skipped, and vite build
-        # works fine either way.
-        run: pnpm install --frozen-lockfile --ignore-scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts --reporter=append-only 2>&1
 
       - name: Build
         run: pnpm build
