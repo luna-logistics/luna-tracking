@@ -342,6 +342,21 @@
     "items_summary_one": "{{count}} item",
     "items_summary_other": "{{count}} items"
   },
+  "rebuild": {
+    "title": "Rebuild the site",
+    "intro": "Manually redeploy the site (fresh build from the latest code). Useful after a server-side change or to retry a failed deploy. Text / image edits made via the editor are visible immediately — no rebuild needed for those.",
+    "button": "Rebuild now",
+    "dispatching": "Sending request…",
+    "dispatched": "Rebuild triggered",
+    "refresh": "Refresh",
+    "latest_run": "Latest deployment",
+    "no_run": "No recent deployment found.",
+    "view_on_github": "View on GitHub",
+    "status_queued": "Queued",
+    "status_in_progress": "In progress",
+    "status_success": "Succeeded",
+    "status_failure": "Failed"
+  },
   "edit_mode": {
     "enter": "Edit",
     "exit": "Done",

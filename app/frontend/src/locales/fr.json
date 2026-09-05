@@ -342,6 +342,21 @@
     "items_summary_one": "{{count}} article",
     "items_summary_other": "{{count}} articles"
   },
+  "rebuild": {
+    "title": "Reconstruire le site",
+    "intro": "Redéploie manuellement le site (nouveau build depuis la dernière version du code). Utile après une modification serveur, ou pour retenter un déploiement raté. Les changements de texte / image faits via l'éditeur sont visibles immédiatement — pas besoin de reconstruire pour ça.",
+    "button": "Reconstruire maintenant",
+    "dispatching": "Envoi de la demande…",
+    "dispatched": "Reconstruction lancée",
+    "refresh": "Actualiser",
+    "latest_run": "Dernier déploiement",
+    "no_run": "Aucun déploiement récent trouvé.",
+    "view_on_github": "Voir sur GitHub",
+    "status_queued": "En file d'attente",
+    "status_in_progress": "En cours",
+    "status_success": "Réussi",
+    "status_failure": "Échoué"
+  },
   "edit_mode": {
     "enter": "Éditer",
     "exit": "Terminer",
