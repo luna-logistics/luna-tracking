@@ -8,10 +8,15 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { fetchDestinationCities, type DestinationCity } from '@/lib/cities';
+import { useContent } from '@/contexts/SiteContentContext';
 import { toast } from '@/components/ui/sonner';
 
 export default function Pricing() {
   const { t } = useTranslation();
+  const metaTitle       = useContent('pricing', 'meta_title',       t('pricing.meta_title'));
+  const metaDescription = useContent('pricing', 'meta_description', t('pricing.meta_description'));
+  const pageTitle       = useContent('pricing', 'page_title',       t('pricing.page_title'));
+  const pageIntro       = useContent('pricing', 'page_intro',       t('pricing.page_intro'));
   const [cities, setCities] = useState<DestinationCity[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -33,12 +38,12 @@ export default function Pricing() {
 
   return (
     <>
-      <SEO title={t('pricing.meta_title')} description={t('pricing.meta_description')} />
+      <SEO title={metaTitle} description={metaDescription} />
 
       <section className="py-14 sm:py-20">
         <div className="mx-auto max-w-3xl px-4 sm:px-6">
-          <h1 className="text-3xl font-bold text-luna-navy">{t('pricing.page_title')}</h1>
-          <p className="mt-3 text-slate-600">{t('pricing.page_intro')}</p>
+          <h1 className="text-3xl font-bold text-luna-navy">{pageTitle}</h1>
+          <p className="mt-3 text-slate-600">{pageIntro}</p>
 
           {submitted ? (
             <div className="mt-8 rounded-2xl border-2 border-luna-cyan bg-white p-8 text-center shadow-sm">

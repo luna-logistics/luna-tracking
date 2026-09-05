@@ -6,10 +6,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { fetchTrackingStatus, type TrackingResult } from '@/lib/tracking';
+import { useContent } from '@/contexts/SiteContentContext';
 
 export default function Tracking() {
   const { t, i18n } = useTranslation();
   const lang = i18n.language === 'en' ? 'en' : 'fr';
+  const metaTitle       = useContent('tracking', 'meta_title',       t('tracking.meta_title'));
+  const metaDescription = useContent('tracking', 'meta_description', t('tracking.meta_description'));
+  const pageTitle       = useContent('tracking', 'page_title',       t('tracking.page_title'));
+  const pageIntro       = useContent('tracking', 'page_intro',       t('tracking.page_intro'));
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<TrackingResult | null>(null);
@@ -28,15 +33,15 @@ export default function Tracking() {
 
   return (
     <>
-      <SEO title={t('tracking.meta_title')} description={t('tracking.meta_description')} />
+      <SEO title={metaTitle} description={metaDescription} />
 
       <section className="py-14 sm:py-20">
         <div className="mx-auto max-w-2xl px-4 sm:px-6">
           <div className="flex items-center gap-3 mb-4 text-luna-navy">
             <PackageSearch className="h-7 w-7" />
-            <h1 className="text-3xl font-bold">{t('tracking.page_title')}</h1>
+            <h1 className="text-3xl font-bold">{pageTitle}</h1>
           </div>
-          <p className="text-slate-600 mb-8">{t('tracking.page_intro')}</p>
+          <p className="text-slate-600 mb-8">{pageIntro}</p>
 
           <form onSubmit={onSubmit} className="rounded-2xl border-2 border-luna-blue/30 bg-white p-6 shadow-sm">
             <Label htmlFor="tracking-password" className="text-luna-navy">

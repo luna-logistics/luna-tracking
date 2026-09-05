@@ -7,6 +7,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { CartProvider } from '@/contexts/CartContext';
+import { SiteContentProvider } from '@/contexts/SiteContentContext';
 import { HreflangTags } from '@/components/HreflangTags';
 import { PublicLayout } from '@/components/PublicLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -38,6 +39,7 @@ const AdminProducts = lazy(() => import('@/pages/AdminProducts'));
 const AdminOrders = lazy(() => import('@/pages/AdminOrders'));
 const AdminForwardingRequests = lazy(() => import('@/pages/AdminForwardingRequests'));
 const AdminAuthProviders = lazy(() => import('@/pages/AdminAuthProviders'));
+const AdminContent = lazy(() => import('@/pages/AdminContent'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 
 const queryClient = new QueryClient();
@@ -124,6 +126,7 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
             <Route path="/admin/commandes" element={<AdminOrders />} />
             <Route path="/admin/demandes-reexpedition" element={<AdminForwardingRequests />} />
             <Route path="/admin/auth-sociale" element={<AdminAuthProviders />} />
+            <Route path="/admin/contenus" element={<AdminContent />} />
           </Route>
 
           <Route path="*" element={<PublicLayout><NotFound /></PublicLayout>} />
@@ -148,12 +151,14 @@ const App = () => (
   <HelmetProvider>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <CartProvider>
-          <Toaster richColors position="top-right" />
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
-        </CartProvider>
+        <SiteContentProvider>
+          <CartProvider>
+            <Toaster richColors position="top-right" />
+            <BrowserRouter>
+              <AppRoutes />
+            </BrowserRouter>
+          </CartProvider>
+        </SiteContentProvider>
       </AuthProvider>
     </QueryClientProvider>
   </HelmetProvider>

@@ -9,9 +9,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { IconCircle } from '@/components/IconCircle';
 import { toast } from '@/components/ui/sonner';
 import { submitForwardingRequest } from '@/lib/forwarding';
+import { useContent, useSiteImage } from '@/contexts/SiteContentContext';
 
 export default function Forwarding() {
   const { t } = useTranslation();
+  const metaTitle       = useContent('forwarding', 'meta_title',       t('forwarding.meta_title'));
+  const metaDescription = useContent('forwarding', 'meta_description', t('forwarding.meta_description'));
+  const pageTitle       = useContent('forwarding', 'page_title',       t('forwarding.page_title'));
+  const pageIntro       = useContent('forwarding', 'intro',            t('forwarding.intro'));
+  const ogImage         = useSiteImage('forwarding_og', '') || undefined;
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -48,12 +54,12 @@ export default function Forwarding() {
 
   return (
     <>
-      <SEO title={t('forwarding.meta_title')} description={t('forwarding.meta_description')} />
+      <SEO title={metaTitle} description={metaDescription} image={ogImage} />
 
       <section className="bg-luna-gradient text-white">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-12 sm:py-16">
-          <h1 className="text-3xl sm:text-4xl font-bold">{t('forwarding.page_title')}</h1>
-          <p className="mt-3 text-white/90 max-w-2xl">{t('forwarding.intro')}</p>
+          <h1 className="text-3xl sm:text-4xl font-bold">{pageTitle}</h1>
+          <p className="mt-3 text-white/90 max-w-2xl">{pageIntro}</p>
         </div>
       </section>
 

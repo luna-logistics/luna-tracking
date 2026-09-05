@@ -2,9 +2,15 @@ import { useTranslation } from 'react-i18next';
 import { Mail, MapPin, Instagram, Clock } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { IconCircle } from '@/components/IconCircle';
+import { useContent } from '@/contexts/SiteContentContext';
 
 export default function Contact() {
   const { t } = useTranslation();
+  const metaTitle       = useContent('contact', 'meta_title',       t('contact.meta_title'));
+  const metaDescription = useContent('contact', 'meta_description', t('contact.meta_description'));
+  const pageTitle       = useContent('contact', 'page_title',       t('contact.page_title'));
+  const pageIntro       = useContent('contact', 'page_intro',       t('contact.page_intro'));
+  const hoursBody       = useContent('contact', 'hours_body',       t('contact.hours_body'));
 
   const blocks = [
     {
@@ -38,18 +44,18 @@ export default function Contact() {
     {
       icon: Clock,
       title: t('contact.hours_title'),
-      body: <span className="text-slate-700">{t('contact.hours_body')}</span>,
+      body: <span className="text-slate-700">{hoursBody}</span>,
     },
   ];
 
   return (
     <>
-      <SEO title={t('contact.meta_title')} description={t('contact.meta_description')} />
+      <SEO title={metaTitle} description={metaDescription} />
 
       <section className="py-14 sm:py-20">
         <div className="mx-auto max-w-4xl px-4 sm:px-6">
-          <h1 className="text-3xl font-bold text-luna-navy">{t('contact.page_title')}</h1>
-          <p className="mt-3 text-slate-600 max-w-2xl">{t('contact.page_intro')}</p>
+          <h1 className="text-3xl font-bold text-luna-navy">{pageTitle}</h1>
+          <p className="mt-3 text-slate-600 max-w-2xl">{pageIntro}</p>
 
           <div className="mt-10 grid gap-6 sm:grid-cols-2">
             {blocks.map((b) => (

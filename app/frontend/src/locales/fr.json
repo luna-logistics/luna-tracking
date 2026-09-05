@@ -163,6 +163,7 @@
     "sidebar_orders": "Commandes",
     "sidebar_forwarding": "Demandes réexpédition",
     "sidebar_auth_providers": "Connexions sociales",
+    "sidebar_content": "Contenus des pages",
     "products_title": "Catalogue produits",
     "products_intro": "Gérez le catalogue « Achat & Envoi ». Ajoutez un produit à la main, importez un lot en CSV, ou scannez un code-barres pour retrouver/ajouter rapidement.",
     "products_tab_list": "Liste",
@@ -340,6 +341,25 @@
     "col_status": "Statut",
     "items_summary_one": "{{count}} article",
     "items_summary_other": "{{count}} articles"
+  },
+  "admin_content": {
+    "title": "Contenus des pages",
+    "intro": "Modifiez les titres, textes, meta SEO et images de chaque page publique. Une valeur vide restaure le texte par défaut du site. Les changements sont visibles immédiatement (sans redéploiement).",
+    "refresh": "Recharger",
+    "section_text": "Textes",
+    "section_images": "Images",
+    "lang_fr": "Français",
+    "lang_en": "English",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "saved": "Enregistré",
+    "currently_default": "Valeur par défaut du site",
+    "currently_overridden": "Valeur personnalisée active",
+    "upload": "Téléverser une image",
+    "uploading": "Téléversement…",
+    "remove": "Retirer",
+    "remove_confirm": "Retirer cette image et revenir à celle par défaut ?",
+    "no_image": "Aucune image personnalisée"
   },
   "admin_auth": {
     "title": "Connexions sociales",

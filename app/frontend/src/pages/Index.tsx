@@ -6,10 +6,20 @@ import { Button } from '@/components/ui/button';
 import { IconCircle } from '@/components/IconCircle';
 import { WaveDivider } from '@/components/WaveDivider';
 import { urlFor } from '@/lib/url/routes';
+import { useContent, useSiteImage } from '@/contexts/SiteContentContext';
 
 export default function Index() {
   const { t, i18n } = useTranslation();
   const lang = i18n.language === 'en' ? 'en' : 'fr';
+
+  // Admin-overridable text + image slots — fall back to i18n defaults when
+  // no DB row exists.
+  const metaTitle       = useContent('home', 'meta_title',       t('home.meta_title'));
+  const metaDescription = useContent('home', 'meta_description', t('home.meta_description'));
+  const heroTitle       = useContent('home', 'hero_title',       t('home.hero_title'));
+  const heroSubtitle    = useContent('home', 'hero_subtitle',    t('home.hero_subtitle'));
+  const ogImageAlt      = useContent('home', 'og_image_alt',     t('brand.name'));
+  const ogImage         = useSiteImage('home_og', '') || undefined;
 
   const pillars = [
     { icon: Plane, title: t('home.pillar_air_title'), body: t('home.pillar_air_body') },
@@ -27,10 +37,12 @@ export default function Index() {
   return (
     <>
       <SEO
-        title={t('home.meta_title')}
-        description={t('home.meta_description')}
-        ogTitle={t('home.meta_title')}
-        ogDescription={t('home.meta_description')}
+        title={metaTitle}
+        description={metaDescription}
+        ogTitle={metaTitle}
+        ogDescription={metaDescription}
+        image={ogImage}
+        imageAlt={ogImageAlt}
       />
 
       {/* Hero — navy→cyan gradient, on-dark IconCircle for the CTA anchor */}
@@ -41,10 +53,10 @@ export default function Index() {
               {t('brand.name')}
             </p>
             <h1 className="text-4xl sm:text-5xl font-bold leading-tight">
-              {t('home.hero_title')}
+              {heroTitle}
             </h1>
             <p className="mt-5 text-lg text-white/90 max-w-xl">
-              {t('home.hero_subtitle')}
+              {heroSubtitle}
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button asChild variant="brand" size="lg">

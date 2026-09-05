@@ -163,6 +163,7 @@
     "sidebar_orders": "Orders",
     "sidebar_forwarding": "Forwarding leads",
     "sidebar_auth_providers": "Social logins",
+    "sidebar_content": "Page content",
     "products_title": "Product catalog",
     "products_intro": "Manage the Shop & Ship catalog. Add one product manually, import a batch via CSV, or scan a barcode to look up / add quickly.",
     "products_tab_list": "List",
@@ -340,6 +341,25 @@
     "col_status": "Status",
     "items_summary_one": "{{count}} item",
     "items_summary_other": "{{count}} items"
+  },
+  "admin_content": {
+    "title": "Page content",
+    "intro": "Edit titles, body text, SEO meta and images for every public page. Leaving a field empty restores the site default. Changes are visible immediately (no redeploy needed).",
+    "refresh": "Reload",
+    "section_text": "Text",
+    "section_images": "Images",
+    "lang_fr": "Français",
+    "lang_en": "English",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Saved",
+    "currently_default": "Site default value",
+    "currently_overridden": "Custom value active",
+    "upload": "Upload an image",
+    "uploading": "Uploading…",
+    "remove": "Remove",
+    "remove_confirm": "Remove this image and fall back to the default?",
+    "no_image": "No custom image"
   },
   "admin_auth": {
     "title": "Social logins",

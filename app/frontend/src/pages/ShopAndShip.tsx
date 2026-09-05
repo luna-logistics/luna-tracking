@@ -16,10 +16,16 @@ import { fetchDestinationCities, type DestinationCity } from '@/lib/cities';
 import { createOrder, type OrderItem } from '@/lib/orders';
 import { initiatePayment } from '@/lib/payment';
 import { productUrl, urlFor } from '@/lib/url/routes';
+import { useContent, useSiteImage } from '@/contexts/SiteContentContext';
 
 export default function ShopAndShip() {
   const { t, i18n } = useTranslation();
   const lang = i18n.language === 'en' ? 'en' : 'fr';
+  const metaTitle       = useContent('shop-and-ship', 'meta_title',       t('shop.meta_title'));
+  const metaDescription = useContent('shop-and-ship', 'meta_description', t('shop.meta_description'));
+  const pageTitle       = useContent('shop-and-ship', 'page_title',       t('shop.page_title'));
+  const pageIntro       = useContent('shop-and-ship', 'page_intro',       t('shop.page_intro'));
+  const ogImage         = useSiteImage('shop_og', '') || undefined;
   const { user } = useAuth();
   const { lines, add, setQty, remove, clear, total, count } = useCart();
   const [products, setProducts] = useState<Product[]>([]);
@@ -77,12 +83,12 @@ export default function ShopAndShip() {
 
   return (
     <>
-      <SEO title={t('shop.meta_title')} description={t('shop.meta_description')} />
+      <SEO title={metaTitle} description={metaDescription} image={ogImage} />
 
       <section className="bg-luna-gradient text-white">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-12 sm:py-16">
-          <h1 className="text-3xl sm:text-4xl font-bold">{t('shop.page_title')}</h1>
-          <p className="mt-3 text-white/90 max-w-2xl">{t('shop.page_intro')}</p>
+          <h1 className="text-3xl sm:text-4xl font-bold">{pageTitle}</h1>
+          <p className="mt-3 text-white/90 max-w-2xl">{pageIntro}</p>
         </div>
       </section>
 
