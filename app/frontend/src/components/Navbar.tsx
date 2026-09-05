@@ -37,7 +37,7 @@ export function Navbar() {
           {/* Horizontal 1600×400 (4:1) — phoenix + wordmark on one line. At
               h-10 (40px) the width is 160px and the wordmark stays crisp. */}
           <img
-            src="/brand/logo-luna-navbar.png"
+            src="/brand/logo-luna-navbar2.png"
             alt={t('brand.name')}
             className="h-10 w-auto"
             width={160}
