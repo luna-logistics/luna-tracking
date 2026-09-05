@@ -10,6 +10,7 @@ import { IconCircle } from '@/components/IconCircle';
 import { toast } from '@/components/ui/sonner';
 import { submitForwardingRequest } from '@/lib/forwarding';
 import { useContent, useSiteImage } from '@/contexts/SiteContentContext';
+import { Ed } from '@/components/Ed';
 
 export default function Forwarding() {
   const { t } = useTranslation();
@@ -58,8 +59,12 @@ export default function Forwarding() {
 
       <section className="bg-luna-gradient text-white">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-12 sm:py-16">
-          <h1 className="text-3xl sm:text-4xl font-bold">{pageTitle}</h1>
-          <p className="mt-3 text-white/90 max-w-2xl">{pageIntro}</p>
+          <Ed page="forwarding" field="page_title" as="h1" className="text-3xl sm:text-4xl font-bold block">
+            {pageTitle}
+          </Ed>
+          <Ed page="forwarding" field="intro" as="p" multiline className="mt-3 text-white/90 max-w-2xl block">
+            {pageIntro}
+          </Ed>
         </div>
       </section>
 

@@ -7,6 +7,7 @@ import { IconCircle } from '@/components/IconCircle';
 import { WaveDivider } from '@/components/WaveDivider';
 import { urlFor } from '@/lib/url/routes';
 import { useContent, useSiteImage } from '@/contexts/SiteContentContext';
+import { Ed } from '@/components/Ed';
 
 export default function Index() {
   const { t, i18n } = useTranslation();
@@ -52,12 +53,12 @@ export default function Index() {
             <p className="text-sm uppercase tracking-widest text-luna-cyan-light font-semibold mb-3">
               {t('brand.name')}
             </p>
-            <h1 className="text-4xl sm:text-5xl font-bold leading-tight">
+            <Ed page="home" field="hero_title" as="h1" className="text-4xl sm:text-5xl font-bold leading-tight block">
               {heroTitle}
-            </h1>
-            <p className="mt-5 text-lg text-white/90 max-w-xl">
+            </Ed>
+            <Ed page="home" field="hero_subtitle" as="p" multiline className="mt-5 text-lg text-white/90 max-w-xl block">
               {heroSubtitle}
-            </p>
+            </Ed>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button asChild variant="brand" size="lg">
                 <Link to={urlFor('pricing', lang)}>

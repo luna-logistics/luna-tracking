@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { fetchTrackingStatus, type TrackingResult } from '@/lib/tracking';
 import { useContent } from '@/contexts/SiteContentContext';
+import { Ed } from '@/components/Ed';
 
 export default function Tracking() {
   const { t, i18n } = useTranslation();
@@ -39,9 +40,13 @@ export default function Tracking() {
         <div className="mx-auto max-w-2xl px-4 sm:px-6">
           <div className="flex items-center gap-3 mb-4 text-luna-navy">
             <PackageSearch className="h-7 w-7" />
-            <h1 className="text-3xl font-bold">{pageTitle}</h1>
+            <Ed page="tracking" field="page_title" as="h1" className="text-3xl font-bold">
+              {pageTitle}
+            </Ed>
           </div>
-          <p className="text-slate-600 mb-8">{pageIntro}</p>
+          <Ed page="tracking" field="page_intro" as="p" multiline className="text-slate-600 mb-8 block">
+            {pageIntro}
+          </Ed>
 
           <form onSubmit={onSubmit} className="rounded-2xl border-2 border-luna-blue/30 bg-white p-6 shadow-sm">
             <Label htmlFor="tracking-password" className="text-luna-navy">

@@ -1,10 +1,11 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Menu, X, User, LayoutDashboard } from 'lucide-react';
+import { Menu, X, User, LayoutDashboard, Pencil, PencilOff } from 'lucide-react';
 import { useState } from 'react';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { urlFor } from '@/lib/url/routes';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEditMode } from '@/contexts/EditModeContext';
 import { cn } from '@/lib/utils';
 
 /**
@@ -16,6 +17,7 @@ export function Navbar() {
   const lang = i18n.language === 'en' ? 'en' : 'fr';
   const location = useLocation();
   const { user, isAdmin, signOut } = useAuth();
+  const { editMode, toggle: toggleEdit } = useEditMode();
   const [open, setOpen] = useState(false);
 
   const isActive = (path: string) =>
@@ -66,6 +68,22 @@ export function Navbar() {
           <LanguageSwitcher variant="light" />
           {user ? (
             <>
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={toggleEdit}
+                  className={cn(
+                    'inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm font-semibold transition-colors',
+                    editMode
+                      ? 'bg-luna-cyan text-luna-navy'
+                      : 'text-luna-navy hover:bg-luna-navy/5 border border-slate-200'
+                  )}
+                  title={editMode ? t('edit_mode.exit') : t('edit_mode.enter')}
+                >
+                  {editMode ? <PencilOff className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+                  {editMode ? t('edit_mode.exit') : t('edit_mode.enter')}
+                </button>
+              )}
               {isAdmin && (
                 <Link
                   to="/admin"

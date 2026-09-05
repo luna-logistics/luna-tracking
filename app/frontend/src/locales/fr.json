@@ -342,6 +342,13 @@
     "items_summary_one": "{{count}} article",
     "items_summary_other": "{{count}} articles"
   },
+  "edit_mode": {
+    "enter": "Éditer",
+    "exit": "Terminer",
+    "click_to_edit": "Cliquez pour modifier",
+    "save": "Enregistrer",
+    "cancel": "Annuler"
+  },
   "admin_content": {
     "title": "Contenus des pages",
     "intro": "Modifiez les titres, textes, meta SEO et images de chaque page publique. Une valeur vide restaure le texte par défaut du site. Les changements sont visibles immédiatement (sans redéploiement).",

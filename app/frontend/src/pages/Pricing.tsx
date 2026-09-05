@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { fetchDestinationCities, type DestinationCity } from '@/lib/cities';
 import { useContent } from '@/contexts/SiteContentContext';
+import { Ed } from '@/components/Ed';
 import { toast } from '@/components/ui/sonner';
 
 export default function Pricing() {
@@ -42,8 +43,12 @@ export default function Pricing() {
 
       <section className="py-14 sm:py-20">
         <div className="mx-auto max-w-3xl px-4 sm:px-6">
-          <h1 className="text-3xl font-bold text-luna-navy">{pageTitle}</h1>
-          <p className="mt-3 text-slate-600">{pageIntro}</p>
+          <Ed page="pricing" field="page_title" as="h1" className="text-3xl font-bold text-luna-navy block">
+            {pageTitle}
+          </Ed>
+          <Ed page="pricing" field="page_intro" as="p" multiline className="mt-3 text-slate-600 block">
+            {pageIntro}
+          </Ed>
 
           {submitted ? (
             <div className="mt-8 rounded-2xl border-2 border-luna-cyan bg-white p-8 text-center shadow-sm">

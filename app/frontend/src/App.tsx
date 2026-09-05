@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { CartProvider } from '@/contexts/CartContext';
 import { SiteContentProvider } from '@/contexts/SiteContentContext';
+import { EditModeProvider } from '@/contexts/EditModeContext';
 import { HreflangTags } from '@/components/HreflangTags';
 import { PublicLayout } from '@/components/PublicLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -151,14 +152,16 @@ const App = () => (
   <HelmetProvider>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <SiteContentProvider>
-          <CartProvider>
-            <Toaster richColors position="top-right" />
-            <BrowserRouter>
-              <AppRoutes />
-            </BrowserRouter>
-          </CartProvider>
-        </SiteContentProvider>
+        <EditModeProvider>
+          <SiteContentProvider>
+            <CartProvider>
+              <Toaster richColors position="top-right" />
+              <BrowserRouter>
+                <AppRoutes />
+              </BrowserRouter>
+            </CartProvider>
+          </SiteContentProvider>
+        </EditModeProvider>
       </AuthProvider>
     </QueryClientProvider>
   </HelmetProvider>

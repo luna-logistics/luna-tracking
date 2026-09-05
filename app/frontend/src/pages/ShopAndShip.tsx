@@ -17,6 +17,7 @@ import { createOrder, type OrderItem } from '@/lib/orders';
 import { initiatePayment } from '@/lib/payment';
 import { productUrl, urlFor } from '@/lib/url/routes';
 import { useContent, useSiteImage } from '@/contexts/SiteContentContext';
+import { Ed } from '@/components/Ed';
 
 export default function ShopAndShip() {
   const { t, i18n } = useTranslation();
@@ -87,8 +88,12 @@ export default function ShopAndShip() {
 
       <section className="bg-luna-gradient text-white">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-12 sm:py-16">
-          <h1 className="text-3xl sm:text-4xl font-bold">{pageTitle}</h1>
-          <p className="mt-3 text-white/90 max-w-2xl">{pageIntro}</p>
+          <Ed page="shop-and-ship" field="page_title" as="h1" className="text-3xl sm:text-4xl font-bold block">
+            {pageTitle}
+          </Ed>
+          <Ed page="shop-and-ship" field="page_intro" as="p" multiline className="mt-3 text-white/90 max-w-2xl block">
+            {pageIntro}
+          </Ed>
         </div>
       </section>
 

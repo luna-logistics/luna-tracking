@@ -342,6 +342,13 @@
     "items_summary_one": "{{count}} item",
     "items_summary_other": "{{count}} items"
   },
+  "edit_mode": {
+    "enter": "Edit",
+    "exit": "Done",
+    "click_to_edit": "Click to edit",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
   "admin_content": {
     "title": "Page content",
     "intro": "Edit titles, body text, SEO meta and images for every public page. Leaving a field empty restores the site default. Changes are visible immediately (no redeploy needed).",
