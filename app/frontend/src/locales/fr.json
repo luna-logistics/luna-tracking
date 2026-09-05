@@ -366,7 +366,10 @@
     "uploading": "Téléversement…",
     "remove": "Retirer",
     "remove_confirm": "Retirer cette image et revenir à celle par défaut ?",
-    "no_image": "Aucune image personnalisée"
+    "no_image": "Aucune image personnalisée",
+    "translate_to": "Traduire vers {{lang}}",
+    "translating": "Traduction…",
+    "translated": "Traduction chargée dans l'autre champ"
   },
   "admin_auth": {
     "title": "Connexions sociales",

@@ -366,7 +366,10 @@
     "uploading": "Uploading…",
     "remove": "Remove",
     "remove_confirm": "Remove this image and fall back to the default?",
-    "no_image": "No custom image"
+    "no_image": "No custom image",
+    "translate_to": "Translate to {{lang}}",
+    "translating": "Translating…",
+    "translated": "Translation loaded into the other field"
   },
   "admin_auth": {
     "title": "Social logins",

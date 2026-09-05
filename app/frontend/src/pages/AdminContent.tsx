@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Upload, Trash2, Save, RefreshCw } from 'lucide-react';
+import { Upload, Trash2, Save, RefreshCw, Languages } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import {
   contentKey,
 } from '@/lib/site-content';
 import { useSiteContentContext } from '@/contexts/SiteContentContext';
+import { translateText } from '@/lib/translate';
 import { cn } from '@/lib/utils';
 
 /**
@@ -104,38 +105,54 @@ function FieldEditor({ page, field, uiLang }: { page: string; field: EditableFie
   const label = uiLang === 'en' ? field.labelEn : field.labelFr;
   const hint = uiLang === 'en' ? field.hintEn : field.hintFr;
 
+  // Two draft states shared with the pair of FieldSlots so the "Translate
+  // FR→EN" button on the FR slot can push the DeepL output into the EN slot
+  // without a page round-trip.
+  const [frDraft, setFrDraft] = useState<string | null>(null);
+  const [enDraft, setEnDraft] = useState<string | null>(null);
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5">
       <div className="text-sm font-semibold text-luna-navy">{label}</div>
       {hint && <div className="mt-1 text-xs text-slate-500">{hint}</div>}
       <div className="mt-3 grid gap-4 md:grid-cols-2">
-        <FieldSlot page={page} field={field} lang="fr" labelLang={t('admin_content.lang_fr')} />
-        <FieldSlot page={page} field={field} lang="en" labelLang={t('admin_content.lang_en')} />
+        <FieldSlot page={page} field={field} lang="fr" labelLang={t('admin_content.lang_fr')}
+          externalValue={frDraft} onValueChange={setFrDraft} pairValue={enDraft} onPairChange={setEnDraft} />
+        <FieldSlot page={page} field={field} lang="en" labelLang={t('admin_content.lang_en')}
+          externalValue={enDraft} onValueChange={setEnDraft} pairValue={frDraft} onPairChange={setFrDraft} />
       </div>
     </div>
   );
 }
 
 function FieldSlot({
-  page, field, lang, labelLang,
-}: { page: string; field: EditableField; lang: 'fr' | 'en'; labelLang: string }) {
+  page, field, lang, labelLang, externalValue, onValueChange, pairValue, onPairChange,
+}: {
+  page: string; field: EditableField; lang: 'fr' | 'en'; labelLang: string;
+  externalValue: string | null;
+  onValueChange: (v: string | null) => void;
+  pairValue: string | null;
+  onPairChange: (v: string | null) => void;
+}) {
   const { t } = useTranslation();
   const ctx = useSiteContentContext();
   const key = contentKey(page, lang, field.key);
   const stored = ctx.content.get(key) ?? '';
-  const [value, setValue] = useState<string>(stored);
+  const value = externalValue ?? stored;
   const [saving, setSaving] = useState(false);
+  const [translating, setTranslating] = useState(false);
   const dirty = value !== stored;
 
-  // Keep local input in sync when a fresh refresh() lands new overrides
-  // from the DB (e.g. after another admin's edit or after ctx.refresh()).
-  useEffect(() => { setValue(stored); }, [stored]);
+  useEffect(() => { onValueChange(null); /* reset local override when DB row changes */ }, [stored]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const setValue = (v: string) => onValueChange(v === stored ? null : v);
 
   const onSave = async () => {
     setSaving(true);
     try {
       await saveSiteContent(page, lang, field.key, value);
       await ctx.refresh();
+      onValueChange(null);
       toast.success(`${labelLang} — ${t('admin_content.saved')}`);
     } catch (err) {
       // eslint-disable-next-line no-console
@@ -143,6 +160,24 @@ function FieldSlot({
       toast.error(t('common.error_generic'));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const otherLang: 'fr' | 'en' = lang === 'fr' ? 'en' : 'fr';
+  const onTranslate = async () => {
+    if (!value.trim()) return;
+    setTranslating(true);
+    try {
+      const res = await translateText(value, otherLang, lang);
+      onPairChange(res.translation);
+      toast.success(t('admin_content.translated'));
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[translate] failed', err);
+      const msg = err instanceof Error ? err.message : t('common.error_generic');
+      toast.error(msg);
+    } finally {
+      setTranslating(false);
     }
   };
 
@@ -156,14 +191,21 @@ function FieldSlot({
       ) : (
         <Input value={value} onChange={(e) => setValue(e.target.value)} />
       )}
-      <div className="mt-2 flex items-center justify-between gap-2">
+      <div className="mt-2 flex items-center justify-between gap-2 flex-wrap">
         <span className="text-xs text-slate-400">
           {stored ? t('admin_content.currently_overridden') : t('admin_content.currently_default')}
         </span>
-        <Button size="sm" variant={dirty ? 'navy' : 'outline'} disabled={!dirty || saving} onClick={onSave}>
-          <Save className="h-3.5 w-3.5" />
-          {saving ? t('admin_content.saving') : t('admin_content.save')}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="ghost" disabled={translating || !value.trim()} onClick={onTranslate}
+            title={t('admin_content.translate_to', { lang: otherLang.toUpperCase() })}>
+            <Languages className="h-3.5 w-3.5" />
+            {translating ? t('admin_content.translating') : `→ ${otherLang.toUpperCase()}`}
+          </Button>
+          <Button size="sm" variant={dirty ? 'navy' : 'outline'} disabled={!dirty || saving} onClick={onSave}>
+            <Save className="h-3.5 w-3.5" />
+            {saving ? t('admin_content.saving') : t('admin_content.save')}
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -8,7 +8,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/components/ui/sonner';
+import { Languages } from 'lucide-react';
 import Papa from 'papaparse';
+import { translateText } from '@/lib/translate';
 import {
   fetchAllProducts, fetchProductCategories, upsertProduct, toggleProductActive, deleteProduct,
   upsertCategory, deleteCategory,
@@ -280,27 +282,21 @@ function ProductForm({
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <Label htmlFor="name_fr">{t('admin.product_field_name_fr')}</Label>
-          <Input id="name_fr" value={values.name_fr ?? ''} onChange={(e) => set('name_fr', e.target.value)} required className="mt-1.5" />
-        </div>
-        <div>
-          <Label htmlFor="name_en">{t('admin.product_field_name_en')}</Label>
-          <Input id="name_en" value={values.name_en ?? ''} onChange={(e) => set('name_en', e.target.value)} required className="mt-1.5" />
-        </div>
-      </div>
+      <BilingualPair
+        label={t('admin.product_field_name_fr').replace(' (FR)', '')}
+        labelFr={t('admin.product_field_name_fr')} labelEn={t('admin.product_field_name_en')}
+        fr={values.name_fr ?? ''} en={values.name_en ?? ''}
+        onFr={(v) => set('name_fr', v)} onEn={(v) => set('name_en', v)}
+        kind="input" required
+      />
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <Label htmlFor="description_fr">{t('admin.product_field_description_fr')}</Label>
-          <Textarea id="description_fr" rows={3} value={values.description_fr ?? ''} onChange={(e) => set('description_fr', e.target.value || null)} className="mt-1.5" />
-        </div>
-        <div>
-          <Label htmlFor="description_en">{t('admin.product_field_description_en')}</Label>
-          <Textarea id="description_en" rows={3} value={values.description_en ?? ''} onChange={(e) => set('description_en', e.target.value || null)} className="mt-1.5" />
-        </div>
-      </div>
+      <BilingualPair
+        label={t('admin.product_field_description_fr').replace(' (FR)', '')}
+        labelFr={t('admin.product_field_description_fr')} labelEn={t('admin.product_field_description_en')}
+        fr={values.description_fr ?? ''} en={values.description_en ?? ''}
+        onFr={(v) => set('description_fr', v || null)} onEn={(v) => set('description_en', v || null)}
+        kind="textarea"
+      />
 
       <div className="grid gap-4 sm:grid-cols-3">
         <div>
@@ -333,6 +329,78 @@ function ProductForm({
         </Button>
       </div>
     </form>
+  );
+}
+
+/**
+ * Two side-by-side inputs (FR / EN) with per-side "Translate to the other"
+ * button. Used for product name + description, but shaped so category
+ * editor and future entities can reuse it.
+ */
+function BilingualPair({
+  label, labelFr, labelEn, fr, en, onFr, onEn, kind, required = false,
+}: {
+  label: string; labelFr: string; labelEn: string;
+  fr: string; en: string;
+  onFr: (v: string) => void; onEn: (v: string) => void;
+  kind: 'input' | 'textarea';
+  required?: boolean;
+}) {
+  const { t } = useTranslation();
+  const [busy, setBusy] = useState<'fr2en' | 'en2fr' | null>(null);
+
+  const translate = async (direction: 'fr2en' | 'en2fr') => {
+    const source = direction === 'fr2en' ? fr : en;
+    if (!source.trim()) return;
+    setBusy(direction);
+    try {
+      const target = direction === 'fr2en' ? 'en' : 'fr';
+      const from   = direction === 'fr2en' ? 'fr' : 'en';
+      const res = await translateText(source, target, from);
+      if (direction === 'fr2en') onEn(res.translation); else onFr(res.translation);
+      toast.success(t('admin_content.translated'));
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[translate] failed', err);
+      const msg = err instanceof Error ? err.message : t('common.error_generic');
+      toast.error(msg);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const Field = kind === 'textarea' ? Textarea : Input;
+
+  return (
+    <div>
+      <Label className="text-luna-navy">{label}</Label>
+      <div className="mt-1.5 grid gap-3 sm:grid-cols-2">
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-medium text-slate-500">{labelFr}</span>
+            <Button type="button" size="sm" variant="ghost" disabled={busy !== null || !fr.trim()}
+              onClick={() => translate('fr2en')} title={t('admin_content.translate_to', { lang: 'EN' })}>
+              <Languages className="h-3 w-3" />
+              {busy === 'fr2en' ? '…' : '→ EN'}
+            </Button>
+          </div>
+          <Field value={fr} onChange={(e: React.ChangeEvent<HTMLInputElement & HTMLTextAreaElement>) => onFr(e.target.value)}
+            rows={kind === 'textarea' ? 3 : undefined} required={required} />
+        </div>
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-medium text-slate-500">{labelEn}</span>
+            <Button type="button" size="sm" variant="ghost" disabled={busy !== null || !en.trim()}
+              onClick={() => translate('en2fr')} title={t('admin_content.translate_to', { lang: 'FR' })}>
+              <Languages className="h-3 w-3" />
+              {busy === 'en2fr' ? '…' : '→ FR'}
+            </Button>
+          </div>
+          <Field value={en} onChange={(e: React.ChangeEvent<HTMLInputElement & HTMLTextAreaElement>) => onEn(e.target.value)}
+            rows={kind === 'textarea' ? 3 : undefined} required={required} />
+        </div>
+      </div>
+    </div>
   );
 }
 
