@@ -1,3 +1,14 @@
+# Single-package "workspace" — pnpm ≥ 11 requires the `packages` field to be
+# present whenever this file exists (Cloudflare Pages rejects install without
+# it: "packages field missing or empty"). Luna is NOT a monorepo; the sole
+# package is app/frontend itself.
+packages:
+  - '.'
+
+# Whitelist the two native-binary post-install scripts we already trust.
+# pnpm ≥ 11 blocks build scripts by default; without an explicit true/false
+# answer here, the interactive CLI keeps re-scaffolding this file with
+# placeholder values, and CI (Cloudflare Pages) fails on ignored builds.
 allowBuilds:
   '@swc/core': true
   esbuild: true
