@@ -32,17 +32,16 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/95 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+      <div className="mx-auto flex h-20 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
         <Link to={urlFor('home', lang)} className="flex items-center gap-2" aria-label={t('brand.name')}>
-          {/* Logo — the on-white variant. User will place logo-on-white.jpeg
-              at /public/brand/. A missing file 404s the image but doesn't
-              break layout. Alt text is per-language. */}
+          {/* Square 250×250 phoenix + wordmark. Displayed at 64×64 (h-16)
+              inside the h-20 navbar row so the wordmark stays readable. */}
           <img
             src="/brand/logo-luna-250.png"
             alt={t('brand.name')}
-            className="h-9 w-auto"
-            width={250}
-            height={36}
+            className="h-16 w-16 object-contain"
+            width={64}
+            height={64}
           />
         </Link>
 
