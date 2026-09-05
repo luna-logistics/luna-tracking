@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@/components/ui/sonner';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { fetchActiveProducts, fetchProductCategories, productName, categoryName, type Product, type ProductCategory } from '@/lib/products';
+import { fetchActiveProducts, fetchProductCategories, productName, productSlug, categoryName, type Product, type ProductCategory } from '@/lib/products';
 import { fetchDestinationCities, type DestinationCity } from '@/lib/cities';
 import { createOrder, type OrderItem } from '@/lib/orders';
 import { initiatePayment } from '@/lib/payment';
@@ -58,6 +58,7 @@ export default function ShopAndShip() {
       const items: OrderItem[] = lines.map((l) => ({
         product_id: l.product_id, slug: l.slug, name: l.name, quantity: l.quantity, unit_price: l.unit_price,
       }));
+      // (cart line's `slug` is the language-specific slug captured at add time)
       const order = await createOrder({
         user_id: user.id,
         items,
@@ -126,7 +127,7 @@ export default function ShopAndShip() {
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {filtered.map((p) => (
                       <div key={p.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col">
-                        <Link to={productUrl(p.slug, lang)} className="block">
+                        <Link to={productUrl(productSlug(p, lang), lang)} className="block">
                           <div className="aspect-square rounded-xl bg-luna-navy/5 grid place-items-center text-luna-navy/40">
                             {/* Placeholder icon in lieu of image_url per spec */}
                             <ShoppingCart className="h-10 w-10" aria-hidden="true" />
@@ -143,7 +144,7 @@ export default function ShopAndShip() {
                             size="sm"
                             variant="navy"
                             onClick={() => {
-                              add({ product_id: p.id, slug: p.slug, name: productName(p, lang), unit_price: p.price });
+                              add({ product_id: p.id, slug: productSlug(p, lang), name: productName(p, lang), unit_price: p.price });
                               toast.success(t('shop.added_to_cart'));
                             }}
                           >

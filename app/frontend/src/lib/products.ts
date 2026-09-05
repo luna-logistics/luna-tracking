@@ -10,7 +10,11 @@ export type ProductCategory = {
 
 export type Product = {
   id: string;
-  slug: string;
+  /** Bilingual slugs — /achat-envoi/{slug_fr} + /en/shop-and-ship/{slug_en}. */
+  slug_fr: string;
+  slug_en: string;
+  /** Legacy single-slug column kept for the roll-forward window; unread by the frontend. */
+  slug?: string | null;
   name_fr: string;
   name_en: string;
   description_fr: string | null;
@@ -26,6 +30,9 @@ export type Product = {
 
 export function productName(p: Product, lang: 'fr' | 'en'): string {
   return lang === 'en' ? p.name_en : p.name_fr;
+}
+export function productSlug(p: Product, lang: 'fr' | 'en'): string {
+  return lang === 'en' ? p.slug_en : p.slug_fr;
 }
 export function productDescription(p: Product, lang: 'fr' | 'en'): string | null {
   return lang === 'en' ? p.description_en : p.description_fr;
@@ -52,10 +59,17 @@ export async function fetchAllProducts(): Promise<Product[]> {
   return (data ?? []) as Product[];
 }
 
-export async function fetchProductBySlug(slug: string): Promise<Product | null> {
-  const { data, error } = await supabase.from('products').select('*').eq('slug', slug).maybeSingle();
+/** Look up a product by (lang, slug). Falls back to the other language's
+ *  slug if not found — a shared URL between users of different languages
+ *  still resolves during the transition. */
+export async function fetchProductBySlug(lang: 'fr' | 'en', slug: string): Promise<Product | null> {
+  const column = lang === 'en' ? 'slug_en' : 'slug_fr';
+  const { data, error } = await supabase.from('products').select('*').eq(column, slug).maybeSingle();
   if (error) { console.warn('[products] bySlug failed:', error.message); return null; }
-  return (data as Product) ?? null;
+  if (data) return data as Product;
+  const other = lang === 'en' ? 'slug_fr' : 'slug_en';
+  const { data: alt } = await supabase.from('products').select('*').eq(other, slug).maybeSingle();
+  return (alt as Product) ?? null;
 }
 
 export async function fetchProductByBarcode(barcode: string): Promise<Product | null> {

@@ -7,8 +7,9 @@ import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/sonner';
 import { useCart } from '@/contexts/CartContext';
-import { fetchProductBySlug, fetchProductCategories, productName, productDescription, categoryName, type Product, type ProductCategory } from '@/lib/products';
+import { fetchProductBySlug, fetchProductCategories, productName, productDescription, productSlug, categoryName, type Product, type ProductCategory } from '@/lib/products';
 import { urlFor } from '@/lib/url/routes';
+import { useLangUrls } from '@/contexts/LangUrlContext';
 
 const SITE_URL = 'https://lunatrackinglogistics.com';
 
@@ -20,13 +21,23 @@ export default function ShopAndShipProduct() {
   const [product, setProduct] = useState<Product | null>(null);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [loading, setLoading] = useState(true);
+  const { setLangUrls } = useLangUrls();
 
   useEffect(() => {
     if (!slug) return;
     setLoading(true);
-    Promise.all([fetchProductBySlug(slug), fetchProductCategories()])
+    Promise.all([fetchProductBySlug(lang, slug), fetchProductCategories()])
       .then(([p, cats]) => { setProduct(p); setCategories(cats); setLoading(false); });
-  }, [slug]);
+  }, [slug, lang]);
+
+  useEffect(() => {
+    if (!product) { setLangUrls(null); return; }
+    setLangUrls({
+      fr: `/achat-envoi/${product.slug_fr}`,
+      en: `/en/shop-and-ship/${product.slug_en}`,
+    });
+    return () => setLangUrls(null);
+  }, [product, setLangUrls]);
 
   if (loading) {
     return (
@@ -67,7 +78,7 @@ export default function ShopAndShipProduct() {
     '@type': 'Product',
     name: displayName,
     description: displayDescription ?? undefined,
-    sku: product.slug,
+    sku: productSlug(product, lang),
     gtin13: product.barcode ?? undefined,
     category: displayCategory,
     weight: product.weight_kg ? { '@type': 'QuantitativeValue', value: product.weight_kg, unitCode: 'KGM' } : undefined,
@@ -76,7 +87,7 @@ export default function ShopAndShipProduct() {
       price: product.price.toFixed(2),
       priceCurrency: 'EUR',
       availability: product.is_active ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
-      url: `${SITE_URL}${lang === 'en' ? `/en/shop-and-ship/${product.slug}` : `/achat-envoi/${product.slug}`}`,
+      url: `${SITE_URL}${lang === 'en' ? `/en/shop-and-ship/${product.slug_en}` : `/achat-envoi/${product.slug_fr}`}`,
     },
   };
 
@@ -130,7 +141,7 @@ export default function ShopAndShipProduct() {
                   size="lg"
                   className="mt-6"
                   onClick={() => {
-                    add({ product_id: product.id, slug: product.slug, name: displayName, unit_price: product.price });
+                    add({ product_id: product.id, slug: productSlug(product, lang), name: displayName, unit_price: product.price });
                     toast.success(t('shop.added_to_cart'));
                   }}
                 >

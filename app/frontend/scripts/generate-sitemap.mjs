@@ -45,12 +45,11 @@ async function fetchRows(table, query) {
   }
 }
 
-const productRows = await fetchRows('products', 'select=slug&is_active=eq.true');
-const productSlugs = productRows.map((r) => r.slug).filter((s) => typeof s === 'string');
+const productRows = await fetchRows('products', 'select=slug_fr,slug_en&is_active=eq.true');
 const productUrls = [];
-for (const slug of productSlugs) {
-  productUrls.push(productUrl(slug, 'fr'));
-  productUrls.push(productUrl(slug, 'en'));
+for (const row of productRows) {
+  if (typeof row.slug_fr === 'string') productUrls.push(productUrl(row.slug_fr, 'fr'));
+  if (typeof row.slug_en === 'string') productUrls.push(productUrl(row.slug_en, 'en'));
 }
 
 const blogRows = await fetchRows('blog_posts', 'select=slug_fr,slug_en&published=eq.true');
