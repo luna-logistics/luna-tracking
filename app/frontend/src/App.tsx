@@ -41,6 +41,10 @@ const AdminOrders = lazy(() => import('@/pages/AdminOrders'));
 const AdminForwardingRequests = lazy(() => import('@/pages/AdminForwardingRequests'));
 const AdminAuthProviders = lazy(() => import('@/pages/AdminAuthProviders'));
 const AdminContent = lazy(() => import('@/pages/AdminContent'));
+const BlogIndex = lazy(() => import('@/pages/BlogIndex'));
+const BlogPost = lazy(() => import('@/pages/BlogPost'));
+const AdminBlog = lazy(() => import('@/pages/AdminBlog'));
+const AdminBlogForm = lazy(() => import('@/pages/AdminBlogForm'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 
 const queryClient = new QueryClient();
@@ -102,6 +106,8 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
           <Route path={t('/achat-envoi', '/shop-and-ship')} element={<PublicLayout><ShopAndShip /></PublicLayout>} />
           <Route path={t('/achat-envoi/:slug', '/shop-and-ship/:slug')} element={<PublicLayout><ShopAndShipProduct /></PublicLayout>} />
           <Route path={t('/reexpedition', '/international-forwarding')} element={<PublicLayout><Forwarding /></PublicLayout>} />
+          <Route path="/blog" element={<PublicLayout><BlogIndex /></PublicLayout>} />
+          <Route path="/blog/:slug" element={<PublicLayout><BlogPost /></PublicLayout>} />
 
           {/* Auth — plain shell (no Navbar/Footer, focused card) */}
           <Route path={t('/connexion', '/login')} element={<Login />} />
@@ -128,6 +134,9 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
             <Route path="/admin/demandes-reexpedition" element={<AdminForwardingRequests />} />
             <Route path="/admin/auth-sociale" element={<AdminAuthProviders />} />
             <Route path="/admin/contenus" element={<AdminContent />} />
+            <Route path="/admin/blog" element={<AdminBlog />} />
+            <Route path="/admin/blog/nouveau" element={<AdminBlogForm />} />
+            <Route path="/admin/blog/:id" element={<AdminBlogForm />} />
           </Route>
 
           <Route path="*" element={<PublicLayout><NotFound /></PublicLayout>} />

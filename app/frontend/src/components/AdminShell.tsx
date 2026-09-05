@@ -1,6 +1,6 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { LayoutDashboard, MapPin, Package, ShoppingCart, Boxes, KeyRound, FileText, LogOut } from 'lucide-react';
+import { LayoutDashboard, MapPin, Package, ShoppingCart, Boxes, KeyRound, FileText, Newspaper, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 
@@ -22,6 +22,7 @@ export function AdminShell() {
     { to: '/admin/demandes-reexpedition', label: t('admin.sidebar_forwarding'), icon: Boxes },
     { to: '/admin/auth-sociale', label: t('admin.sidebar_auth_providers'), icon: KeyRound },
     { to: '/admin/contenus', label: t('admin.sidebar_content'), icon: FileText },
+    { to: '/admin/blog', label: t('admin.sidebar_blog'), icon: Newspaper },
   ];
 
   return (

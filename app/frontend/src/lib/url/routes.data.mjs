@@ -27,6 +27,8 @@ export const ROUTES = {
   adminForwarding: { indexable: false, bilingual: false, fr: '/admin/demandes-reexpedition', en: '/admin/demandes-reexpedition' },
   adminAuthProviders: { indexable: false, bilingual: false, fr: '/admin/auth-sociale', en: '/admin/auth-sociale' },
   adminContent: { indexable: false, bilingual: false, fr: '/admin/contenus', en: '/admin/contenus' },
+  blogIndex:    { indexable: true,  bilingual: true,  fr: '/blog',            en: '/blog' },
+  adminBlog:    { indexable: false, bilingual: false, fr: '/admin/blog',      en: '/admin/blog' },
 };
 
 export function urlFor(key, lang = 'fr') {
@@ -38,6 +40,10 @@ export function urlFor(key, lang = 'fr') {
 
 export function productUrl(slug, lang = 'fr') {
   return `${urlFor('shopAndShip', lang)}/${slug}`;
+}
+
+export function blogPostUrl(slug, lang = 'fr') {
+  return `${urlFor('blogIndex', lang)}/${slug}`;
 }
 
 export function allIndexableUrls() {

@@ -35,7 +35,9 @@ export type RouteKey =
   | 'adminOrders'
   | 'adminForwarding'
   | 'adminAuthProviders'
-  | 'adminContent';
+  | 'adminContent'
+  | 'blogIndex'
+  | 'adminBlog';
 
 type RouteDef = {
   indexable: boolean;
@@ -65,6 +67,8 @@ export const ROUTES: Record<RouteKey, RouteDef> = {
   adminForwarding: { indexable: false, bilingual: false, fr: '/admin/demandes-reexpedition', en: '/admin/demandes-reexpedition' },
   adminAuthProviders: { indexable: false, bilingual: false, fr: '/admin/auth-sociale', en: '/admin/auth-sociale' },
   adminContent: { indexable: false, bilingual: false, fr: '/admin/contenus', en: '/admin/contenus' },
+  blogIndex:    { indexable: true,  bilingual: true,  fr: '/blog',            en: '/blog' },
+  adminBlog:    { indexable: false, bilingual: false, fr: '/admin/blog',      en: '/admin/blog' },
 };
 
 export function urlFor(key: RouteKey, lang: Lang = 'fr'): string {
@@ -87,6 +91,9 @@ export function matchUrl(pathname: string): { key: RouteKey; lang: Lang } | null
   // knows how to swap parents while preserving the slug.
   const prod = matchProductUrl(pathname);
   if (prod) return { key: 'shopAndShip', lang: prod.lang };
+  // Blog post detail: /blog/{slug} and /en/blog/{slug} share the same slug.
+  const blog = matchBlogPostUrl(pathname);
+  if (blog) return { key: 'blogIndex', lang: blog.lang };
   return null;
 }
 
@@ -100,6 +107,20 @@ export function matchProductUrl(pathname: string): { slug: string; lang: Lang } 
   const enMatch = pathname.match(/^\/en\/shop-and-ship\/([a-z0-9-]+)$/);
   if (enMatch) return { slug: enMatch[1], lang: 'en' };
   const frMatch = pathname.match(/^\/achat-envoi\/([a-z0-9-]+)$/);
+  if (frMatch) return { slug: frMatch[1], lang: 'fr' };
+  return null;
+}
+
+/** Build a blog post URL for the given slug + language. */
+export function blogPostUrl(slug: string, lang: Lang = 'fr'): string {
+  return `${urlFor('blogIndex', lang)}/${slug}`;
+}
+
+/** Detect a blog post URL and extract {slug, lang}, else null. */
+export function matchBlogPostUrl(pathname: string): { slug: string; lang: Lang } | null {
+  const enMatch = pathname.match(/^\/en\/blog\/([a-z0-9-]+)$/);
+  if (enMatch) return { slug: enMatch[1], lang: 'en' };
+  const frMatch = pathname.match(/^\/blog\/([a-z0-9-]+)$/);
   if (frMatch) return { slug: frMatch[1], lang: 'fr' };
   return null;
 }

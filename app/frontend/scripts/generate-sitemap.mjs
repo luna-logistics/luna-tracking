@@ -16,7 +16,7 @@ import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const { allIndexableUrls, productUrl } = await import(
+const { allIndexableUrls, productUrl, blogPostUrl } = await import(
   pathToFileURL(resolve(__dirname, '..', 'src/lib/url/routes.data.mjs')).href
 );
 
@@ -26,39 +26,42 @@ const BASE_URL = 'https://lunatrackinglogistics.com';
 // Static URLs from the registry (home, tracking, shop-and-ship parent, etc.).
 const staticUrls = allIndexableUrls();
 
-// Dynamic product URLs — degrade gracefully if Supabase is unavailable.
-async function fetchProductSlugs() {
+// Dynamic URLs — degrade gracefully if Supabase is unavailable.
+async function fetchRows(table, query) {
   const url = process.env.VITE_SUPABASE_URL;
   const key = process.env.VITE_SUPABASE_ANON_KEY;
   if (!url || !key) {
-    console.warn('[sitemap] VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY not set — skipping product URLs.');
+    console.warn(`[sitemap] VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY not set — skipping ${table}.`);
     return [];
   }
   try {
-    const res = await fetch(
-      `${url}/rest/v1/products?select=slug&is_active=eq.true`,
-      { headers: { apikey: key, Authorization: `Bearer ${key}` } }
-    );
-    if (!res.ok) {
-      console.warn(`[sitemap] Supabase returned ${res.status} — skipping product URLs.`);
-      return [];
-    }
-    const rows = await res.json();
-    return Array.isArray(rows) ? rows.map((r) => r.slug).filter((s) => typeof s === 'string') : [];
+    const res = await fetch(`${url}/rest/v1/${table}?${query}`,
+      { headers: { apikey: key, Authorization: `Bearer ${key}` } });
+    if (!res.ok) { console.warn(`[sitemap] ${table} → ${res.status} — skipping.`); return []; }
+    return await res.json();
   } catch (err) {
-    console.warn('[sitemap] fetch failed:', err?.message ?? err, '— skipping product URLs.');
+    console.warn(`[sitemap] ${table} fetch failed:`, err?.message ?? err);
     return [];
   }
 }
 
-const productSlugs = await fetchProductSlugs();
+const productRows = await fetchRows('products', 'select=slug&is_active=eq.true');
+const productSlugs = productRows.map((r) => r.slug).filter((s) => typeof s === 'string');
 const productUrls = [];
 for (const slug of productSlugs) {
   productUrls.push(productUrl(slug, 'fr'));
   productUrls.push(productUrl(slug, 'en'));
 }
 
-const emitted = [...staticUrls, ...productUrls];
+const blogRows = await fetchRows('blog_posts', 'select=slug&published=eq.true');
+const blogSlugs = blogRows.map((r) => r.slug).filter((s) => typeof s === 'string');
+const blogUrls = [];
+for (const slug of blogSlugs) {
+  blogUrls.push(blogPostUrl(slug, 'fr'));
+  blogUrls.push(blogPostUrl(slug, 'en'));
+}
+
+const emitted = [...staticUrls, ...productUrls, ...blogUrls];
 const now = new Date().toISOString().split('T')[0];
 const xml =
   '<?xml version="1.0" encoding="UTF-8"?>\n' +
@@ -72,5 +75,5 @@ const xml =
 writeFileSync(join(DIST, 'sitemap.xml'), xml, 'utf8');
 console.log(
   `[sitemap] wrote ${emitted.length} URLs to dist/sitemap.xml ` +
-  `(${staticUrls.length} static + ${productUrls.length} product).`
+  `(${staticUrls.length} static + ${productUrls.length} product + ${blogUrls.length} blog).`
 );
