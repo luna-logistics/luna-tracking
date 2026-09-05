@@ -1,23 +1,31 @@
-# Cloudflare Pages build config.
+# Cloudflare Workers static-assets deploy config.
 #
-# The Pages project is created ONCE in the Cloudflare dashboard (see README →
-# manual steps). Its build settings mirror this file:
+# Luna is deployed as a Worker with the Static Assets binding — the modern
+# Cloudflare model that replaces classic Pages projects. It behaves like Pages
+# from the user's side (edge CDN, SPA fallback, _headers / _redirects support)
+# but wrangler treats it as a Worker: `wrangler deploy`, not
+# `wrangler pages deploy`.
 #
-#   Framework preset:  Vite (or None; both work)
-#   Build command:     pnpm install --frozen-lockfile && pnpm build
-#   Build output:      dist
-#   Root directory:    app/frontend
-#   Node version:      20 (set as env: NODE_VERSION=20)
+# The presence of `pages_build_output_dir` here (removed) previously made
+# wrangler misclassify this as a Pages project. The [assets] block below is
+# what identifies it as a Workers-with-assets deployment.
 #
-# Env vars set in Pages dashboard (Settings → Environment variables):
-#   VITE_SUPABASE_URL       = https://<ref>.supabase.co
-#   VITE_SUPABASE_ANON_KEY  = eyJ… (anon public key, safe to bundle)
+# Deploy from this machine:
+#   cd app/frontend
+#   pnpm build
+#   npx wrangler deploy
 #
-# NO wrangler deploy is required for a Pages project — the repo push triggers
-# the build. This file exists for `wrangler pages dev` and `wrangler pages
-# deploy` if we ever want manual deploys; it is NOT the source of truth for
-# the automated build.
+# The Worker's name in the dashboard is `luna-tracking` (matches `name` below).
+# not_found_handling = "single-page-application" makes any unmatched path serve
+# /index.html — the SPA fallback the React router needs to take over. This
+# supersedes the `/* /index.html 200` rule in public/_redirects (still kept
+# there as documentation + fallback if we ever migrate back to Pages).
 
-name = "luna-tracking-logistics"
-pages_build_output_dir = "dist"
+name = "luna-tracking"
 compatibility_date = "2026-01-01"
+
+[assets]
+directory = "./dist"
+# SPA behaviour: a request for /suivi (no file on disk) serves dist/index.html
+# and lets React Router handle the route.
+not_found_handling = "single-page-application"
