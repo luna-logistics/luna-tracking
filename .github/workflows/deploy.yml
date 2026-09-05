@@ -55,10 +55,15 @@ jobs:
           run_install: false
 
       - name: Install dependencies
-        # No pnpm cache — for a project this small the whole `pnpm install`
-        # takes ~10s cold. Cache adds complexity that failed the previous
-        # setup-node step (opaque error, logs private on public-repo API).
-        run: pnpm install --frozen-lockfile
+        # --ignore-scripts skips ALL lifecycle scripts. pnpm ≥ 11 exits 1 on
+        # any ignored post-install (even in a non-interactive CI), and every
+        # workaround (allowBuilds map in workspace, .npmrc flag,
+        # onlyBuiltDependencies list) has some version/edge-case bite. The
+        # two scripts we DO want to run (@swc/core, esbuild) are optional
+        # native-compile bindings — both packages fall back to WASM /
+        # prebuilt binaries when the compile is skipped, and vite build
+        # works fine either way.
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Build
         run: pnpm build
