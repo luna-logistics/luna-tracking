@@ -1,0 +1,76 @@
+# Auto-deploy to Cloudflare Workers on every push to main.
+#
+# Trigger:
+#   - Any push to main that touches `app/frontend/**` OR this workflow file.
+#     Docs-only pushes to `docs/**` etc. don't waste minutes on a redeploy.
+#   - Manual re-run via the GitHub Actions "Run workflow" button
+#     (workflow_dispatch) if we ever need to force a redeploy without a code
+#     change (e.g. Supabase-side data changed and we want the sitemap
+#     regenerated).
+#
+# Required repo secrets (Settings → Secrets and variables → Actions →
+# New repository secret):
+#   CLOUDFLARE_API_TOKEN    — Cloudflare API token with Workers Scripts: Edit
+#   CLOUDFLARE_ACCOUNT_ID   — the "Account ID" from the Cloudflare dashboard
+#                              right-side pane
+#   VITE_SUPABASE_URL       — https://<project-ref>.supabase.co
+#   VITE_SUPABASE_ANON_KEY  — anon public key (safe to bundle in the frontend)
+#
+# See docs/HANDOFF.md for how to create the Cloudflare API token.
+
+name: Deploy to Cloudflare
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/frontend/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+
+# Cancel an in-progress deploy if a newer commit lands — a stale build from
+# two commits ago overwriting a fresher one is a real footgun.
+concurrency:
+  group: deploy-cloudflare
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app/frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: app/frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+        env:
+          # Injected into vite build so import.meta.env.VITE_SUPABASE_URL /
+          # _ANON_KEY resolve at compile time. Also used by generate-sitemap.mjs
+          # to fetch active product slugs at build time.
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: app/frontend
+          command: deploy
