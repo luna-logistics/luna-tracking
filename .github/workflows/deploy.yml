@@ -43,19 +43,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 11
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: pnpm
-          cache-dependency-path: app/frontend/pnpm-lock.yaml
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+          run_install: false
 
       - name: Install dependencies
+        # No pnpm cache — for a project this small the whole `pnpm install`
+        # takes ~10s cold. Cache adds complexity that failed the previous
+        # setup-node step (opaque error, logs private on public-repo API).
         run: pnpm install --frozen-lockfile
 
       - name: Build
