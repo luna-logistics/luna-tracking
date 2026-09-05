@@ -337,6 +337,11 @@
     "items_summary_one": "{{count}} item",
     "items_summary_other": "{{count}} items"
   },
+  "admin_gate": {
+    "title": "Admin only",
+    "body": "Your account doesn't have the admin rights needed to see this page. If you think that's a mistake, contact the Luna team.",
+    "home": "Back home"
+  },
   "route_error": {
     "title": "Something went wrong",
     "body": "An unexpected error occurred on this page. Reload to try again, or go back home.",

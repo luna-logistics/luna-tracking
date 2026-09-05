@@ -337,6 +337,11 @@
     "items_summary_one": "{{count}} article",
     "items_summary_other": "{{count}} articles"
   },
+  "admin_gate": {
+    "title": "Accès réservé",
+    "body": "Votre compte n'a pas les droits d'administration nécessaires pour consulter cette page. Si vous pensez que c'est une erreur, contactez l'équipe Luna.",
+    "home": "Retour à l'accueil"
+  },
   "route_error": {
     "title": "Quelque chose s'est mal passé",
     "body": "Une erreur inattendue est survenue sur cette page. Rechargez pour réessayer, ou revenez à l'accueil.",

@@ -10,6 +10,7 @@ import { CartProvider } from '@/contexts/CartContext';
 import { HreflangTags } from '@/components/HreflangTags';
 import { PublicLayout } from '@/components/PublicLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { AdminGate } from '@/components/AdminGate';
 import { setVisitLanguage } from '@/i18n';
 
 // Eager: homepage + login (critical paths).
@@ -111,8 +112,11 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
             <Route path={t('/compte/factures', '/account/invoices')} element={<AccountInvoices />} />
           </Route>
 
-          {/* Admin — FR-only convention; still gated on session */}
-          <Route element={<ProtectedRoute><AdminShell /></ProtectedRoute>}>
+          {/* Admin — FR-only convention. AdminGate wraps ProtectedRoute so a
+              signed-in-but-not-admin user gets the "access denied" card, not
+              a login redirect (which hides why the URL doesn't work). RLS is
+              the real security boundary; this is UX. */}
+          <Route element={<ProtectedRoute><AdminGate><AdminShell /></AdminGate></ProtectedRoute>}>
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/destinations" element={<AdminCities />} />
             <Route path="/admin/produits" element={<AdminProducts />} />
