@@ -1,21 +1,18 @@
-# Cloudflare Pages routing. First-match-wins; static files take precedence.
+# Cloudflare Workers static-assets routing. First-match-wins; static files
+# take precedence.
 #
-# Rules Cloudflare enforces (both silently ignored before we knew):
-#  (a) status must be one of 200/301/302/303/307/308 — anything else is dropped.
-#  (b) a 200-rewrite whose target re-matches its source (a /X/* -> /X/index.html
-#      loop) is treated as infinite and IGNORED — only the single root SPA
-#      fallback (/* -> /index.html) is honoured.
+# The SPA fallback (`/* -> /index.html 200`) that used to live here has been
+# REMOVED. On Workers with `[assets] not_found_handling = "single-page-
+# application"` (see wrangler.toml), the assets binding itself serves
+# /index.html for any unmatched path — the _redirects rule is redundant, and
+# Cloudflare's validator rejects it as an infinite loop (after its automatic
+# .html + /index stripping, /index.html re-matches /*, so it flags the loop
+# and refuses the deployment).
+#
+# Rule status codes must be one of 200/301/302/303/307/308 — anything else
+# is silently dropped.
 
-# NO TRAILING SLASHES — enforce via 301, not convention. Applies to every path
-# segment; `:splat` captures the rest of the URL after the leading `/`.
-# The trailing-slash form is always the pre-image, the clean form is the target.
+# NO TRAILING SLASHES — enforce via 301, not convention. `:splat` captures
+# the rest of the URL after the leading `/`. The trailing-slash form is
+# always the pre-image, the clean form is the target.
 /*/                       /:splat                301
-
-# Legacy www → apex (Cloudflare handles this at the DNS/proxy layer for many
-# setups; kept here as a belt-and-suspenders redirect for any request that does
-# reach Pages with the www host). No-op if the DNS layer already handles it.
-
-# SPA fallback — every non-prerendered URL falls through to the home index.html
-# and the SPA takes over. main.tsx strips the fallback's SEO tags before mount
-# so react-helmet-async writes fresh from the visited page's <SEO> component.
-/*                        /index.html            200
