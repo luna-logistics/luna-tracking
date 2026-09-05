@@ -1,6 +1,6 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { LayoutDashboard, MapPin, LogOut } from 'lucide-react';
+import { LayoutDashboard, MapPin, Package, ShoppingCart, Boxes, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 
@@ -17,6 +17,9 @@ export function AdminShell() {
   const items = [
     { to: '/admin', label: t('admin.sidebar_dashboard'), icon: LayoutDashboard },
     { to: '/admin/destinations', label: t('admin.sidebar_cities'), icon: MapPin },
+    { to: '/admin/produits', label: t('admin.sidebar_products'), icon: Package },
+    { to: '/admin/commandes', label: t('admin.sidebar_orders'), icon: ShoppingCart },
+    { to: '/admin/demandes-reexpedition', label: t('admin.sidebar_forwarding'), icon: Boxes },
   ];
 
   return (

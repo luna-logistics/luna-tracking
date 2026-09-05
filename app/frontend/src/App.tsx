@@ -6,6 +6,7 @@ import { RouteErrorBoundary } from '@/components/RouteErrorBoundary';
 import { lazy, Suspense, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { CartProvider } from '@/contexts/CartContext';
 import { HreflangTags } from '@/components/HreflangTags';
 import { PublicLayout } from '@/components/PublicLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -19,6 +20,9 @@ import Login from '@/pages/Login';
 const Tracking = lazy(() => import('@/pages/Tracking'));
 const Pricing = lazy(() => import('@/pages/Pricing'));
 const Contact = lazy(() => import('@/pages/Contact'));
+const ShopAndShip = lazy(() => import('@/pages/ShopAndShip'));
+const ShopAndShipProduct = lazy(() => import('@/pages/ShopAndShipProduct'));
+const Forwarding = lazy(() => import('@/pages/Forwarding'));
 const Signup = lazy(() => import('@/pages/Signup'));
 const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
 const AuthCallback = lazy(() => import('@/pages/AuthCallback'));
@@ -29,6 +33,9 @@ const AccountShell = lazy(() => import('@/components/AccountShell').then((m) => 
 const AdminShell = lazy(() => import('@/components/AdminShell').then((m) => ({ default: m.AdminShell })));
 const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'));
 const AdminCities = lazy(() => import('@/pages/AdminCities'));
+const AdminProducts = lazy(() => import('@/pages/AdminProducts'));
+const AdminOrders = lazy(() => import('@/pages/AdminOrders'));
+const AdminForwardingRequests = lazy(() => import('@/pages/AdminForwardingRequests'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 
 const queryClient = new QueryClient();
@@ -87,6 +94,9 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
           <Route path={t('/suivi', '/tracking')} element={<PublicLayout><Tracking /></PublicLayout>} />
           <Route path={t('/tarifs', '/pricing')} element={<PublicLayout><Pricing /></PublicLayout>} />
           <Route path={t('/contact', '/contact')} element={<PublicLayout><Contact /></PublicLayout>} />
+          <Route path={t('/achat-envoi', '/shop-and-ship')} element={<PublicLayout><ShopAndShip /></PublicLayout>} />
+          <Route path={t('/achat-envoi/:slug', '/shop-and-ship/:slug')} element={<PublicLayout><ShopAndShipProduct /></PublicLayout>} />
+          <Route path={t('/reexpedition', '/international-forwarding')} element={<PublicLayout><Forwarding /></PublicLayout>} />
 
           {/* Auth — plain shell (no Navbar/Footer, focused card) */}
           <Route path={t('/connexion', '/login')} element={<Login />} />
@@ -105,6 +115,9 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
           <Route element={<ProtectedRoute><AdminShell /></ProtectedRoute>}>
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/destinations" element={<AdminCities />} />
+            <Route path="/admin/produits" element={<AdminProducts />} />
+            <Route path="/admin/commandes" element={<AdminOrders />} />
+            <Route path="/admin/demandes-reexpedition" element={<AdminForwardingRequests />} />
           </Route>
 
           <Route path="*" element={<PublicLayout><NotFound /></PublicLayout>} />
@@ -129,10 +142,12 @@ const App = () => (
   <HelmetProvider>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Toaster richColors position="top-right" />
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
+        <CartProvider>
+          <Toaster richColors position="top-right" />
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </CartProvider>
       </AuthProvider>
     </QueryClientProvider>
   </HelmetProvider>

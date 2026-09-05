@@ -145,3 +145,83 @@ Cities are managed by status only, never hard-deleted, so we keep the quoting hi
 | i18n gate | `scripts/check-i18n.mjs` |
 | Destination cities schema | `supabase/migrations/20260904000000_destination_cities.sql` |
 | Cloudflare routing | `public/_redirects` + `public/_headers` |
+
+---
+
+## Addendum 2026-09-05 — Achat & Envoi + Réexpédition
+
+Two new business lines added, both following the FR/EN parity + URL registry + Luna brand + Supabase pattern established in the initial scaffold. No hardcoded product data — everything comes from Supabase.
+
+### What was built
+
+**Achat & Envoi (Shop & Ship)** — `/achat-envoi` (FR) + `/en/shop-and-ship` (EN)
+- Public catalog: category filter, product grid, cart sidebar (session-scoped), inline checkout (delivery details in Congo — reuses `destination_cities` for the recipient city dropdown with the same coming-soon greying).
+- Product detail: `/achat-envoi/{slug}` — English slug shared across both locales, with `Product` JSON-LD (schema.org, offers, availability).
+- Payment: stub `src/lib/payment.ts` returns a `deferred` status with a bilingual message; the order is written to Supabase as `pending_payment` first so Luna's team can follow up manually. Contract typed so a real gateway (Stripe / Mollie / Bancontact) drops in later without touching the checkout UI — same shape as the FileMaker tracking stub.
+- Client area: `/compte/commandes` now shows real orders (status badge, items summary, total) instead of the placeholder.
+
+**Réexpédition (International forwarding)** — `/reexpedition` (FR) + `/en/international-forwarding` (EN)
+- Explainer page: hero, 3-step how-it-works with numbered IconCircles, US→Kinshasa + China→Matadi example scenarios, lead-capture form.
+- Form writes to `forwarding_requests` (anon insert allowed by RLS — no login needed for a quote request).
+
+**Admin surfaces (FR-only by convention)**
+- `/admin/produits` — tabbed shell:
+  - **List**: search (name/slug/barcode) + category filter, per-row active toggle, edit, delete.
+  - **Add/Edit**: full product form with **barcode-scanner UX** — the barcode input auto-focuses on mount, on save the form resets and refocuses the barcode field, and a "Scanné : {barcode}" flash confirms the scan. USB/Bluetooth scanners that type as a keyboard work directly.
+  - **CSV import** (PapaParse): row-by-row validation (required fields, numeric price/weight, `category_slug` exists, slug format), preview table with OK/Error labels + per-row error reasons, bulk insert only valid rows, summary of imported/skipped.
+  - **Categories**: inline add/edit + delete (delete blocked when a product references the category — FK RESTRICT).
+- `/admin/commandes` — orders list with status badge, expandable items breakdown, **Advance** button (linear workflow `pending_payment → paid → purchasing → purchased → shipped → delivered`) and **Cancel** (blocked on terminal `delivered`).
+- `/admin/demandes-reexpedition` — leads list with inline status Select (`new → contacted → quoted → closed`).
+
+**Data model** (see `supabase/migrations/20260905000000_shop_ship_and_forwarding.sql`)
+- `product_categories` — slug + name_fr + name_en + display_order.
+- `products` — English slug (URL identity), bilingual name/description, price, category FK, optional barcode (unique when set, format-validated), optional HS code, weight_kg, image_url, is_active.
+- `orders` — user_id FK, `items` jsonb snapshot (frozen at checkout so a later product-price change never rewrites what the customer paid for), enum `status`, recipient_name/phone/address, `recipient_city_id` FK to `destination_cities` (reuses the coming-soon gating).
+- `forwarding_requests` — anon-writable lead capture with enum `status`.
+- RLS: catalog public read, self-scoped order read, anon forwarding insert. Admin gating still "any signed-in user" — hardening to a `profiles.role` column is a future chantier.
+
+**Seed** (in the migration): 3 categories (Staples, Canned goods, Hygiene) × 10 realistic Belgian grocery products. Each product has bilingual name + description, price in €, real EAN-13-format barcode (5410xxxxxxxxx Belgian GS1 range), realistic HS tariff code (e.g. rice = 1006.30, sardines = 1604.13, soap = 3401.11), and weight. `image_url` is null everywhere — the UI shows a ShoppingCart icon placeholder per spec.
+
+**SEO**
+- Registry-driven — added `shopAndShip` + `forwarding` + 3 admin routes to `src/lib/url/routes.ts`.
+- Product detail pages get self-canonical + `productUrl(slug, lang)` helper — the language switcher swaps the parent path while preserving the slug (registry's `matchUrl` handles this via `matchProductUrl`).
+- Sitemap generator (`scripts/generate-sitemap.mjs`) now fetches active product slugs from Supabase at build time via the REST API, emits `/achat-envoi/{slug}` + `/en/shop-and-ship/{slug}` for each. Degrades gracefully (WARN, empty product URLs, static-only sitemap) if Supabase unreachable — build never fails on a network hiccup.
+- `check-i18n` gate now enforces 323 keys × 2 locales + 18 routes. `check-sitemap` still passes.
+
+**Nav updates**
+- Public Navbar: added "Achat & Envoi" and "Réexpédition" links (6 primary links total).
+- Admin sidebar: added Products, Orders, Forwarding entries with lucide icons.
+
+### Decisions made worth confirming
+
+1. **Payment gateway not wired** — checkout creates the order in Supabase then shows the deferred-payment message. Which gateway to pick (Mollie for BE-focused / Stripe for global / Bancontact-only) is your call before we build.
+2. **Admin role gating** — for now, ANY authenticated user can reach `/admin/*` and modify products/orders/leads. Fine while the team is 1–2 people; needs a `profiles.role` column + RoleGuard before opening signup to real customers.
+3. **Product images** — spec said use a placeholder icon, not real images. The `image_url` field exists in the schema and CSV import supports it, but no UI upload yet. Follow-up: image upload to Supabase Storage bucket + generation of variant sizes.
+4. **Seed products** — I chose 10 realistic Belgian grocery items across staples/canned/hygiene. Confirm you want these to ship live or if we should clear the seed before real catalog data. The seed uses `on conflict do nothing` so re-running the migration is safe.
+5. **Anon forwarding requests** — the RLS policy allows anon insert on `forwarding_requests` (no login needed). Add reCAPTCHA/Turnstile if spam becomes an issue.
+6. **Order status workflow is linear** (`pending_payment → paid → purchasing → purchased → shipped → delivered` with `cancelled` as escape hatch). No branching; the "Advance" button jumps one step forward. Simplifies UX; if you need per-transition permissions later, `nextStatus()` in `src/lib/orders.ts` is where to change it.
+
+### Manual steps required
+
+1. **Run the new migration** on your Supabase project (SQL editor):
+   ```
+   app/frontend/supabase/migrations/20260905000000_shop_ship_and_forwarding.sql
+   ```
+   Verify: 4 new tables, 3 seeded categories, 10 seeded products, RLS enabled on all.
+2. **Rebuild + redeploy**:
+   ```bash
+   cd C:\luna-tracking-git\app\frontend
+   pnpm build
+   npx wrangler deploy
+   ```
+3. Optional CSV template for bulk import — the admin CSV import expects these columns:
+   `slug, name_fr, name_en, description_fr, description_en, price, category_slug, barcode, hs_code, weight_kg, image_url`
+
+### Follow-up chantiers (not built, flagged)
+
+- Payment gateway integration (Mollie / Stripe / Bancontact — your pick).
+- Product image upload UI + Supabase Storage bucket + resize pipeline.
+- Admin role gating (`profiles.role` + RoleGuard).
+- Order-status email notifications (Resend / Postmark) — e.g. auto-email the customer when status flips to `shipped`.
+- Anti-spam on the forwarding form (Turnstile).
+- Product-detail JSON-LD is basic — add breadcrumbs schema when the catalog grows deeper.

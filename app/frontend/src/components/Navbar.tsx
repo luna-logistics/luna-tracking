@@ -24,6 +24,8 @@ export function Navbar() {
   const links = [
     { to: urlFor('home', lang), label: t('nav.home') },
     { to: urlFor('tracking', lang), label: t('nav.tracking') },
+    { to: urlFor('shopAndShip', lang), label: t('nav.shop_and_ship') },
+    { to: urlFor('forwarding', lang), label: t('nav.forwarding') },
     { to: urlFor('pricing', lang), label: t('nav.pricing') },
     { to: urlFor('contact', lang), label: t('nav.contact') },
   ];

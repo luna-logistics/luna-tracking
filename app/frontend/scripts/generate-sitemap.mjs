@@ -1,34 +1,64 @@
 /**
  * Post-build sitemap generator.
  *
- * A sitemap is an assertion that each URL exists, is indexable, and is
- * canonical to itself. So this walks the WRITTEN dist/ tree — every
- * prerendered file becomes a candidate URL — and only emits URLs that
- * (a) are in the URL registry's indexable set, and (b) actually have a
- * matching dist/{path}/index.html on disk.
+ * Two sources of URLs, both authoritative:
+ *   (a) the static URL registry — every route with indexable:true, both langs.
+ *   (b) dynamic content — active product slugs fetched from Supabase at build
+ *       time. Emits /achat-envoi/{slug} + /en/shop-and-ship/{slug} per product.
  *
- * That's what caught Homie Book's phantom-URL incident: a sitemap listing a
- * URL Cloudflare would 301 away or a page that no longer prerenders.
+ * If Supabase is unreachable at build time (network hiccup, key missing on a
+ * local run), we log a warning and emit ONLY the static registry URLs rather
+ * than failing the build — a partial sitemap is better than a broken deploy.
+ * check-sitemap.mjs still validates the emitted list against _redirects.
  */
-import { existsSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const { allIndexableUrls } = await import(
+const { allIndexableUrls, productUrl } = await import(
   pathToFileURL(resolve(__dirname, '..', 'src/lib/url/routes.data.mjs')).href
 );
 
 const DIST = 'dist';
 const BASE_URL = 'https://lunatrackinglogistics.com';
 
-// Without prerendering (see vite.config.ts note), every URL is served by the
-// SPA fallback — dist/index.html — but that's still a valid 200 that renders
-// the right page once JS runs, so we emit all indexable URLs. When prerender
-// lands, restore the per-URL disk check that catches drift between registry
-// and actual output.
-const emitted = allIndexableUrls();
+// Static URLs from the registry (home, tracking, shop-and-ship parent, etc.).
+const staticUrls = allIndexableUrls();
 
+// Dynamic product URLs — degrade gracefully if Supabase is unavailable.
+async function fetchProductSlugs() {
+  const url = process.env.VITE_SUPABASE_URL;
+  const key = process.env.VITE_SUPABASE_ANON_KEY;
+  if (!url || !key) {
+    console.warn('[sitemap] VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY not set — skipping product URLs.');
+    return [];
+  }
+  try {
+    const res = await fetch(
+      `${url}/rest/v1/products?select=slug&is_active=eq.true`,
+      { headers: { apikey: key, Authorization: `Bearer ${key}` } }
+    );
+    if (!res.ok) {
+      console.warn(`[sitemap] Supabase returned ${res.status} — skipping product URLs.`);
+      return [];
+    }
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows.map((r) => r.slug).filter((s) => typeof s === 'string') : [];
+  } catch (err) {
+    console.warn('[sitemap] fetch failed:', err?.message ?? err, '— skipping product URLs.');
+    return [];
+  }
+}
+
+const productSlugs = await fetchProductSlugs();
+const productUrls = [];
+for (const slug of productSlugs) {
+  productUrls.push(productUrl(slug, 'fr'));
+  productUrls.push(productUrl(slug, 'en'));
+}
+
+const emitted = [...staticUrls, ...productUrls];
 const now = new Date().toISOString().split('T')[0];
 const xml =
   '<?xml version="1.0" encoding="UTF-8"?>\n' +
@@ -40,4 +70,7 @@ const xml =
   '\n</urlset>\n';
 
 writeFileSync(join(DIST, 'sitemap.xml'), xml, 'utf8');
-console.log(`[sitemap] wrote ${emitted.length} URLs to dist/sitemap.xml`);
+console.log(
+  `[sitemap] wrote ${emitted.length} URLs to dist/sitemap.xml ` +
+  `(${staticUrls.length} static + ${productUrls.length} product).`
+);
