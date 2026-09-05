@@ -440,7 +440,11 @@
     "no_image": "No custom image",
     "translate_to": "Translate to {{lang}}",
     "translating": "Translating…",
-    "translated": "Translation loaded into the other field"
+    "translated": "Translation loaded into the other field",
+    "reset": "Reset",
+    "reset_tooltip": "Clear the custom value and fall back to the site default",
+    "reset_confirm": "Clear your custom value and fall back to the site default?",
+    "reset_done": "Fell back to site default"
   },
   "admin_auth": {
     "title": "Social logins",

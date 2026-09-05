@@ -134,18 +134,26 @@ function FieldSlot({
   pairValue: string | null;
   onPairChange: (v: string | null) => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const ctx = useSiteContentContext();
   const key = contentKey(page, lang, field.key);
-  const stored = ctx.content.get(key) ?? '';
-  const value = externalValue ?? stored;
+  const stored = ctx.content.get(key);          // string OR undefined
+  const defaultValue = i18n.t(field.i18nKey, { lng: lang }) as string;
+  // Effective value in the input: draft > stored override > site default.
+  const value = externalValue ?? stored ?? defaultValue;
   const [saving, setSaving] = useState(false);
   const [translating, setTranslating] = useState(false);
-  const dirty = value !== stored;
+  const isOverride = stored !== undefined;
+  // Dirty when the input differs from what's persisted (or from default if no
+  // override exists yet).
+  const persistedForCompare = stored ?? defaultValue;
+  const dirty = value !== persistedForCompare;
 
-  useEffect(() => { onValueChange(null); /* reset local override when DB row changes */ }, [stored]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Reset local draft when the underlying persisted value changes (another
+  // admin's edit, or a refresh() after our own save).
+  useEffect(() => { onValueChange(null); }, [stored, defaultValue]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const setValue = (v: string) => onValueChange(v === stored ? null : v);
+  const setValue = (v: string) => onValueChange(v);
 
   const onSave = async () => {
     setSaving(true);
@@ -157,6 +165,23 @@ function FieldSlot({
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('[admin-content] save failed', err);
+      toast.error(t('common.error_generic'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const onReset = async () => {
+    if (!confirm(t('admin_content.reset_confirm'))) return;
+    setSaving(true);
+    try {
+      await saveSiteContent(page, lang, field.key, '');  // empty = delete row = revert to default
+      await ctx.refresh();
+      onValueChange(null);
+      toast.success(`${labelLang} — ${t('admin_content.reset_done')}`);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[admin-content] reset failed', err);
       toast.error(t('common.error_generic'));
     } finally {
       setSaving(false);
@@ -193,9 +218,15 @@ function FieldSlot({
       )}
       <div className="mt-2 flex items-center justify-between gap-2 flex-wrap">
         <span className="text-xs text-slate-400">
-          {stored ? t('admin_content.currently_overridden') : t('admin_content.currently_default')}
+          {isOverride ? t('admin_content.currently_overridden') : t('admin_content.currently_default')}
         </span>
         <div className="flex items-center gap-2">
+          {isOverride && (
+            <Button size="sm" variant="ghost" disabled={saving} onClick={onReset}
+              className="text-slate-500 hover:text-luna-navy" title={t('admin_content.reset_tooltip')}>
+              {t('admin_content.reset')}
+            </Button>
+          )}
           <Button size="sm" variant="ghost" disabled={translating || !value.trim()} onClick={onTranslate}
             title={t('admin_content.translate_to', { lang: otherLang.toUpperCase() })}>
             <Languages className="h-3.5 w-3.5" />

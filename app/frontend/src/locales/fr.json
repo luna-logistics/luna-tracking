@@ -440,7 +440,11 @@
     "no_image": "Aucune image personnalisée",
     "translate_to": "Traduire vers {{lang}}",
     "translating": "Traduction…",
-    "translated": "Traduction chargée dans l'autre champ"
+    "translated": "Traduction chargée dans l'autre champ",
+    "reset": "Réinitialiser",
+    "reset_tooltip": "Effacer la personnalisation et revenir au texte par défaut du site",
+    "reset_confirm": "Effacer votre personnalisation et revenir au texte par défaut du site ?",
+    "reset_done": "Retour au texte par défaut"
   },
   "admin_auth": {
     "title": "Connexions sociales",
