@@ -38,10 +38,10 @@ export function Navbar() {
               at /public/brand/. A missing file 404s the image but doesn't
               break layout. Alt text is per-language. */}
           <img
-            src="/brand/logo-on-white.jpeg"
+            src="/brand/logo-luna-250.png"
             alt={t('brand.name')}
             className="h-9 w-auto"
-            width={140}
+            width={250}
             height={36}
           />
         </Link>
