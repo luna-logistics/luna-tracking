@@ -3,7 +3,11 @@
 packages:
   - '.'
 
-# Whitelist the two native-binary post-install scripts we already trust.
+# Whitelist the native-binary post-install scripts we already trust.
+# CI uses --ignore-scripts and skips these entirely (all have working
+# WASM / prebuilt fallbacks); local dev runs them for the fast path.
 onlyBuiltDependencies:
   - '@swc/core'
   - esbuild
+  - sharp
+  - workerd
