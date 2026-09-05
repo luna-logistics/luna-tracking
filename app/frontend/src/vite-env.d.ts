@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+// (touch: retrigger CI after secrets configured)
 
 interface ImportMetaEnv {
   readonly VITE_SUPABASE_URL: string;
