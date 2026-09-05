@@ -3,7 +3,6 @@ import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
 import { ArrowLeft, CalendarDays } from 'lucide-react';
-import Markdown from 'markdown-to-jsx';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,6 +11,8 @@ import {
   type BlogPost,
 } from '@/lib/blog';
 import { urlFor } from '@/lib/url/routes';
+import { sanitizeBlogHtml } from '@/lib/rich-content';
+import { useLangUrls } from '@/contexts/LangUrlContext';
 
 const SITE_URL = 'https://lunatrackinglogistics.com';
 
@@ -21,12 +22,24 @@ export default function BlogPostPage() {
   const { slug } = useParams<{ slug: string }>();
   const [post, setPost] = useState<BlogPost | null>(null);
   const [loading, setLoading] = useState(true);
+  const { setLangUrls } = useLangUrls();
 
   useEffect(() => {
     if (!slug) return;
     setLoading(true);
-    fetchPostBySlug(slug).then((p) => { setPost(p); setLoading(false); });
-  }, [slug]);
+    fetchPostBySlug(lang, slug).then((p) => { setPost(p); setLoading(false); });
+  }, [slug, lang]);
+
+  // Register the cross-language URLs so the LanguageSwitcher jumps to the
+  // right slug when the user flips FR↔EN instead of falling back to /blog.
+  useEffect(() => {
+    if (!post) { setLangUrls(null); return; }
+    setLangUrls({
+      fr: `/blog/${post.slug_fr}`,
+      en: `/en/blog/${post.slug_en}`,
+    });
+    return () => setLangUrls(null);
+  }, [post, setLangUrls]);
 
   if (loading) {
     return <div className="py-24 text-center text-slate-500">{t('common.loading')}</div>;
@@ -53,11 +66,9 @@ export default function BlogPostPage() {
 
   const title = postTitle(post, lang);
   const body  = postContent(post, lang);
-  const canonical = `${SITE_URL}${lang === 'en' ? '/en' : ''}${urlFor('blogIndex', lang) === '/' ? '' : ''}/blog/${post.slug}`;
+  const langSlug = lang === 'en' ? post.slug_en : post.slug_fr;
+  const canonical = `${SITE_URL}${lang === 'en' ? `/en/blog/${langSlug}` : `/blog/${langSlug}`}`;
 
-  // JSON-LD Article for rich results. datePublished / dateModified from
-  // published_at + updated_at. Uses the CURRENT locale's title / description
-  // so the /en variant reads English metadata.
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Article',
@@ -114,9 +125,10 @@ export default function BlogPostPage() {
             />
           )}
 
-          <div className="prose prose-slate max-w-none mt-8 prose-headings:text-luna-navy prose-a:text-luna-blue">
-            <Markdown options={{ forceBlock: true }}>{body}</Markdown>
-          </div>
+          <div
+            className="prose prose-slate max-w-none mt-8 prose-headings:text-luna-navy prose-a:text-luna-blue"
+            dangerouslySetInnerHTML={{ __html: sanitizeBlogHtml(body) }}
+          />
         </div>
       </article>
     </>

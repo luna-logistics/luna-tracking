@@ -24,8 +24,6 @@ export type Product = {
   is_active: boolean;
 };
 
-/** Locale-aware name accessor — the catalog / product page never picks a
- *  column by hand, so a language switch flips both name and description. */
 export function productName(p: Product, lang: 'fr' | 'en'): string {
   return lang === 'en' ? p.name_en : p.name_fr;
 }
@@ -37,20 +35,13 @@ export function categoryName(c: ProductCategory, lang: 'fr' | 'en'): string {
 }
 
 export async function fetchProductCategories(): Promise<ProductCategory[]> {
-  const { data, error } = await supabase
-    .from('product_categories')
-    .select('*')
-    .order('display_order');
+  const { data, error } = await supabase.from('product_categories').select('*').order('display_order');
   if (error) { console.warn('[products] categories fetch failed:', error.message); return []; }
   return (data ?? []) as ProductCategory[];
 }
 
 export async function fetchActiveProducts(): Promise<Product[]> {
-  const { data, error } = await supabase
-    .from('products')
-    .select('*')
-    .eq('is_active', true)
-    .order('name_fr');
+  const { data, error } = await supabase.from('products').select('*').eq('is_active', true).order('name_fr');
   if (error) { console.warn('[products] fetch failed:', error.message); return []; }
   return (data ?? []) as Product[];
 }
@@ -98,4 +89,17 @@ export async function upsertCategory(c: Omit<ProductCategory, 'id'> & { id?: str
 export async function deleteCategory(id: string) {
   const { error } = await supabase.from('product_categories').delete().eq('id', id);
   if (error) throw error;
+}
+
+/** Upload a product photo to the product-images Storage bucket. Returns
+ *  the public URL to store in products.image_url. */
+export async function uploadProductImage(slug: string, file: File): Promise<string> {
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'bin';
+  const path = `${slug || 'product'}-${Date.now()}.${ext}`;
+  const { error: upErr } = await supabase.storage
+    .from('product-images')
+    .upload(path, file, { cacheControl: '3600', upsert: false, contentType: file.type });
+  if (upErr) throw upErr;
+  const { data } = supabase.storage.from('product-images').getPublicUrl(path);
+  return data.publicUrl;
 }

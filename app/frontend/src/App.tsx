@@ -9,6 +9,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { CartProvider } from '@/contexts/CartContext';
 import { SiteContentProvider } from '@/contexts/SiteContentContext';
 import { EditModeProvider } from '@/contexts/EditModeContext';
+import { LangUrlProvider } from '@/contexts/LangUrlContext';
 import { HreflangTags } from '@/components/HreflangTags';
 import { PublicLayout } from '@/components/PublicLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -166,7 +167,9 @@ const App = () => (
             <CartProvider>
               <Toaster richColors position="top-right" />
               <BrowserRouter>
-                <AppRoutes />
+                <LangUrlProvider>
+                  <AppRoutes />
+                </LangUrlProvider>
               </BrowserRouter>
             </CartProvider>
           </SiteContentProvider>

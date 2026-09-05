@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { SUPPORTED_LANGS, type SupportedLang, setLanguagePreference } from '@/i18n';
 import { matchUrl, urlFor } from '@/lib/url/routes';
+import { useLangUrls } from '@/contexts/LangUrlContext';
 import { cn } from '@/lib/utils';
 
 /**
@@ -28,12 +29,16 @@ export function LanguageSwitcher({ variant = 'light' }: { variant?: 'light' | 'd
   const { i18n } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
+  const { langUrls } = useLangUrls();
   const currentLang = (i18n.language === 'en' ? 'en' : 'fr') as SupportedLang;
 
   const handle = (lang: SupportedLang) => {
     if (lang === currentLang) return;
     setLanguagePreference(lang);
-    const newPath = buildLangPath(location.pathname, lang);
+    // Dynamic content pages (blog post, product detail, …) can override
+    // the target URL via LangUrlContext so a blog post at /blog/mon-article
+    // jumps to /en/blog/my-article instead of falling back to the index.
+    const newPath = langUrls?.[lang] ?? buildLangPath(location.pathname, lang);
     navigate(newPath + location.search + location.hash, { replace: true });
   };
 

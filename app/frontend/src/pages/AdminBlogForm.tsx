@@ -1,27 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Upload, Trash2, Eye, Save } from 'lucide-react';
-import Markdown from 'markdown-to-jsx';
+import { ArrowLeft, Upload, Trash2, Save, Languages } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { toast } from '@/components/ui/sonner';
 import { BilingualPair } from '@/components/BilingualPair';
+import RichTextEditor from '@/components/RichTextEditor';
 import {
   fetchPostById, upsertPost, uploadFeaturedImage, slugify,
   type BlogPost,
 } from '@/lib/blog';
+import { translateText } from '@/lib/translate';
 
-/**
- * Create + edit share this page. On create the URL is /admin/blog/nouveau
- * (no :id); on edit /admin/blog/:id — we detect which via useParams.
- * Draft state lives in this component; a Save button persists to Supabase
- * and (on create) redirects to the edit URL for the new row.
- */
 export default function AdminBlogForm() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -31,12 +25,13 @@ export default function AdminBlogForm() {
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [preview, setPreview] = useState<'fr' | 'en' | null>(null);
+  const [translatingSlug, setTranslatingSlug] = useState<'fr2en' | 'en2fr' | null>(null);
 
   const [values, setValues] = useState<Partial<BlogPost>>(() => ({
-    slug: '', title_fr: '', title_en: '', excerpt_fr: null, excerpt_en: null,
-    content_fr: '', content_en: '', featured_image: null,
-    featured_image_alt_fr: null, featured_image_alt_en: null,
+    slug_fr: '', slug_en: '',
+    title_fr: '', title_en: '', excerpt_fr: null, excerpt_en: null,
+    content_fr: '', content_en: '',
+    featured_image: null, featured_image_alt_fr: null, featured_image_alt_en: null,
     meta_title_fr: null, meta_title_en: null,
     meta_description_fr: null, meta_description_en: null,
     published: false,
@@ -44,24 +39,23 @@ export default function AdminBlogForm() {
 
   useEffect(() => {
     if (isNew) return;
-    fetchPostById(id!).then((p) => {
-      if (p) setValues(p);
-      setLoading(false);
-    });
+    fetchPostById(id!).then((p) => { if (p) setValues(p); setLoading(false); });
   }, [id, isNew]);
 
   const set = <K extends keyof BlogPost>(k: K, v: BlogPost[K]) => setValues((prev) => ({ ...prev, [k]: v }));
 
-  // Auto-slug from FR title when creating a new post AND slug is empty.
+  // Auto-slug from titles on create; leave alone on edit.
   useEffect(() => {
-    if (isNew && !values.slug && values.title_fr) {
-      setValues((prev) => ({ ...prev, slug: slugify(values.title_fr!) }));
-    }
+    if (isNew && !values.slug_fr && values.title_fr) set('slug_fr', slugify(values.title_fr));
   }, [values.title_fr, isNew]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (isNew && !values.slug_en && values.title_en) set('slug_en', slugify(values.title_en));
+  }, [values.title_en, isNew]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const canSave = useMemo(
-    () => Boolean(values.slug?.trim() && values.title_fr?.trim() && values.title_en?.trim()),
-    [values.slug, values.title_fr, values.title_en]
+    () => Boolean(values.slug_fr?.trim() && values.slug_en?.trim()
+      && values.title_fr?.trim() && values.title_en?.trim()),
+    [values.slug_fr, values.slug_en, values.title_fr, values.title_en]
   );
 
   const onSave = async () => {
@@ -70,20 +64,15 @@ export default function AdminBlogForm() {
     try {
       const payload = {
         id: isNew ? undefined : id,
-        slug: values.slug!,
-        title_fr: values.title_fr!,
-        title_en: values.title_en!,
-        excerpt_fr: values.excerpt_fr ?? null,
-        excerpt_en: values.excerpt_en ?? null,
-        content_fr: values.content_fr ?? '',
-        content_en: values.content_en ?? '',
+        slug_fr: values.slug_fr!, slug_en: values.slug_en!,
+        title_fr: values.title_fr!, title_en: values.title_en!,
+        excerpt_fr: values.excerpt_fr ?? null, excerpt_en: values.excerpt_en ?? null,
+        content_fr: values.content_fr ?? '', content_en: values.content_en ?? '',
         featured_image: values.featured_image ?? null,
         featured_image_alt_fr: values.featured_image_alt_fr ?? null,
         featured_image_alt_en: values.featured_image_alt_en ?? null,
-        meta_title_fr: values.meta_title_fr ?? null,
-        meta_title_en: values.meta_title_en ?? null,
-        meta_description_fr: values.meta_description_fr ?? null,
-        meta_description_en: values.meta_description_en ?? null,
+        meta_title_fr: values.meta_title_fr ?? null, meta_title_en: values.meta_title_en ?? null,
+        meta_description_fr: values.meta_description_fr ?? null, meta_description_en: values.meta_description_en ?? null,
         published: values.published ?? false,
       };
       const saved = await upsertPost(payload);
@@ -93,16 +82,15 @@ export default function AdminBlogForm() {
       // eslint-disable-next-line no-console
       console.error('[admin-blog] save failed', err);
       toast.error(err instanceof Error ? err.message : t('common.error_generic'));
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
 
   const onUpload = async (file: File) => {
-    if (!values.slug) { toast.error(t('admin_blog.slug_required_upload')); return; }
+    const s = values.slug_fr || values.slug_en;
+    if (!s) { toast.error(t('admin_blog.slug_required_upload')); return; }
     setUploading(true);
     try {
-      const url = await uploadFeaturedImage(values.slug, file);
+      const url = await uploadFeaturedImage(s, file);
       set('featured_image', url);
       toast.success(t('admin_blog.image_uploaded'));
     } catch (err) {
@@ -110,6 +98,50 @@ export default function AdminBlogForm() {
       console.error('[admin-blog] upload failed', err);
       toast.error(err instanceof Error ? err.message : t('common.error_generic'));
     } finally { setUploading(false); }
+  };
+
+  const translateSlug = async (direction: 'fr2en' | 'en2fr') => {
+    const sourceTitle = direction === 'fr2en' ? values.title_fr : values.title_en;
+    if (!sourceTitle?.trim()) return;
+    setTranslatingSlug(direction);
+    try {
+      const target = direction === 'fr2en' ? 'en' : 'fr';
+      const from   = direction === 'fr2en' ? 'fr' : 'en';
+      const res = await translateText(sourceTitle, target, from);
+      const newSlug = slugify(res.translation);
+      if (direction === 'fr2en') set('slug_en', newSlug); else set('slug_fr', newSlug);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[translate-slug] failed', err);
+      toast.error(err instanceof Error ? err.message : t('common.error_generic'));
+    } finally { setTranslatingSlug(null); }
+  };
+
+  // Inline body-image picker for the RichTextEditor. Uploads and returns
+  // the {url, alt} the editor needs to insert a <figure>.
+  const onRequestImage = async (): Promise<{ url: string; alt: string } | null> => {
+    return new Promise((resolve) => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = async () => {
+        const file = input.files?.[0];
+        if (!file) { resolve(null); return; }
+        const s = values.slug_fr || values.slug_en;
+        if (!s) { toast.error(t('admin_blog.slug_required_upload')); resolve(null); return; }
+        try {
+          const url = await uploadFeaturedImage(s, file);
+          const alt = prompt(t('admin_blog.image_alt_prompt')) ?? '';
+          resolve({ url, alt });
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.error(err);
+          toast.error(err instanceof Error ? err.message : t('common.error_generic'));
+          resolve(null);
+        }
+      };
+      input.click();
+    });
   };
 
   if (loading) return <div className="py-16 text-center text-slate-500">{t('common.loading')}</div>;
@@ -137,10 +169,36 @@ export default function AdminBlogForm() {
       </div>
 
       <div className="space-y-6 max-w-5xl">
+        {/* Slugs FR + EN with translate-title-into-other-slug helper */}
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <Label htmlFor="slug" className="text-luna-navy">{t('admin_blog.field_slug')}</Label>
-          <Input id="slug" value={values.slug ?? ''} onChange={(e) => set('slug', e.target.value)} className="mt-1.5 font-mono" required />
-          <p className="mt-1 text-xs text-slate-500">{t('admin_blog.field_slug_hint')}</p>
+          <Label className="text-luna-navy">{t('admin_blog.field_slugs')}</Label>
+          <p className="mt-1 text-xs text-slate-500">{t('admin_blog.field_slugs_hint')}</p>
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium text-slate-500">FR — /blog/…</span>
+                <Button type="button" size="sm" variant="ghost" disabled={translatingSlug !== null || !values.title_fr?.trim()}
+                  onClick={() => translateSlug('fr2en')}>
+                  <Languages className="h-3 w-3" />
+                  {translatingSlug === 'fr2en' ? '…' : t('admin_blog.slug_from_title_en')}
+                </Button>
+              </div>
+              <Input value={values.slug_fr ?? ''} onChange={(e) => set('slug_fr', e.target.value)}
+                required className="font-mono text-sm" />
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium text-slate-500">EN — /en/blog/…</span>
+                <Button type="button" size="sm" variant="ghost" disabled={translatingSlug !== null || !values.title_en?.trim()}
+                  onClick={() => translateSlug('en2fr')}>
+                  <Languages className="h-3 w-3" />
+                  {translatingSlug === 'en2fr' ? '…' : t('admin_blog.slug_from_title_fr')}
+                </Button>
+              </div>
+              <Input value={values.slug_en ?? ''} onChange={(e) => set('slug_en', e.target.value)}
+                required className="font-mono text-sm" />
+            </div>
+          </div>
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
@@ -163,36 +221,34 @@ export default function AdminBlogForm() {
           />
         </div>
 
-        {/* Content — bilingual, markdown, with a per-side preview toggle */}
+        {/* Content — RichTextEditor per language, with inline image upload
+            and HTML source-view toggle (allowHtmlSourceView) so an admin
+            can drop into raw HTML when Markdown isn't enough. */}
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
           <div className="flex items-center justify-between mb-3">
             <Label className="text-luna-navy">{t('admin_blog.field_content')}</Label>
-            <div className="text-xs text-slate-500">{t('admin_blog.markdown_hint')}</div>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
-            {(['fr', 'en'] as const).map((side) => (
-              <div key={side}>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-medium text-slate-500">{side.toUpperCase()}</span>
-                  <Button type="button" size="sm" variant="ghost" onClick={() => setPreview(preview === side ? null : side)}>
-                    <Eye className="h-3 w-3" />
-                    {preview === side ? t('admin_blog.hide_preview') : t('admin_blog.show_preview')}
-                  </Button>
-                </div>
-                {preview === side ? (
-                  <div className="prose prose-sm max-w-none border border-slate-200 rounded-md bg-slate-50/60 p-4 min-h-[16rem]">
-                    <Markdown options={{ forceBlock: true }}>{side === 'fr' ? (values.content_fr ?? '') : (values.content_en ?? '')}</Markdown>
-                  </div>
-                ) : (
-                  <Textarea
-                    rows={14}
-                    value={side === 'fr' ? (values.content_fr ?? '') : (values.content_en ?? '')}
-                    onChange={(e) => set(side === 'fr' ? 'content_fr' : 'content_en', e.target.value)}
-                    className="font-mono text-sm"
-                  />
-                )}
-              </div>
-            ))}
+            <div>
+              <span className="text-xs font-medium text-slate-500 block mb-1">Français</span>
+              <RichTextEditor
+                content={values.content_fr ?? ''}
+                onChange={(html) => set('content_fr', html)}
+                allowHtmlSourceView
+                onRequestImage={onRequestImage}
+                placeholder={t('admin_blog.content_placeholder')}
+              />
+            </div>
+            <div>
+              <span className="text-xs font-medium text-slate-500 block mb-1">English</span>
+              <RichTextEditor
+                content={values.content_en ?? ''}
+                onChange={(html) => set('content_en', html)}
+                allowHtmlSourceView
+                onRequestImage={onRequestImage}
+                placeholder={t('admin_blog.content_placeholder')}
+              />
+            </div>
           </div>
         </div>
 

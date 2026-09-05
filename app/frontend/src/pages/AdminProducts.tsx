@@ -9,10 +9,11 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/components/ui/sonner';
 import Papa from 'papaparse';
+import { Upload, Trash2 } from 'lucide-react';
 import { BilingualPair } from '@/components/BilingualPair';
 import {
   fetchAllProducts, fetchProductCategories, upsertProduct, toggleProductActive, deleteProduct,
-  upsertCategory, deleteCategory,
+  upsertCategory, deleteCategory, uploadProductImage,
   type Product, type ProductCategory,
 } from '@/lib/products';
 import { cn } from '@/lib/utils';
@@ -312,10 +313,11 @@ function ProductForm({
         </div>
       </div>
 
-      <div>
-        <Label htmlFor="image_url">{t('admin.product_field_image_url')}</Label>
-        <Input id="image_url" value={values.image_url ?? ''} onChange={(e) => set('image_url', e.target.value || null)} className="mt-1.5" />
-      </div>
+      <ProductImageSlot
+        slug={values.slug ?? ''}
+        url={values.image_url ?? null}
+        onChange={(u) => set('image_url', u)}
+      />
 
       <div className="flex items-center gap-2">
         <Switch checked={values.is_active !== false} onCheckedChange={(v) => set('is_active', v)} />
@@ -328,6 +330,67 @@ function ProductForm({
         </Button>
       </div>
     </form>
+  );
+}
+
+/**
+ * Product photo slot — upload button + preview + remove. Uploads to the
+ * product-images Storage bucket, stores the returned public URL in
+ * products.image_url. A URL text input stays available for admins who
+ * want to paste an already-hosted URL.
+ */
+function ProductImageSlot({
+  slug, url, onChange,
+}: { slug: string; url: string | null; onChange: (u: string | null) => void }) {
+  const { t } = useTranslation();
+  const [uploading, setUploading] = useState(false);
+
+  const onFile = async (file: File) => {
+    setUploading(true);
+    try {
+      const newUrl = await uploadProductImage(slug, file);
+      onChange(newUrl);
+      toast.success(t('admin_content.saved'));
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[product-image] upload failed', err);
+      toast.error(err instanceof Error ? err.message : t('common.error_generic'));
+    } finally { setUploading(false); }
+  };
+
+  return (
+    <div>
+      <Label className="text-luna-navy">{t('admin.product_field_image_url')}</Label>
+      <div className="mt-1.5 flex flex-wrap items-start gap-4">
+        <div className="w-40 h-40 rounded-md border border-slate-200 bg-slate-50 grid place-items-center overflow-hidden">
+          {url ? (
+            <img src={url} alt="" className="max-w-full max-h-full object-contain" />
+          ) : (
+            <span className="text-xs text-slate-400 text-center px-2">{t('admin_blog.no_image')}</span>
+          )}
+        </div>
+        <div className="flex-1 min-w-[200px] space-y-2">
+          <label className="inline-flex items-center gap-2 rounded-md bg-luna-navy text-white px-3 py-2 text-sm font-medium cursor-pointer hover:bg-luna-navy/90">
+            <Upload className="h-3.5 w-3.5" />
+            {uploading ? t('admin_blog.uploading') : t('admin_blog.upload_image')}
+            <input type="file" className="hidden" accept="image/*" disabled={uploading}
+              onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
+          </label>
+          {url && (
+            <Button type="button" variant="ghost" size="sm" className="text-red-600 hover:bg-red-50"
+              onClick={() => onChange(null)}>
+              <Trash2 className="h-3.5 w-3.5" />
+              {t('admin_blog.remove_image')}
+            </Button>
+          )}
+          <Input
+            value={url ?? ''} onChange={(e) => onChange(e.target.value || null)}
+            placeholder="https://…"
+            className="text-xs"
+          />
+        </div>
+      </div>
+    </div>
   );
 }
 

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { CalendarDays, ArrowRight } from 'lucide-react';
 import { SEO } from '@/components/SEO';
-import { fetchPublishedPosts, postTitle, postExcerpt, postImageAlt, type BlogPost } from '@/lib/blog';
+import { fetchPublishedPosts, postTitle, postExcerpt, postImageAlt, postSlug, type BlogPost } from '@/lib/blog';
 import { urlFor } from '@/lib/url/routes';
 
 export default function BlogIndex() {
@@ -40,7 +40,7 @@ export default function BlogIndex() {
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {posts.map((p) => {
-                const url = `${urlFor('blogIndex', lang)}/${p.slug}`;
+                const url = `${urlFor('blogIndex', lang)}/${postSlug(p, lang)}`;
                 return (
                   <Link
                     key={p.id}

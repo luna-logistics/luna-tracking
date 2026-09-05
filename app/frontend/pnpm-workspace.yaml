@@ -1,11 +1,6 @@
-# Single-package "workspace" — pnpm ≥ 11 requires `packages` to exist as
-# soon as this file does. Luna is NOT a monorepo.
 packages:
   - '.'
 
-# Whitelist the native-binary post-install scripts we already trust.
-# CI uses --ignore-scripts and skips these entirely (all have working
-# WASM / prebuilt fallbacks); local dev runs them for the fast path.
 onlyBuiltDependencies:
   - '@swc/core'
   - esbuild

@@ -2,7 +2,12 @@ import { supabase } from '@/lib/supabase';
 
 export type BlogPost = {
   id: string;
-  slug: string;
+  /** Bilingual slugs — /blog/{slug_fr} + /en/blog/{slug_en}. */
+  slug_fr: string;
+  slug_en: string;
+  /** Legacy single-slug column kept for the roll-forward window; never read
+   *  by the frontend now that slug_fr / slug_en exist. */
+  slug?: string | null;
   title_fr: string;
   title_en: string;
   excerpt_fr: string | null;
@@ -24,6 +29,7 @@ export type BlogPost = {
 
 export type Lang = 'fr' | 'en';
 
+export function postSlug(p: BlogPost, lang: Lang)        { return lang === 'en' ? p.slug_en : p.slug_fr; }
 export function postTitle(p: BlogPost, lang: Lang)       { return lang === 'en' ? p.title_en : p.title_fr; }
 export function postExcerpt(p: BlogPost, lang: Lang)     { return lang === 'en' ? p.excerpt_en : p.excerpt_fr; }
 export function postContent(p: BlogPost, lang: Lang)     { return lang === 'en' ? p.content_en : p.content_fr; }
@@ -59,10 +65,19 @@ export async function fetchAllPosts(): Promise<BlogPost[]> {
   return (data ?? []) as BlogPost[];
 }
 
-export async function fetchPostBySlug(slug: string): Promise<BlogPost | null> {
-  const { data, error } = await supabase.from('blog_posts').select('*').eq('slug', slug).maybeSingle();
+/** Look up a post by (lang, slug). Falls back to the other language's slug
+ *  if not found — lets an old /blog/{en-slug} still resolve during a
+ *  transition, and matches the "slug is unique per column" guarantee. */
+export async function fetchPostBySlug(lang: Lang, slug: string): Promise<BlogPost | null> {
+  const column = lang === 'en' ? 'slug_en' : 'slug_fr';
+  const { data, error } = await supabase.from('blog_posts').select('*').eq(column, slug).maybeSingle();
   if (error) { console.warn('[blog] bySlug failed:', error.message); return null; }
-  return (data as BlogPost) ?? null;
+  if (data) return data as BlogPost;
+  // Cross-lang fallback so a shared URL between users of different languages
+  // still resolves (redirects handled at the page level).
+  const other = lang === 'en' ? 'slug_fr' : 'slug_en';
+  const { data: alt } = await supabase.from('blog_posts').select('*').eq(other, slug).maybeSingle();
+  return (alt as BlogPost) ?? null;
 }
 
 export async function fetchPostById(id: string): Promise<BlogPost | null> {
@@ -71,7 +86,7 @@ export async function fetchPostById(id: string): Promise<BlogPost | null> {
   return (data as BlogPost) ?? null;
 }
 
-export async function upsertPost(p: Omit<BlogPost, 'created_at' | 'updated_at' | 'published_at'> & { id?: string; published_at?: string | null }) {
+export async function upsertPost(p: Omit<BlogPost, 'created_at' | 'updated_at' | 'published_at' | 'slug'> & { id?: string; published_at?: string | null }) {
   const { data, error } = await supabase.from('blog_posts').upsert(p).select().single();
   if (error) throw error;
   return data as BlogPost;
@@ -87,7 +102,7 @@ export async function setPostPublished(id: string, published: boolean) {
   if (error) throw error;
 }
 
-/** Upload a featured image to the blog-images bucket. */
+/** Upload a featured image (or an inline body image) to blog-images. */
 export async function uploadFeaturedImage(slug: string, file: File): Promise<string> {
   const ext = file.name.split('.').pop()?.toLowerCase() || 'bin';
   const path = `${slug}-${Date.now()}.${ext}`;
@@ -101,7 +116,7 @@ export async function uploadFeaturedImage(slug: string, file: File): Promise<str
 
 export function slugify(s: string): string {
   return s.toLowerCase()
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')  // strip diacritics
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 80);

@@ -53,12 +53,11 @@ for (const slug of productSlugs) {
   productUrls.push(productUrl(slug, 'en'));
 }
 
-const blogRows = await fetchRows('blog_posts', 'select=slug&published=eq.true');
-const blogSlugs = blogRows.map((r) => r.slug).filter((s) => typeof s === 'string');
+const blogRows = await fetchRows('blog_posts', 'select=slug_fr,slug_en&published=eq.true');
 const blogUrls = [];
-for (const slug of blogSlugs) {
-  blogUrls.push(blogPostUrl(slug, 'fr'));
-  blogUrls.push(blogPostUrl(slug, 'en'));
+for (const row of blogRows) {
+  if (typeof row.slug_fr === 'string') blogUrls.push(blogPostUrl(row.slug_fr, 'fr'));
+  if (typeof row.slug_en === 'string') blogUrls.push(blogPostUrl(row.slug_en, 'en'));
 }
 
 const emitted = [...staticUrls, ...productUrls, ...blogUrls];
