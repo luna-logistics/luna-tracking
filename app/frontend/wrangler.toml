@@ -23,23 +23,16 @@
 
 name = "luna-tracking"
 compatibility_date = "2026-01-01"
+main = "worker.js"
 
 [assets]
 directory = "./dist"
-# SPA fallback: a request for /suivi (no file on disk) serves dist/index.html
-# so React Router can take over.
-not_found_handling = "single-page-application"
+binding = "ASSETS"
+# Worker owns the SPA fallback (via env.ASSETS.fetch). ASSETS returns a
+# real 404 for missing paths; worker.js catches that and serves the
+# shell with FR-homepage SEO tags stripped.
+not_found_handling = "none"
 # Canonicalize URLs by dropping the trailing slash: `/en/shop-and-ship/`
 # 307-redirects to `/en/shop-and-ship`, then the assets binding serves
 # `en/shop-and-ship/index.html` from the prerender.
 html_handling = "drop-trailing-slash"
-
-# NOTE ─── canonical leak deferred, not forgotten
-# The FR homepage prerender in dist/index.html carries canonical=/,
-# description and og:* — served as the SPA fallback, these leak the
-# homepage's SEO onto every unmatched URL. A previous attempt to fix
-# this with a Worker script (worker.js + main = "worker.js" +
-# not_found_handling = "none") tripped Cloudflare Error 1101 in prod,
-# so we rolled back. Follow-up: iterate on worker.js locally with
-# `wrangler dev` before re-enabling. Until then, the pre-worker
-# behaviour holds.
