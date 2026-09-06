@@ -9,6 +9,7 @@ import { urlFor } from '@/lib/url/routes';
 import { useContent, useSiteImage } from '@/contexts/SiteContentContext';
 import { Ed } from '@/components/Ed';
 import { Block } from '@/components/Block';
+import { HeroBackground } from '@/components/HeroBackground';
 
 export default function Index() {
   const { t, i18n } = useTranslation();
@@ -51,8 +52,13 @@ export default function Index() {
         imageAlt={ogImageAlt}
       />
 
-      {/* Hero — navy→cyan gradient, on-dark IconCircle for the CTA anchor */}
-      <section className="relative bg-luna-gradient text-white">
+      {/* Hero — navy→cyan gradient by default, or admin-uploaded photo. */}
+      <HeroBackground
+        imageKey="home_hero"
+        imageAlt={heroTitle}
+        fallbackClassName="bg-luna-gradient text-white"
+        className="text-white"
+      >
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-16 sm:py-24 grid gap-10 md:grid-cols-2 items-center">
           <div>
             <p className="text-sm uppercase tracking-widest text-luna-cyan-light font-semibold mb-3">
@@ -91,7 +97,7 @@ export default function Index() {
           </div>
         </div>
         <WaveDivider side="top" color="text-background" />
-      </section>
+      </HeroBackground>
 
       {/* Pillars — cards on the off-white ground */}
       <Block name="home-pillars">

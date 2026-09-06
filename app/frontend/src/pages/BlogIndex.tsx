@@ -7,6 +7,7 @@ import { fetchPublishedPosts, postTitle, postExcerpt, postImageAlt, postSlug, ty
 import { urlFor } from '@/lib/url/routes';
 import { useContent } from '@/contexts/SiteContentContext';
 import { Ed } from '@/components/Ed';
+import { HeroBackground } from '@/components/HeroBackground';
 
 export default function BlogIndex() {
   const { t, i18n } = useTranslation();
@@ -29,7 +30,7 @@ export default function BlogIndex() {
     <>
       <SEO title={metaTitle} description={metaDescription} />
 
-      <section className="bg-luna-gradient text-white">
+      <HeroBackground imageKey="blog_hero" imageAlt={pageTitle} fallbackClassName="bg-luna-gradient text-white" className="text-white">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-12 sm:py-16">
           <Ed page="blog" field="page_title" as="h1" className="text-3xl sm:text-4xl font-bold block">
             {pageTitle}
@@ -38,7 +39,7 @@ export default function BlogIndex() {
             {pageIntro}
           </Ed>
         </div>
-      </section>
+      </HeroBackground>
 
       <section className="py-14">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">

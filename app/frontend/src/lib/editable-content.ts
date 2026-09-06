@@ -47,6 +47,10 @@ export type EditablePage = {
   labelEn: string;
   fields: EditableField[];
   images: EditableImage[];
+  /** When true, the admin panel renders a hero-background editor for this
+   *  page (image + focal point + zoom + overlay). The image_key convention
+   *  is `<page.key>_hero`. */
+  hasHero?: boolean;
 };
 
 // Common SEO fields — same shape across every page, only i18nKey changes.
@@ -66,7 +70,7 @@ const metaDescription = (i18nKey: string): EditableField => ({
 
 export const EDITABLE_PAGES: EditablePage[] = [
   {
-    key: 'home', labelFr: 'Accueil', labelEn: 'Home',
+    key: 'home', labelFr: 'Accueil', labelEn: 'Home', hasHero: true,
     fields: [
       { key: 'hero_title',    kind: 'text',     i18nKey: 'home.hero_title',
         labelFr: 'Titre principal (hero)',     labelEn: 'Main title (hero)' },
@@ -141,7 +145,7 @@ export const EDITABLE_PAGES: EditablePage[] = [
     images: [],
   },
   {
-    key: 'shop-and-ship', labelFr: 'Achat & Envoi', labelEn: 'Shop & Ship',
+    key: 'shop-and-ship', labelFr: 'Achat & Envoi', labelEn: 'Shop & Ship', hasHero: true,
     fields: [
       { key: 'page_title', kind: 'text',     i18nKey: 'shop.page_title', labelFr: 'Titre de la page',   labelEn: 'Page title' },
       { key: 'page_intro', kind: 'textarea', i18nKey: 'shop.page_intro', labelFr: 'Texte d\'introduction', labelEn: 'Intro text' },
@@ -154,7 +158,7 @@ export const EDITABLE_PAGES: EditablePage[] = [
     ],
   },
   {
-    key: 'forwarding', labelFr: 'Réexpédition internationale', labelEn: 'International forwarding',
+    key: 'forwarding', labelFr: 'Réexpédition internationale', labelEn: 'International forwarding', hasHero: true,
     fields: [
       { key: 'page_title',         kind: 'text',     i18nKey: 'forwarding.page_title', labelFr: 'Titre de la page',   labelEn: 'Page title' },
       { key: 'intro',              kind: 'textarea', i18nKey: 'forwarding.intro',      labelFr: 'Texte d\'introduction', labelEn: 'Intro text' },
@@ -181,7 +185,7 @@ export const EDITABLE_PAGES: EditablePage[] = [
     ],
   },
   {
-    key: 'blog', labelFr: 'Blog (index)', labelEn: 'Blog (index)',
+    key: 'blog', labelFr: 'Blog (index)', labelEn: 'Blog (index)', hasHero: true,
     fields: [
       { key: 'page_title', kind: 'text',     i18nKey: 'blog.page_title', labelFr: 'Titre de la page',   labelEn: 'Page title' },
       { key: 'page_intro', kind: 'textarea', i18nKey: 'blog.page_intro', labelFr: 'Texte d\'introduction', labelEn: 'Intro text' },

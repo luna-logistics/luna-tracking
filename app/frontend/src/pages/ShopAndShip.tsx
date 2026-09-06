@@ -18,6 +18,7 @@ import { initiatePayment } from '@/lib/payment';
 import { productUrl, urlFor } from '@/lib/url/routes';
 import { useContent, useSiteImage } from '@/contexts/SiteContentContext';
 import { Ed } from '@/components/Ed';
+import { HeroBackground } from '@/components/HeroBackground';
 
 export default function ShopAndShip() {
   const { t, i18n } = useTranslation();
@@ -87,7 +88,7 @@ export default function ShopAndShip() {
     <>
       <SEO title={metaTitle} description={metaDescription} image={ogImage} />
 
-      <section className="bg-luna-gradient text-white">
+      <HeroBackground imageKey="shop-and-ship_hero" imageAlt={pageTitle} fallbackClassName="bg-luna-gradient text-white" className="text-white">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-12 sm:py-16">
           <Ed page="shop-and-ship" field="page_title" as="h1" className="text-3xl sm:text-4xl font-bold block">
             {pageTitle}
@@ -96,7 +97,7 @@ export default function ShopAndShip() {
             {pageIntro}
           </Ed>
         </div>
-      </section>
+      </HeroBackground>
 
       <section className="py-12">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 grid gap-8 lg:grid-cols-[1fr_320px]">

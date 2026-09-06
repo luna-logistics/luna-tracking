@@ -514,7 +514,22 @@
     "seo_title_target": "target 50-60 characters (Bing / Google)",
     "seo_desc_target": "target 120-160 characters (Bing / Google)",
     "seo_short": "too short",
-    "seo_long": "too long"
+    "seo_long": "too long",
+    "section_hero": "Background image (hero band)",
+    "hero_upload": "Upload image",
+    "hero_replace": "Replace image",
+    "hero_remove": "Remove image",
+    "hero_remove_confirm": "Remove the background image and fall back to the default?",
+    "hero_uploaded": "Image uploaded",
+    "hero_saved": "Framing saved",
+    "hero_drag_hint": "Click and drag on the preview to move the point that stays centered.",
+    "hero_zoom": "Zoom",
+    "hero_zoom_hint": "100% = image just covers the band. Increase to crop tighter.",
+    "hero_overlay": "Navy overlay opacity",
+    "hero_overlay_hint": "Darkens the image so white text stays legible.",
+    "hero_focal_x": "Focal point — horizontal",
+    "hero_focal_y": "Focal point — vertical",
+    "hero_reset": "Reset"
   },
   "admin_auth": {
     "title": "Social logins",

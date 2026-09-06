@@ -514,7 +514,22 @@
     "seo_title_target": "cible 50-60 caractères (Bing / Google)",
     "seo_desc_target": "cible 120-160 caractères (Bing / Google)",
     "seo_short": "trop court",
-    "seo_long": "trop long"
+    "seo_long": "trop long",
+    "section_hero": "Image de fond (bande d'en-tête)",
+    "hero_upload": "Téléverser une image",
+    "hero_replace": "Remplacer l'image",
+    "hero_remove": "Retirer l'image",
+    "hero_remove_confirm": "Retirer l'image d'arrière-plan et revenir au fond par défaut ?",
+    "hero_uploaded": "Image téléversée",
+    "hero_saved": "Cadrage enregistré",
+    "hero_drag_hint": "Cliquez et glissez sur la preview pour déplacer le point qui reste centré.",
+    "hero_zoom": "Zoom",
+    "hero_zoom_hint": "100% = image cadrée juste (couvre la bande). Augmentez pour rogner davantage.",
+    "hero_overlay": "Opacité du voile navy",
+    "hero_overlay_hint": "Assombrit l'image pour que le texte blanc reste lisible.",
+    "hero_focal_x": "Point focal — horizontal",
+    "hero_focal_y": "Point focal — vertical",
+    "hero_reset": "Réinitialiser"
   },
   "admin_auth": {
     "title": "Connexions sociales",

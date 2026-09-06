@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/sonner';
 import { EDITABLE_PAGES, type EditablePage, type EditableField } from '@/lib/editable-content';
+import { HeroBackgroundEditor } from '@/components/HeroBackgroundEditor';
 import {
   saveSiteContent, saveSiteImage, deleteSiteImage, uploadSiteImage,
   contentKey,
@@ -71,6 +72,21 @@ function PageEditor({ page, uiLang }: { page: EditablePage; uiLang: 'fr' | 'en' 
   const { t } = useTranslation();
   return (
     <div className="mt-8 space-y-8">
+      {page.hasHero && (
+        <section>
+          <h2 className="text-lg font-semibold text-luna-navy mb-3">
+            {t('admin_content.section_hero')}
+          </h2>
+          <HeroBackgroundEditor
+            imageKey={`${page.key}_hero`}
+            labelFr="Image d'arrière-plan de la bande d'en-tête"
+            labelEn="Hero band background image"
+            hintFr="16:9 recommandé (2400×1000 px, JPG ou WebP, ~200 Ko). Cliquez sur la preview pour placer le point qui reste centré sur toutes les tailles d'écran."
+            hintEn="16:9 recommended (2400×1000 px, JPG or WebP, ~200 KB). Click on the preview to set the point that stays centered at every screen size."
+            uiLang={uiLang}
+          />
+        </section>
+      )}
       {page.fields.length > 0 && (
         <section>
           <h2 className="text-lg font-semibold text-luna-navy mb-3">

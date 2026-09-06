@@ -12,6 +12,7 @@ import { submitForwardingRequest } from '@/lib/forwarding';
 import { useContent, useSiteImage } from '@/contexts/SiteContentContext';
 import { Ed } from '@/components/Ed';
 import { Block } from '@/components/Block';
+import { HeroBackground } from '@/components/HeroBackground';
 
 export default function Forwarding() {
   const { t } = useTranslation();
@@ -66,7 +67,7 @@ export default function Forwarding() {
     <>
       <SEO title={metaTitle} description={metaDescription} image={ogImage} />
 
-      <section className="bg-luna-gradient text-white">
+      <HeroBackground imageKey="forwarding_hero" imageAlt={pageTitle} fallbackClassName="bg-luna-gradient text-white" className="text-white">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-12 sm:py-16">
           <Ed page="forwarding" field="page_title" as="h1" className="text-3xl sm:text-4xl font-bold block">
             {pageTitle}
@@ -75,7 +76,7 @@ export default function Forwarding() {
             {pageIntro}
           </Ed>
         </div>
-      </section>
+      </HeroBackground>
 
       <Block name="forwarding-how">
         <section className="py-14">

@@ -13,7 +13,23 @@ export type SiteImageRow = {
   id: string;
   image_key: string;
   url: string;
+  focal_x: number;
+  focal_y: number;
+  zoom: number;
+  overlay: number;
   updated_at: string;
+};
+
+/** Config saved alongside a hero image — position + framing + overlay. */
+export type HeroConfig = {
+  focal_x: number;   // 0-100
+  focal_y: number;   // 0-100
+  zoom: number;      // 100-200
+  overlay: number;   // 0-90
+};
+
+export const DEFAULT_HERO_CONFIG: HeroConfig = {
+  focal_x: 50, focal_y: 50, zoom: 100, overlay: 45,
 };
 
 export type SiteBlockRow = {
@@ -70,9 +86,27 @@ export async function saveSiteContent(page: string, lang: 'fr' | 'en', field: st
   if (error) throw error;
 }
 
-export async function saveSiteImage(image_key: string, url: string) {
+export async function saveSiteImage(image_key: string, url: string, config?: Partial<HeroConfig>) {
+  const payload: Record<string, unknown> = { image_key, url };
+  if (config) {
+    if (config.focal_x !== undefined) payload.focal_x = config.focal_x;
+    if (config.focal_y !== undefined) payload.focal_y = config.focal_y;
+    if (config.zoom !== undefined) payload.zoom = config.zoom;
+    if (config.overlay !== undefined) payload.overlay = config.overlay;
+  }
   const { error } = await supabase.from('site_images')
-    .upsert({ image_key, url }, { onConflict: 'image_key' });
+    .upsert(payload, { onConflict: 'image_key' });
+  if (error) throw error;
+}
+
+export async function saveHeroConfig(image_key: string, config: Partial<HeroConfig>) {
+  const patch: Record<string, unknown> = {};
+  if (config.focal_x !== undefined) patch.focal_x = config.focal_x;
+  if (config.focal_y !== undefined) patch.focal_y = config.focal_y;
+  if (config.zoom !== undefined) patch.zoom = config.zoom;
+  if (config.overlay !== undefined) patch.overlay = config.overlay;
+  const { error } = await supabase.from('site_images')
+    .update(patch).eq('image_key', image_key);
   if (error) throw error;
 }
 
