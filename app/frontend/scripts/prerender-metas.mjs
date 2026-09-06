@@ -183,21 +183,31 @@ async function emitStaticRoute(key, def) {
           '@context': 'https://schema.org',
           '@graph': [
             {
-              '@type': 'Organization',
+              // Double type: Organization for brand-panel + LocalBusiness
+              // for the map/local-panel rich result. Google respects both.
+              '@type': ['Organization', 'LocalBusiness'],
               '@id': `${SITE_URL}/#org`,
               name: SITE_NAME,
               url: SITE_URL,
               logo: `${SITE_URL}/brand/logo-luna-navbar2.png`,
+              image: `${SITE_URL}/brand/logo-luna-navbar2.png`,
               email: 'info@lunatrackinglogistics.be',
               address: {
                 '@type': 'PostalAddress',
                 streetAddress: "Rue de l'Automne 59",
                 postalCode: '1050',
                 addressLocality: 'Ixelles',
+                addressRegion: 'Bruxelles-Capitale',
                 addressCountry: 'BE',
               },
+              hasMap: 'https://www.google.com/maps/search/?api=1&query=Rue+de+l%27Automne+59+1050+Ixelles+Bruxelles',
               sameAs: ['https://www.instagram.com/Luna_TrackingLogistics/'],
-              areaServed: ['BE', 'CD'],
+              areaServed: [
+                { '@type': 'Country', name: 'Belgium'   },
+                { '@type': 'City',    name: 'Bruxelles' },
+                { '@type': 'City',    name: 'Ixelles'   },
+                { '@type': 'Country', name: 'Democratic Republic of the Congo' },
+              ],
             },
             {
               '@type': 'WebSite',
