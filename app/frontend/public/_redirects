@@ -1,18 +1,23 @@
-# Cloudflare Workers static-assets routing. First-match-wins; static files
-# take precedence.
+# Cloudflare Workers static-assets routing.
 #
-# The SPA fallback (`/* -> /index.html 200`) that used to live here has been
-# REMOVED. On Workers with `[assets] not_found_handling = "single-page-
-# application"` (see wrangler.toml), the assets binding itself serves
-# /index.html for any unmatched path — the _redirects rule is redundant, and
-# Cloudflare's validator rejects it as an infinite loop (after its automatic
-# .html + /index stripping, /index.html re-matches /*, so it flags the loop
-# and refuses the deployment).
+# Intentionally empty of active rules. Cloudflare Workers `[assets]`
+# (wrangler.toml) already handles both concerns this file used to cover:
 #
-# Rule status codes must be one of 200/301/302/303/307/308 — anything else
-# is silently dropped.
-
-# NO TRAILING SLASHES — enforce via 301, not convention. `:splat` captures
-# the rest of the URL after the leading `/`. The trailing-slash form is
-# always the pre-image, the clean form is the target.
-/*/                       /:splat                301
+#   * `not_found_handling = "single-page-application"` sends any unmatched
+#     path to /index.html so React Router takes over (replaces the old
+#     `/* /index.html 200` SPA fallback that Cloudflare's validator now
+#     rejects as a self-loop).
+#   * `html_handling = "drop-trailing-slash"` canonicalises URLs by
+#     stripping the trailing slash — /en/shop-and-ship/ 307s to
+#     /en/shop-and-ship, then the assets binding serves
+#     en/shop-and-ship/index.html from the prerender.
+#
+# The former rule `/*/  /:splat  301` we had here tried to do the
+# trailing-slash normalisation itself, and formed a redirect loop with
+# html_handling's default `auto-trailing-slash` — every trailing-slash
+# URL (view-source:https://.../en/shop-and-ship/) hit "Too Many
+# Redirects". Removed 2026-09-07.
+#
+# Only add a rule here for genuinely one-off redirects (renamed URL,
+# retired page). Every rule Cloudflare's validator considers a self-loop
+# will block the deploy.
