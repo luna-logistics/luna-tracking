@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/sonner';
 import { EDITABLE_PAGES, type EditablePage, type EditableField } from '@/lib/editable-content';
 import { HeroBackgroundEditor } from '@/components/HeroBackgroundEditor';
+import { optimizeImage } from '@/lib/optimize-image';
 import {
   saveSiteContent, saveSiteImage, deleteSiteImage, uploadSiteImage,
   contentKey,
@@ -319,7 +320,8 @@ function ImageEditor({
   const onFile = async (file: File) => {
     setUploading(true);
     try {
-      const url = await uploadSiteImage(imageKey, file);
+      const optimized = await optimizeImage(file, { maxWidth: 1600, quality: 0.85 });
+      const url = await uploadSiteImage(imageKey, optimized);
       await saveSiteImage(imageKey, url);
       await ctx.refresh();
       toast.success(t('admin_content.saved'));

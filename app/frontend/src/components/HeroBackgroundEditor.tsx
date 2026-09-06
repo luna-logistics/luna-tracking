@@ -7,6 +7,7 @@ import {
   saveSiteImage, saveHeroConfig, deleteSiteImage, uploadSiteImage,
   DEFAULT_HERO_CONFIG, type HeroConfig,
 } from '@/lib/site-content';
+import { optimizeImage } from '@/lib/optimize-image';
 import { useSiteContentContext, useHeroBg } from '@/contexts/SiteContentContext';
 import { cn } from '@/lib/utils';
 
@@ -60,7 +61,10 @@ export function HeroBackgroundEditor({
   const onFile = async (file: File) => {
     setUploading(true);
     try {
-      const url = await uploadSiteImage(imageKey, file);
+      // Normalise every upload to WebP + max 2400px so the CDN never
+      // serves an 8 MB PNG for a hero band.
+      const optimized = await optimizeImage(file, { maxWidth: 2400, quality: 0.85 });
+      const url = await uploadSiteImage(imageKey, optimized);
       // Preserve any existing framing config; only overwrite the URL.
       await saveSiteImage(imageKey, url,
         stored ? { focal_x: stored.focal_x, focal_y: stored.focal_y, zoom: stored.zoom, overlay: stored.overlay } : DEFAULT_HERO_CONFIG);

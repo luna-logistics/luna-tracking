@@ -14,6 +14,7 @@ import { BilingualPair } from '@/components/BilingualPair';
 import { translateText } from '@/lib/translate';
 import { slugify } from '@/lib/blog';
 import { suggestHsCode, type HsSuggestion } from '@/lib/hs-classifier';
+import { optimizeImage } from '@/lib/optimize-image';
 import {
   fetchAllProducts, fetchProductCategories, upsertProduct, toggleProductActive, deleteProduct,
   upsertCategory, deleteCategory, uploadProductImage,
@@ -382,7 +383,8 @@ function ProductImageSlot({
   const onFile = async (file: File) => {
     setUploading(true);
     try {
-      const newUrl = await uploadProductImage(slug, file);
+      const optimized = await optimizeImage(file, { maxWidth: 1200, quality: 0.85 });
+      const newUrl = await uploadProductImage(slug, optimized);
       onChange(newUrl);
       toast.success(t('admin_content.saved'));
     } catch (err) {

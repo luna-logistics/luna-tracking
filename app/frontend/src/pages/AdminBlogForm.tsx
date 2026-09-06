@@ -14,6 +14,7 @@ import {
   fetchPostById, upsertPost, uploadFeaturedImage, slugify,
   type BlogPost,
 } from '@/lib/blog';
+import { optimizeImage } from '@/lib/optimize-image';
 import { translateText } from '@/lib/translate';
 
 export default function AdminBlogForm() {
@@ -90,7 +91,8 @@ export default function AdminBlogForm() {
     if (!s) { toast.error(t('admin_blog.slug_required_upload')); return; }
     setUploading(true);
     try {
-      const url = await uploadFeaturedImage(s, file);
+      const optimized = await optimizeImage(file, { maxWidth: 1600, quality: 0.85 });
+      const url = await uploadFeaturedImage(s, optimized);
       set('featured_image', url);
       toast.success(t('admin_blog.image_uploaded'));
     } catch (err) {
@@ -130,7 +132,8 @@ export default function AdminBlogForm() {
         const s = values.slug_fr || values.slug_en;
         if (!s) { toast.error(t('admin_blog.slug_required_upload')); resolve(null); return; }
         try {
-          const url = await uploadFeaturedImage(s, file);
+          const optimized = await optimizeImage(file, { maxWidth: 1600, quality: 0.85 });
+          const url = await uploadFeaturedImage(s, optimized);
           const alt = prompt(t('admin_blog.image_alt_prompt')) ?? '';
           resolve({ url, alt });
         } catch (err) {

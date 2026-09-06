@@ -14,6 +14,7 @@ import {
   fetchPageById, upsertPage, uploadPageImage, slugify, RESERVED_SLUGS,
   type CustomPage,
 } from '@/lib/custom-pages';
+import { optimizeImage } from '@/lib/optimize-image';
 import { translateText } from '@/lib/translate';
 import { cn } from '@/lib/utils';
 
@@ -102,7 +103,8 @@ export default function AdminCustomPageForm() {
     if (!s) { toast.error(t('admin_pages.slug_required_upload')); return; }
     setUploading(true);
     try {
-      const url = await uploadPageImage(s, file);
+      const optimized = await optimizeImage(file, { maxWidth: 1600, quality: 0.85 });
+      const url = await uploadPageImage(s, optimized);
       set('og_image', url);
       toast.success(t('admin_pages.image_uploaded'));
     } catch (err) {
@@ -138,7 +140,8 @@ export default function AdminCustomPageForm() {
         const s = values.slug_fr || values.slug_en;
         if (!s) { toast.error(t('admin_pages.slug_required_upload')); resolve(null); return; }
         try {
-          const url = await uploadPageImage(s, file);
+          const optimized = await optimizeImage(file, { maxWidth: 1600, quality: 0.85 });
+          const url = await uploadPageImage(s, optimized);
           const alt = prompt(t('admin_pages.image_alt_prompt')) ?? '';
           resolve({ url, alt });
         } catch (err) {
