@@ -124,6 +124,10 @@
     "forgot_intro": "Enter your email — we'll send you a link to reset your password.",
     "forgot_submit": "Send the link",
     "forgot_sent": "Email sent — check your inbox.",
+    "signup_check_inbox_title": "Check your inbox",
+    "signup_check_inbox_body": "We've sent a verification link to:",
+    "signup_check_inbox_hint": "Click the link to confirm your email. Check your spam folder if you don't see it within 2-3 minutes.",
+    "signup_back_to_login": "Go to login",
     "social_separator": "or",
     "continue_with_google": "Continue with Google",
     "continue_with_facebook": "Continue with Facebook"

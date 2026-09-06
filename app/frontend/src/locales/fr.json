@@ -124,6 +124,10 @@
     "forgot_intro": "Entrez votre e-mail — nous vous enverrons un lien pour réinitialiser votre mot de passe.",
     "forgot_submit": "Envoyer le lien",
     "forgot_sent": "E-mail envoyé — vérifiez votre boîte de réception.",
+    "signup_check_inbox_title": "Vérifiez votre boîte mail",
+    "signup_check_inbox_body": "Nous vous avons envoyé un lien de vérification à :",
+    "signup_check_inbox_hint": "Cliquez sur ce lien pour confirmer votre adresse. Pensez à regarder vos spams si vous ne le voyez pas dans 2-3 minutes.",
+    "signup_back_to_login": "Aller à la connexion",
     "social_separator": "ou",
     "continue_with_google": "Continuer avec Google",
     "continue_with_facebook": "Continuer avec Facebook"
