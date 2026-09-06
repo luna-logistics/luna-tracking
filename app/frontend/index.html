@@ -23,6 +23,11 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+  <!-- Trustpilot domain ownership verification. Ships on every page but
+       Trustpilot only reads it from the homepage. Safe to leave in place
+       after the check clears — it's inert everywhere else. -->
+  <meta name="trustpilot-one-time-domain-verification-id" content="639742b0-52f4-448f-b67e-e9645894f0a9" />
+
   <!-- SEO tags (title, description, canonical, hreflang, og:*) are baked into
        each prerendered index.html by src/prerender.tsx and swapped at runtime
        by react-helmet-async on SPA navigation — no defaults belong here. -->
