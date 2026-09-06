@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/sonner';
 import { translateText } from '@/lib/translate';
+import { errorMessage } from '@/lib/errors';
 
 type Props = {
   label: string;
@@ -45,7 +46,7 @@ export function BilingualPair({
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('[translate] failed', err);
-      toast.error(err instanceof Error ? err.message : t('common.error_generic'));
+      toast.error(errorMessage(err, t('common.error_generic')));
     } finally {
       setBusy(null);
     }

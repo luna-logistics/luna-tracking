@@ -9,13 +9,14 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { toast } from '@/components/ui/sonner';
 import { BilingualPair } from '@/components/BilingualPair';
-import RichTextEditor from '@/components/RichTextEditor';
+import { BilingualRichTextEditor } from '@/components/BilingualRichTextEditor';
 import {
   fetchPostById, upsertPost, uploadFeaturedImage, slugify,
   type BlogPost,
 } from '@/lib/blog';
 import { optimizeImage } from '@/lib/optimize-image';
 import { translateText } from '@/lib/translate';
+import { errorMessage } from '@/lib/errors';
 
 export default function AdminBlogForm() {
   const { t } = useTranslation();
@@ -82,7 +83,7 @@ export default function AdminBlogForm() {
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('[admin-blog] save failed', err);
-      toast.error(err instanceof Error ? err.message : t('common.error_generic'));
+      toast.error(errorMessage(err, t('common.error_generic')));
     } finally { setSaving(false); }
   };
 
@@ -98,7 +99,7 @@ export default function AdminBlogForm() {
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('[admin-blog] upload failed', err);
-      toast.error(err instanceof Error ? err.message : t('common.error_generic'));
+      toast.error(errorMessage(err, t('common.error_generic')));
     } finally { setUploading(false); }
   };
 
@@ -115,7 +116,7 @@ export default function AdminBlogForm() {
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('[translate-slug] failed', err);
-      toast.error(err instanceof Error ? err.message : t('common.error_generic'));
+      toast.error(errorMessage(err, t('common.error_generic')));
     } finally { setTranslatingSlug(null); }
   };
 
@@ -139,7 +140,7 @@ export default function AdminBlogForm() {
         } catch (err) {
           // eslint-disable-next-line no-console
           console.error(err);
-          toast.error(err instanceof Error ? err.message : t('common.error_generic'));
+          toast.error(errorMessage(err, t('common.error_generic')));
           resolve(null);
         }
       };
@@ -224,35 +225,15 @@ export default function AdminBlogForm() {
           />
         </div>
 
-        {/* Content — RichTextEditor per language, with inline image upload
-            and HTML source-view toggle (allowHtmlSourceView) so an admin
-            can drop into raw HTML when Markdown isn't enough. */}
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <div className="flex items-center justify-between mb-3">
-            <Label className="text-luna-navy">{t('admin_blog.field_content')}</Label>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <span className="text-xs font-medium text-slate-500 block mb-1">Français</span>
-              <RichTextEditor
-                content={values.content_fr ?? ''}
-                onChange={(html) => set('content_fr', html)}
-                allowHtmlSourceView
-                onRequestImage={onRequestImage}
-                placeholder={t('admin_blog.content_placeholder')}
-              />
-            </div>
-            <div>
-              <span className="text-xs font-medium text-slate-500 block mb-1">English</span>
-              <RichTextEditor
-                content={values.content_en ?? ''}
-                onChange={(html) => set('content_en', html)}
-                allowHtmlSourceView
-                onRequestImage={onRequestImage}
-                placeholder={t('admin_blog.content_placeholder')}
-              />
-            </div>
-          </div>
+          <BilingualRichTextEditor
+            label={t('admin_blog.field_content')}
+            fr={values.content_fr ?? ''} en={values.content_en ?? ''}
+            onFr={(html) => set('content_fr', html)}
+            onEn={(html) => set('content_en', html)}
+            onRequestImage={onRequestImage}
+            placeholder={t('admin_blog.content_placeholder')}
+          />
         </div>
 
         {/* Featured image */}
@@ -318,3 +299,4 @@ export default function AdminBlogForm() {
     </>
   );
 }
+

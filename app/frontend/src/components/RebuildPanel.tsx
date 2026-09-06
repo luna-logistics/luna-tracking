@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/sonner';
 import { triggerRebuild, fetchLatestWorkflowRun, type WorkflowRunSummary } from '@/lib/rebuild';
 import { cn } from '@/lib/utils';
+import { errorMessage } from '@/lib/errors';
 
 /**
  * Panel with a "Rebuild the site" button + live status of the latest
@@ -47,7 +48,7 @@ export function RebuildPanel() {
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('[rebuild] failed', err);
-      const msg = err instanceof Error ? err.message : t('common.error_generic');
+      const msg = errorMessage(err, t('common.error_generic'));
       toast.error(msg);
     } finally {
       setTriggering(false);

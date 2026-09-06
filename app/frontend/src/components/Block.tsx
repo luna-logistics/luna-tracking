@@ -6,6 +6,7 @@ import { useEditMode } from '@/contexts/EditModeContext';
 import { setBlockHidden } from '@/lib/site-content';
 import { toast } from '@/components/ui/sonner';
 import { cn } from '@/lib/utils';
+import { errorMessage } from '@/lib/errors';
 
 /**
  * Wraps a content section (hero, pillars grid, examples row, …) so an
@@ -51,7 +52,7 @@ export function Block({ name, children, className }: { name: string; children: R
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('[block] toggle failed', err);
-      toast.error(err instanceof Error ? err.message : t('common.error_generic'));
+      toast.error(errorMessage(err, t('common.error_generic')));
     } finally { setPending(false); }
   };
 

@@ -4,6 +4,7 @@ import type { Provider } from '@supabase/supabase-js';
 import { fetchAuthProviders, signInWithProvider, type AuthProviderRow } from '@/lib/auth-providers';
 import { toast } from '@/components/ui/sonner';
 import { cn } from '@/lib/utils';
+import { errorMessage } from '@/lib/errors';
 
 /**
  * Renders one button per ENABLED social provider. Nothing rendered when
@@ -52,7 +53,7 @@ export function SocialAuthButtons() {
       await signInWithProvider(provider as Provider);
       // On success Supabase redirects the browser — this component is unmounted.
     } catch (err) {
-      const msg = err instanceof Error ? err.message : t('common.error_generic');
+      const msg = errorMessage(err, t('common.error_generic'));
       toast.error(msg);
       setBusy(null);
     }

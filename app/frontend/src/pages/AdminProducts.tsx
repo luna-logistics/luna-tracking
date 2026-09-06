@@ -21,6 +21,7 @@ import {
   type Product, type ProductCategory,
 } from '@/lib/products';
 import { cn } from '@/lib/utils';
+import { errorMessage } from '@/lib/errors';
 
 type Tab = 'list' | 'add' | 'import' | 'categories';
 
@@ -156,7 +157,7 @@ function ProductList({
                       checked={p.is_active}
                       onCheckedChange={async (v) => {
                         try { await toggleProductActive(p.id, v); onChanged(); }
-                        catch { toast.error(t('common.error_generic')); }
+                        catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
                       }}
                     />
                   </td>
@@ -171,7 +172,7 @@ function ProductList({
                       onClick={async () => {
                         if (!confirm(t('admin.products_delete_confirm'))) return;
                         try { await deleteProduct(p.id); onChanged(); toast.success('OK'); }
-                        catch { toast.error(t('common.error_generic')); }
+                        catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
                       }}
                     >
                       {t('admin.products_action_delete')}
@@ -390,7 +391,7 @@ function ProductImageSlot({
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('[product-image] upload failed', err);
-      toast.error(err instanceof Error ? err.message : t('common.error_generic'));
+      toast.error(errorMessage(err, t('common.error_generic')));
     } finally { setUploading(false); }
   };
 
@@ -558,7 +559,7 @@ function ProductSlugsPair({
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('[translate-slug] failed', err);
-      toast.error(err instanceof Error ? err.message : t('common.error_generic'));
+      toast.error(errorMessage(err, t('common.error_generic')));
     } finally { setBusy(null); }
   };
 
@@ -819,7 +820,7 @@ function CategoriesEditor({
                     disabled={(productCountByCategory.get(c.id) ?? 0) > 0}
                     onClick={async () => {
                       if (!confirm(t('admin.categories_delete_confirm'))) return;
-                      try { await deleteCategory(c.id); onChanged(); } catch { toast.error(t('common.error_generic')); }
+                      try { await deleteCategory(c.id); onChanged(); } catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
                     }}
                   >
                     {t('admin.products_action_delete')}

@@ -13,6 +13,7 @@ import {
 } from '@/lib/admin-permissions';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
+import { errorMessage } from '@/lib/errors';
 
 /**
  * List every admin, edit their per-section permissions in place, invite
@@ -60,7 +61,7 @@ export default function AdminCollaborators() {
   const onSaveRow = async (row: AdminRow, next: PermissionsMap) => {
     setPendingId(row.id);
     try { await updateAdminPermissions(row.id, next); toast.success(t('admin_collaborators.updated')); await reload(); }
-    catch (err) { toast.error(err instanceof Error ? err.message : t('common.error_generic')); }
+    catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
     finally { setPendingId(null); }
   };
 
@@ -68,7 +69,7 @@ export default function AdminCollaborators() {
     if (row.user_id === user?.id) { toast.error(t('admin_collaborators.cannot_remove_self')); return; }
     if (!confirm(t('admin_collaborators.remove_confirm', { email: row.email }))) return;
     try { await removeAdmin(row.id); toast.success(t('admin_collaborators.removed')); await reload(); }
-    catch (err) { toast.error(err instanceof Error ? err.message : t('common.error_generic')); }
+    catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
   };
 
   return (

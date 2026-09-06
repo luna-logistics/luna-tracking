@@ -16,6 +16,7 @@ import {
 import { useSiteContentContext } from '@/contexts/SiteContentContext';
 import { translateText } from '@/lib/translate';
 import { cn } from '@/lib/utils';
+import { errorMessage } from '@/lib/errors';
 
 /**
  * One page-picker at the top; each page renders its editable fields in
@@ -216,7 +217,7 @@ function FieldSlot({
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('[translate] failed', err);
-      const msg = err instanceof Error ? err.message : t('common.error_generic');
+      const msg = errorMessage(err, t('common.error_generic'));
       toast.error(msg);
     } finally {
       setTranslating(false);
