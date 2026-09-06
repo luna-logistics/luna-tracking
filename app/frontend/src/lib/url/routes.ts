@@ -26,9 +26,11 @@ export type RouteKey =
   | 'signup'
   | 'forgotPassword'
   | 'authCallback'
+  | 'onboarding'
   | 'account'
   | 'accountOrders'
   | 'accountInvoices'
+  | 'businessDashboard'
   | 'admin'
   | 'adminCities'
   | 'adminProducts'
@@ -59,9 +61,11 @@ export const ROUTES: Record<RouteKey, RouteDef> = {
   signup:          { indexable: false, bilingual: true,  fr: '/inscription',        en: '/signup' },
   forgotPassword:  { indexable: false, bilingual: true,  fr: '/mot-de-passe-oublie', en: '/forgot-password' },
   authCallback:    { indexable: false, bilingual: false, fr: '/auth/callback',      en: '/auth/callback' },
+  onboarding:      { indexable: false, bilingual: true,  fr: '/bienvenue',          en: '/welcome' },
   account:         { indexable: false, bilingual: true,  fr: '/compte',             en: '/account' },
   accountOrders:   { indexable: false, bilingual: true,  fr: '/compte/commandes',   en: '/account/orders' },
   accountInvoices: { indexable: false, bilingual: true,  fr: '/compte/factures',    en: '/account/invoices' },
+  businessDashboard: { indexable: false, bilingual: true, fr: '/entreprise',        en: '/business' },
   admin:           { indexable: false, bilingual: false, fr: '/admin',              en: '/admin' },
   adminCities:     { indexable: false, bilingual: false, fr: '/admin/destinations', en: '/admin/destinations' },
   adminProducts:   { indexable: false, bilingual: false, fr: '/admin/produits',     en: '/admin/produits' },

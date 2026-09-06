@@ -144,6 +144,31 @@
     "sidebar_invoices": "Invoices",
     "sidebar_profile": "Profile"
   },
+  "onboarding": {
+    "meta_title": "Welcome — Luna Tracking Logistics",
+    "title": "Welcome!",
+    "subtitle": "To personalise your space, tell us how you'll use our services.",
+    "individual_title": "I'm an individual",
+    "individual_body": "For sending parcels or goods on a personal basis. Simple space: new shipment, tracking, history, addresses.",
+    "individual_cta": "Continue as an individual",
+    "business_title": "I'm a freelancer / business",
+    "business_body": "To manage professional shipments, clients, quotes, invoices and reports. Full space, multi-user capable.",
+    "business_cta": "Create my business space",
+    "change_later": "You can change this choice later from your profile."
+  },
+  "business_dashboard": {
+    "meta_title": "Business space — Luna Tracking Logistics",
+    "welcome_title": "Welcome to your business space",
+    "welcome_body": "Your account is set up as a business. Full modules are rolling out progressively.",
+    "coming_title": "Coming soon",
+    "coming_kpi": "Dashboard with KPIs (shipments, quotes, invoices, margin)",
+    "coming_shipments": "Professional shipments management + templates",
+    "coming_clients": "Customer CRM with full history",
+    "coming_quotes": "Quotes with one-click conversion into a shipment",
+    "coming_invoices": "Peppol-ready invoicing + accounting export",
+    "coming_expenses": "Per-shipment expense tracking + margin calculation",
+    "coming_reports": "Monthly reports + export to your accountant"
+  },
   "admin": {
     "meta_title": "Admin — Luna Tracking Logistics",
     "dashboard_title": "Dashboard",

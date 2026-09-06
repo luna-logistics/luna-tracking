@@ -6,6 +6,7 @@ import { RouteErrorBoundary } from '@/components/RouteErrorBoundary';
 import { lazy, Suspense, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { ProfileProvider } from '@/contexts/ProfileContext';
 import { CartProvider } from '@/contexts/CartContext';
 import { SiteContentProvider } from '@/contexts/SiteContentContext';
 import { EditModeProvider } from '@/contexts/EditModeContext';
@@ -14,6 +15,7 @@ import { HreflangTags } from '@/components/HreflangTags';
 import { PublicLayout } from '@/components/PublicLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { AdminGate } from '@/components/AdminGate';
+import { OnboardingGate, AccountTypeGate } from '@/components/AccountTypeGate';
 import { setVisitLanguage } from '@/i18n';
 
 // Eager: homepage + login (critical paths).
@@ -34,6 +36,8 @@ const Account = lazy(() => import('@/pages/Account'));
 const AccountOrders = lazy(() => import('@/pages/AccountOrders'));
 const AccountInvoices = lazy(() => import('@/pages/AccountInvoices'));
 const AccountShell = lazy(() => import('@/components/AccountShell').then((m) => ({ default: m.AccountShell })));
+const Onboarding = lazy(() => import('@/pages/Onboarding'));
+const BusinessDashboard = lazy(() => import('@/pages/BusinessDashboard'));
 const AdminShell = lazy(() => import('@/components/AdminShell').then((m) => ({ default: m.AdminShell })));
 const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'));
 const AdminCities = lazy(() => import('@/pages/AdminCities'));
@@ -120,12 +124,44 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
           <Route path={t('/mot-de-passe-oublie', '/forgot-password')} element={<ForgotPassword />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
 
-          {/* Client area — protected, inside AccountShell */}
-          <Route element={<ProtectedRoute><AccountShell /></ProtectedRoute>}>
+          {/* Onboarding — protected, no shell (focused first-run pick) */}
+          <Route
+            path={t('/bienvenue', '/welcome')}
+            element={<ProtectedRoute><Onboarding /></ProtectedRoute>}
+          />
+
+          {/* Client area (particulier) — protected + gated by
+              account_type='individual'. A business user hitting a
+              /compte URL is bounced to /entreprise by AccountTypeGate. */}
+          <Route element={
+            <ProtectedRoute>
+              <OnboardingGate>
+                <AccountTypeGate expect="individual">
+                  <AccountShell />
+                </AccountTypeGate>
+              </OnboardingGate>
+            </ProtectedRoute>
+          }>
             <Route path={t('/compte', '/account')} element={<Account />} />
             <Route path={t('/compte/commandes', '/account/orders')} element={<AccountOrders />} />
             <Route path={t('/compte/factures', '/account/invoices')} element={<AccountInvoices />} />
           </Route>
+
+          {/* Business area — protected + gated by account_type='business'.
+              Phase 0 ships routing + placeholder dashboard only; a real
+              BusinessShell (sidebar nav, KPIs, modules) lands in Phase 2. */}
+          <Route
+            path={t('/entreprise', '/business')}
+            element={
+              <ProtectedRoute>
+                <OnboardingGate>
+                  <AccountTypeGate expect="business">
+                    <PublicLayout><BusinessDashboard /></PublicLayout>
+                  </AccountTypeGate>
+                </OnboardingGate>
+              </ProtectedRoute>
+            }
+          />
 
           {/* Admin — FR-only convention. AdminGate wraps ProtectedRoute so a
               signed-in-but-not-admin user gets the "access denied" card, not
@@ -177,18 +213,20 @@ const App = () => (
   <HelmetProvider>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <EditModeProvider>
-          <SiteContentProvider>
-            <CartProvider>
-              <Toaster richColors position="top-right" />
-              <BrowserRouter>
-                <LangUrlProvider>
-                  <AppRoutes />
-                </LangUrlProvider>
-              </BrowserRouter>
-            </CartProvider>
-          </SiteContentProvider>
-        </EditModeProvider>
+        <ProfileProvider>
+          <EditModeProvider>
+            <SiteContentProvider>
+              <CartProvider>
+                <Toaster richColors position="top-right" />
+                <BrowserRouter>
+                  <LangUrlProvider>
+                    <AppRoutes />
+                  </LangUrlProvider>
+                </BrowserRouter>
+              </CartProvider>
+            </SiteContentProvider>
+          </EditModeProvider>
+        </ProfileProvider>
       </AuthProvider>
     </QueryClientProvider>
   </HelmetProvider>

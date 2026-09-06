@@ -144,6 +144,31 @@
     "sidebar_invoices": "Factures",
     "sidebar_profile": "Profil"
   },
+  "onboarding": {
+    "meta_title": "Bienvenue — Luna Tracking Logistics",
+    "title": "Bienvenue !",
+    "subtitle": "Pour personnaliser votre espace, dites-nous comment vous utilisez nos services.",
+    "individual_title": "Je suis un particulier",
+    "individual_body": "Pour envoyer des colis ou marchandises à titre personnel. Espace simple : nouvelle expédition, suivi, historique, adresses.",
+    "individual_cta": "Continuer en tant que particulier",
+    "business_title": "Je suis indépendant / une entreprise",
+    "business_body": "Pour gérer des expéditions professionnelles, clients, devis, factures et rapports. Espace complet, plusieurs collaborateurs possibles.",
+    "business_cta": "Créer mon espace professionnel",
+    "change_later": "Vous pourrez changer ce choix plus tard depuis votre profil."
+  },
+  "business_dashboard": {
+    "meta_title": "Espace professionnel — Luna Tracking Logistics",
+    "welcome_title": "Bienvenue dans votre espace professionnel",
+    "welcome_body": "Votre compte est bien créé en mode « entreprise ». Les modules complets arrivent progressivement.",
+    "coming_title": "Bientôt disponible",
+    "coming_kpi": "Tableau de bord avec KPI (expéditions, devis, factures, marge)",
+    "coming_shipments": "Gestion des expéditions professionnelles + modèles",
+    "coming_clients": "CRM clients avec historique complet",
+    "coming_quotes": "Devis avec conversion automatique en expédition",
+    "coming_invoices": "Facturation Peppol-ready + export comptable",
+    "coming_expenses": "Suivi des dépenses par expédition + calcul de marge",
+    "coming_reports": "Rapports mensuels + export vers votre comptable"
+  },
   "admin": {
     "meta_title": "Administration — Luna Tracking Logistics",
     "dashboard_title": "Tableau de bord",
