@@ -39,7 +39,7 @@ export default function Login() {
       <div className="min-h-screen bg-luna-gradient flex items-center justify-center p-4">
         <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
           <Link to={urlFor('home', lang)} className="inline-block mb-6">
-            <img src="/brand/logo-on-white.jpeg" alt={t('brand.name')} className="h-10 w-auto" />
+            <img src="/brand/logo-luna-navbar2.png" alt={t('brand.name')} className="h-10 w-auto" />
           </Link>
           <h1 className="text-2xl font-bold text-luna-navy">{t('auth.login_title')}</h1>
           <p className="mt-2 text-sm text-slate-600">{t('auth.login_intro')}</p>
