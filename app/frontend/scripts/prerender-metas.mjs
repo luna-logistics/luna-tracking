@@ -174,13 +174,50 @@ async function emitStaticRoute(key, def) {
         ]
       : [];
 
+    // Homepage carries a small graph: Organization (feeds Google's
+    // Knowledge Graph / business panel), WebSite with SearchAction (the
+    // sitelinks-search-box entrypoint), plus WebPage. Other static pages
+    // ship a single WebPage node linked back to the WebSite.
     const jsonLd = key === 'home'
       ? {
           '@context': 'https://schema.org',
-          '@type': 'WebSite',
-          name: SITE_NAME,
-          url: SITE_URL,
-          inLanguage: lang,
+          '@graph': [
+            {
+              '@type': 'Organization',
+              '@id': `${SITE_URL}/#org`,
+              name: SITE_NAME,
+              url: SITE_URL,
+              logo: `${SITE_URL}/brand/logo-luna-navbar2.png`,
+              email: 'info@lunatrackinglogistics.be',
+              address: {
+                '@type': 'PostalAddress',
+                streetAddress: "Rue de l'Automne 59",
+                postalCode: '1050',
+                addressLocality: 'Ixelles',
+                addressCountry: 'BE',
+              },
+              sameAs: ['https://www.instagram.com/Luna_TrackingLogistics/'],
+              areaServed: ['BE', 'CD'],
+            },
+            {
+              '@type': 'WebSite',
+              '@id': `${SITE_URL}/#site`,
+              name: SITE_NAME,
+              url: SITE_URL,
+              inLanguage: lang,
+              publisher: { '@id': `${SITE_URL}/#org` },
+            },
+            {
+              '@type': 'WebPage',
+              '@id': `${canonical}#page`,
+              url: canonical,
+              name: title,
+              description: description || undefined,
+              inLanguage: lang,
+              isPartOf: { '@id': `${SITE_URL}/#site` },
+              about: { '@id': `${SITE_URL}/#org` },
+            },
+          ],
         }
       : {
           '@context': 'https://schema.org',

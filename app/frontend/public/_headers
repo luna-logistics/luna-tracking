@@ -1,8 +1,21 @@
-# Cloudflare Pages response headers.
-#
-# Private / auth surfaces must never be indexed. These are SPA routes served
-# the home index.html as a fallback (no per-route noindex reaches a crawler
-# before JS), so noindex is set at the HTTP layer keyed on the REQUEST path.
+# Cloudflare Workers static-assets response headers.
+
+# ─── Site-wide security headers ─────────────────────────────────────────
+# HSTS: tell every browser to only reach us over HTTPS for the next year
+# and to apply the same rule to future subdomains. `preload` = eligible
+# for the HSTS preload list (hstspreload.org) once we're confident no
+# subdomain will ever need HTTP; the flag is safe to ship without
+# actually submitting there. Redirect HTTP→HTTPS itself is handled by
+# the "Always Use HTTPS" toggle at the Cloudflare zone level.
+/*
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Content-Type-Options: nosniff
+
+# ─── Private / auth surfaces — never indexed ────────────────────────────
+# These are SPA routes served the home index.html as a fallback (no
+# per-route noindex reaches a crawler before JS), so noindex is set at
+# the HTTP layer keyed on the REQUEST path.
 
 /admin
   X-Robots-Tag: noindex
