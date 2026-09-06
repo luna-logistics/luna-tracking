@@ -97,27 +97,36 @@ const setHtmlLang = (html, lang) =>
 const injectHead = (html, chunk) =>
   html.replace(/<\/head>/i, `${chunk}\n</head>`);
 
+/**
+ * Emit the head chunk. Every tag carries `data-rh="true"` so
+ * react-helmet-async — which owns the exact same set once the SPA
+ * hydrates — recognises them as helmet-managed and takes over in
+ * place instead of appending a second copy (Bing was flagging
+ * "More than one Meta Description tag" / duplicate canonical
+ * because the prerendered tag and helmet's tag were both live).
+ */
 function metaTagsFor({ lang, title, description, canonical, ogImage, ogImageAlt, hreflangs, jsonLd, extra }) {
+  const RH = 'data-rh="true"';
   const parts = [];
-  parts.push(`<title>${escapeHtml(title)}</title>`);
-  if (description) parts.push(`<meta name="description" content="${escapeHtml(description)}" />`);
-  parts.push(`<link rel="canonical" href="${escapeHtml(canonical)}" />`);
+  parts.push(`<title ${RH}>${escapeHtml(title)}</title>`);
+  if (description) parts.push(`<meta ${RH} name="description" content="${escapeHtml(description)}" />`);
+  parts.push(`<link ${RH} rel="canonical" href="${escapeHtml(canonical)}" />`);
   for (const alt of hreflangs) {
-    parts.push(`<link rel="alternate" hreflang="${alt.hreflang}" href="${escapeHtml(alt.href)}" />`);
+    parts.push(`<link ${RH} rel="alternate" hreflang="${alt.hreflang}" href="${escapeHtml(alt.href)}" />`);
   }
-  parts.push(`<meta property="og:type" content="${escapeHtml(extra?.ogType ?? 'website')}" />`);
-  parts.push(`<meta property="og:url" content="${escapeHtml(canonical)}" />`);
-  parts.push(`<meta property="og:title" content="${escapeHtml(title)}" />`);
-  if (description) parts.push(`<meta property="og:description" content="${escapeHtml(description)}" />`);
-  parts.push(`<meta property="og:image" content="${escapeHtml(ogImage)}" />`);
-  if (ogImageAlt) parts.push(`<meta property="og:image:alt" content="${escapeHtml(ogImageAlt)}" />`);
-  parts.push(`<meta property="og:locale" content="${lang === 'en' ? 'en_US' : 'fr_BE'}" />`);
-  parts.push(`<meta property="og:site_name" content="${escapeHtml(SITE_NAME)}" />`);
-  parts.push(`<meta name="twitter:card" content="summary_large_image" />`);
-  parts.push(`<meta name="twitter:title" content="${escapeHtml(title)}" />`);
-  if (description) parts.push(`<meta name="twitter:description" content="${escapeHtml(description)}" />`);
-  parts.push(`<meta name="twitter:image" content="${escapeHtml(ogImage)}" />`);
-  if (jsonLd) parts.push(`<script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>`);
+  parts.push(`<meta ${RH} property="og:type" content="${escapeHtml(extra?.ogType ?? 'website')}" />`);
+  parts.push(`<meta ${RH} property="og:url" content="${escapeHtml(canonical)}" />`);
+  parts.push(`<meta ${RH} property="og:title" content="${escapeHtml(title)}" />`);
+  if (description) parts.push(`<meta ${RH} property="og:description" content="${escapeHtml(description)}" />`);
+  parts.push(`<meta ${RH} property="og:image" content="${escapeHtml(ogImage)}" />`);
+  if (ogImageAlt) parts.push(`<meta ${RH} property="og:image:alt" content="${escapeHtml(ogImageAlt)}" />`);
+  parts.push(`<meta ${RH} property="og:locale" content="${lang === 'en' ? 'en_US' : 'fr_BE'}" />`);
+  parts.push(`<meta ${RH} property="og:site_name" content="${escapeHtml(SITE_NAME)}" />`);
+  parts.push(`<meta ${RH} name="twitter:card" content="summary_large_image" />`);
+  parts.push(`<meta ${RH} name="twitter:title" content="${escapeHtml(title)}" />`);
+  if (description) parts.push(`<meta ${RH} name="twitter:description" content="${escapeHtml(description)}" />`);
+  parts.push(`<meta ${RH} name="twitter:image" content="${escapeHtml(ogImage)}" />`);
+  if (jsonLd) parts.push(`<script ${RH} type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>`);
   return parts.join('\n  ');
 }
 

@@ -4,11 +4,17 @@
   <meta charset="UTF-8" />
 
   <!-- Favicons — generated from public/brand/logo-luna-250.png by
-       scripts/generate-favicons.py. Every referenced file is committed
-       under public/, so this list stays in lockstep with what's served. -->
+       scripts/generate-favicons.py. Two colour variants: the blue phoenix
+       on transparent bg for light tab bars, a near-white recolour for
+       dark. `media="(prefers-color-scheme: ...)"` lets the browser pick
+       the one visible on the user's tab strip. The .ico fallback stays
+       the light variant so legacy tools that ignore `media` still show
+       something legible. -->
   <link rel="icon" href="/favicon.ico" sizes="any" />
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png"      media="(prefers-color-scheme: light)" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png"      media="(prefers-color-scheme: light)" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32-dark.png" media="(prefers-color-scheme: dark)" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16-dark.png" media="(prefers-color-scheme: dark)" />
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
 
