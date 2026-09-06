@@ -59,16 +59,18 @@ export function BilingualPair({
           const value    = side === 'fr' ? fr : en;
           const setter   = side === 'fr' ? onFr : onEn;
           const label    = side === 'fr' ? labelFr : labelEn;
-          const other    = side === 'fr' ? 'EN' : 'FR';
+          const otherName = side === 'fr' ? t('admin_content.language_en') : t('admin_content.language_fr');
           const direction = side === 'fr' ? 'fr2en' : 'en2fr';
           return (
             <div key={side}>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium text-slate-500">{label}</span>
+              <div className="flex items-center justify-between mb-1 gap-2">
+                <span className="text-xs font-semibold text-slate-600">{label}</span>
                 <Button type="button" size="sm" variant="ghost" disabled={busy !== null || !value.trim()}
-                  onClick={() => translate(direction)} title={t('admin_content.translate_to', { lang: other })}>
-                  <Languages className="h-3 w-3" />
-                  {busy === direction ? '…' : `→ ${other}`}
+                  onClick={() => translate(direction)}
+                  title={t('admin_content.translate_this_to', { lang: otherName })}
+                  className="text-xs">
+                  <Languages className="h-3.5 w-3.5" />
+                  {busy === direction ? t('admin_content.translating') : t('admin_content.translate_this_to', { lang: otherName })}
                 </Button>
               </div>
               {kind === 'textarea' ? (

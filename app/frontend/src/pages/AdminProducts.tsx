@@ -226,6 +226,10 @@ function ProductForm({
         weight_kg: values.weight_kg == null || values.weight_kg === '' as any ? null : Number(values.weight_kg),
         image_url: values.image_url || null,
         is_active: values.is_active !== false,
+        meta_title_fr: values.meta_title_fr || null,
+        meta_title_en: values.meta_title_en || null,
+        meta_description_fr: values.meta_description_fr || null,
+        meta_description_en: values.meta_description_en || null,
       };
       await upsertProduct(payload as any);
       toast.success(t('admin.product_saved_toast'));
@@ -322,6 +326,24 @@ function ProductForm({
         url={values.image_url ?? null}
         onChange={(u) => set('image_url', u)}
       />
+
+      <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-5 space-y-4">
+        <h3 className="text-sm font-semibold text-luna-navy">{t('admin.product_seo_section')}</h3>
+        <BilingualPair
+          label={t('admin.product_field_meta_title')}
+          labelFr="Français" labelEn="English"
+          fr={values.meta_title_fr ?? ''} en={values.meta_title_en ?? ''}
+          onFr={(v) => set('meta_title_fr', v || null)} onEn={(v) => set('meta_title_en', v || null)}
+          kind="input"
+        />
+        <BilingualPair
+          label={t('admin.product_field_meta_description')}
+          labelFr="Français" labelEn="English"
+          fr={values.meta_description_fr ?? ''} en={values.meta_description_en ?? ''}
+          onFr={(v) => set('meta_description_fr', v || null)} onEn={(v) => set('meta_description_en', v || null)}
+          kind="textarea" rows={3}
+        />
+      </div>
 
       <div className="flex items-center gap-2">
         <Switch checked={values.is_active !== false} onCheckedChange={(v) => set('is_active', v)} />
@@ -486,6 +508,8 @@ type ImportRow = {
     price: number; category_id: string;
     barcode: string | null; hs_code: string | null; weight_kg: number | null; image_url: string | null;
     is_active: boolean;
+    meta_title_fr: string | null; meta_title_en: string | null;
+    meta_description_fr: string | null; meta_description_en: string | null;
   };
 };
 
@@ -620,6 +644,10 @@ function validateRow(raw: Record<string, string>, row: number, categories: Produ
       weight_kg: weight,
       image_url: raw.image_url?.trim() || null,
       is_active: true,
+      meta_title_fr: raw.meta_title_fr?.trim() || null,
+      meta_title_en: raw.meta_title_en?.trim() || null,
+      meta_description_fr: raw.meta_description_fr?.trim() || null,
+      meta_description_en: raw.meta_description_en?.trim() || null,
     },
   };
 }

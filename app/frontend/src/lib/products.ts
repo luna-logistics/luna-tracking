@@ -26,6 +26,10 @@ export type Product = {
   weight_kg: number | null;
   image_url: string | null;
   is_active: boolean;
+  meta_title_fr: string | null;
+  meta_title_en: string | null;
+  meta_description_fr: string | null;
+  meta_description_en: string | null;
 };
 
 export function productName(p: Product, lang: 'fr' | 'en'): string {
@@ -36,6 +40,14 @@ export function productSlug(p: Product, lang: 'fr' | 'en'): string {
 }
 export function productDescription(p: Product, lang: 'fr' | 'en'): string | null {
   return lang === 'en' ? p.description_en : p.description_fr;
+}
+export function productMetaTitle(p: Product, lang: 'fr' | 'en'): string {
+  const m = lang === 'en' ? p.meta_title_en : p.meta_title_fr;
+  return m || productName(p, lang);
+}
+export function productMetaDescription(p: Product, lang: 'fr' | 'en'): string | null {
+  const m = lang === 'en' ? p.meta_description_en : p.meta_description_fr;
+  return m || productDescription(p, lang);
 }
 export function categoryName(c: ProductCategory, lang: 'fr' | 'en'): string {
   return lang === 'en' ? c.name_en : c.name_fr;

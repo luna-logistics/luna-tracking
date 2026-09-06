@@ -7,7 +7,7 @@ import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/sonner';
 import { useCart } from '@/contexts/CartContext';
-import { fetchProductBySlug, fetchProductCategories, productName, productDescription, productSlug, categoryName, type Product, type ProductCategory } from '@/lib/products';
+import { fetchProductBySlug, fetchProductCategories, productName, productDescription, productMetaTitle, productMetaDescription, productSlug, categoryName, type Product, type ProductCategory } from '@/lib/products';
 import { urlFor } from '@/lib/url/routes';
 import { useLangUrls } from '@/contexts/LangUrlContext';
 
@@ -94,8 +94,8 @@ export default function ShopAndShipProduct() {
   return (
     <>
       <SEO
-        title={`${displayName} — ${t('brand.name')}`}
-        description={displayDescription ?? undefined}
+        title={`${productMetaTitle(product, lang)} — ${t('brand.name')}`}
+        description={productMetaDescription(product, lang) ?? undefined}
         type="article"
       />
       <Helmet>
