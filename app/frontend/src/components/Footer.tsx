@@ -44,6 +44,9 @@ export function Footer() {
             </h3>
             <ul className="space-y-2 text-sm">
               <li><Link to={urlFor('tracking', lang)} className="text-white/80 hover:text-white">{t('nav.tracking')}</Link></li>
+              <li><Link to={urlFor('shopAndShip', lang)} className="text-white/80 hover:text-white">{t('nav.shop_and_ship')}</Link></li>
+              <li><Link to={urlFor('forwarding', lang)} className="text-white/80 hover:text-white">{t('nav.forwarding')}</Link></li>
+              <li><Link to={urlFor('blogIndex', lang)} className="text-white/80 hover:text-white">{t('nav.blog')}</Link></li>
               <li><Link to={urlFor('pricing', lang)} className="text-white/80 hover:text-white">{t('nav.pricing')}</Link></li>
               <li><Link to={urlFor('contact', lang)} className="text-white/80 hover:text-white">{t('nav.contact')}</Link></li>
             </ul>
