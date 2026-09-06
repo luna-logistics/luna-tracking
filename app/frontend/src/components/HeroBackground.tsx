@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react';
-import { useHeroBg } from '@/contexts/SiteContentContext';
+import { useHeroBg, useImageAlt } from '@/contexts/SiteContentContext';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -35,6 +35,10 @@ export function HeroBackground({
   imageKey, fallbackClassName, imageAlt, children, className,
 }: Props) {
   const bg = useHeroBg(imageKey);
+  // Admin override wins over the caller's default (caller usually passes
+  // the page title as a decent placeholder; admin fills the real alt via
+  // /admin/contenus → bilingual + DeepL-translatable).
+  const resolvedAlt = useImageAlt(imageKey, imageAlt ?? '');
 
   return (
     <div className={cn('relative isolate overflow-hidden', fallbackClassName, className)}>
@@ -54,10 +58,10 @@ export function HeroBackground({
             className="absolute inset-0 -z-10 bg-luna-navy-deep"
             style={{ opacity: (bg.overlay ?? 45) / 100 }}
           />
-          {imageAlt && (
+          {resolvedAlt && (
             <img
               src={bg.url}
-              alt={imageAlt}
+              alt={resolvedAlt}
               loading="lazy"
               width={2400}
               height={1000}

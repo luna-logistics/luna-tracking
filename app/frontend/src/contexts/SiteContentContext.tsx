@@ -89,6 +89,16 @@ export function useSiteImage(imageKey: string, defaultUrl: string): string {
   return images.get(imageKey) ?? defaultUrl;
 }
 
+/** Read the admin-authored alt text for an uploaded image, in the
+ *  current language. Falls back to `defaultAlt` (usually the page
+ *  title). Stored in site_content under page_key='image'. */
+export function useImageAlt(imageKey: string, defaultAlt: string): string {
+  const { content } = useContext(SiteContentContext);
+  const { i18n } = useTranslation();
+  const lang: 'fr' | 'en' = i18n.language === 'en' ? 'en' : 'fr';
+  return content.get(contentKey('image', lang, `${imageKey}_alt`)) ?? defaultAlt;
+}
+
 /** Read the full hero-background config (URL + focal + zoom + overlay).
  *  Returns null when the admin hasn't uploaded a hero image for this key
  *  yet — callers then render their existing gradient / plain hero. */

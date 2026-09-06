@@ -9,6 +9,7 @@ import {
 } from '@/lib/site-content';
 import { optimizeImage } from '@/lib/optimize-image';
 import { useSiteContentContext, useHeroBg } from '@/contexts/SiteContentContext';
+import { ImageAltPair } from '@/components/ImageAltPair';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -182,6 +183,8 @@ export function HeroBackgroundEditor({
             </Button>
           </div>
         )}
+
+        {stored?.url && <ImageAltPair imageKey={imageKey} />}
       </div>
     </div>
   );

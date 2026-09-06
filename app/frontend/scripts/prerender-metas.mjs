@@ -91,7 +91,9 @@ async function sbFetch(table, query) {
   }
 }
 
-const overrideRows  = await sbFetch('site_content', 'select=page_key,lang,field_key,value&field_key=in.(meta_title,meta_description)');
+// Pull meta_title/meta_description (used for <head> tags) AND every
+// row on the synthetic `image` page (used for og:image:alt overrides).
+const overrideRows  = await sbFetch('site_content', 'select=page_key,lang,field_key,value&or=(field_key.in.(meta_title,meta_description),page_key.eq.image)');
 const imageRows     = await sbFetch('site_images',  'select=image_key,url');
 const productRows   = await sbFetch('products',     'select=slug_fr,slug_en,name_fr,name_en,description_fr,description_en,meta_title_fr,meta_title_en,meta_description_fr,meta_description_en,image_url&is_active=eq.true');
 const blogRows      = await sbFetch('blog_posts',   'select=slug_fr,slug_en,title_fr,title_en,excerpt_fr,excerpt_en,meta_title_fr,meta_title_en,meta_description_fr,meta_description_en,featured_image,published_at,updated_at&published=eq.true');
@@ -189,6 +191,17 @@ function heroOgImage(pageKey) {
       ?? OG_FALLBACK;
 }
 
+/** Alt text for that same image, from the admin-authored override in
+ *  site_content (bilingual). Falls back to the default the caller passes. */
+function heroOgImageAlt(pageKey, lang, fallback) {
+  for (const suffix of ['_hero', '_og']) {
+    const key = `image::${lang}::${pageKey}${suffix}_alt`;
+    if (overrides.has(key)) return overrides.get(key);
+  }
+  const home = overrides.get(`image::${lang}::home_og_alt`);
+  return home ?? fallback;
+}
+
 async function emitStaticRoute(key, def) {
   if (!def.indexable) return;
   const i18nPage = ROUTE_I18N[key] ?? key;
@@ -275,7 +288,7 @@ async function emitStaticRoute(key, def) {
     const head = metaTagsFor({
       lang, title, description, canonical,
       ogImage: heroOgImage(i18nPage),
-      ogImageAlt: title,
+      ogImageAlt: heroOgImageAlt(i18nPage, lang, title),
       hreflangs, jsonLd,
     });
 

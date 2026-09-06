@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/sonner';
 import { EDITABLE_PAGES, type EditablePage, type EditableField } from '@/lib/editable-content';
 import { HeroBackgroundEditor } from '@/components/HeroBackgroundEditor';
+import { ImageAltPair } from '@/components/ImageAltPair';
 import { optimizeImage } from '@/lib/optimize-image';
 import {
   saveSiteContent, saveSiteImage, deleteSiteImage, uploadSiteImage,
@@ -376,6 +377,7 @@ function ImageEditor({
           )}
         </div>
       </div>
+      {currentUrl && <ImageAltPair imageKey={imageKey} />}
     </div>
   );
 }
