@@ -59,16 +59,19 @@ export function RebuildPanel() {
       <h2 className="text-lg font-semibold text-luna-navy">{t('rebuild.title')}</h2>
       <p className="mt-1 text-sm text-slate-600 max-w-2xl">{t('rebuild.intro')}</p>
 
-      <div className="mt-4 flex items-center gap-3">
+      <div className="mt-4 flex items-center gap-3 flex-wrap">
         <Button variant="navy" onClick={onRebuild} disabled={triggering || run?.status === 'in_progress' || run?.status === 'queued'}>
           <RefreshCcw className={cn('h-4 w-4', triggering && 'animate-spin')} />
           {triggering ? t('rebuild.dispatching') : t('rebuild.button')}
         </Button>
-        <Button variant="outline" size="sm" onClick={load}>
+        <Button variant="outline" size="sm" onClick={load} title={t('rebuild.refresh_hint')}>
           <RefreshCcw className="h-3.5 w-3.5" />
           {t('rebuild.refresh')}
         </Button>
       </div>
+      <p className="mt-3 text-xs text-slate-500 max-w-2xl">
+        {t('rebuild.buttons_explainer')}
+      </p>
 
       <div className="mt-5 rounded-xl border border-slate-200 p-4 bg-slate-50/40">
         <div className="text-xs uppercase tracking-wide text-slate-500 font-semibold mb-2">
