@@ -31,8 +31,9 @@ export function LanguageSwitcher({ variant = 'light' }: { variant?: 'light' | 'd
   const location = useLocation();
   const { langUrls } = useLangUrls();
   const currentLang = (i18n.language === 'en' ? 'en' : 'fr') as SupportedLang;
+  const otherLang: SupportedLang = currentLang === 'fr' ? 'en' : 'fr';
 
-  const handle = (lang: SupportedLang) => {
+  const goTo = (lang: SupportedLang) => {
     if (lang === currentLang) return;
     setLanguagePreference(lang);
     // Dynamic content pages (blog post, product detail, …) can override
@@ -42,33 +43,26 @@ export function LanguageSwitcher({ variant = 'light' }: { variant?: 'light' | 'd
     navigate(newPath + location.search + location.hash, { replace: true });
   };
 
+  // One-button toggle: shows the CURRENT language and, on click, swaps to
+  // the other one. Cuts the navbar width in half vs. two side-by-side pills
+  // and keeps the switcher legible on desktop + mobile.
   return (
-    <div className="flex items-center gap-1" role="group" aria-label="Language">
-      {SUPPORTED_LANGS.map((lang) => {
-        const active = currentLang === lang;
-        return (
-          <button
-            key={lang}
-            type="button"
-            onClick={() => handle(lang)}
-            className={cn(
-              'inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold transition-colors',
-              active
-                ? variant === 'dark'
-                  ? 'bg-luna-cyan text-luna-navy'
-                  : 'bg-luna-navy text-white'
-                : variant === 'dark'
-                  ? 'text-white/80 hover:text-white hover:bg-white/10'
-                  : 'text-luna-navy/70 hover:text-luna-navy hover:bg-luna-navy/10'
-            )}
-            aria-label={LABELS[lang].label}
-            aria-pressed={active}
-          >
-            <span aria-hidden="true">{LABELS[lang].flag}</span>
-            <span>{LABELS[lang].short}</span>
-          </button>
-        );
-      })}
-    </div>
+    <button
+      type="button"
+      onClick={() => goTo(otherLang)}
+      className={cn(
+        'inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold whitespace-nowrap transition-colors',
+        variant === 'dark'
+          ? 'bg-white/10 text-white hover:bg-white/20'
+          : 'bg-luna-navy/5 text-luna-navy hover:bg-luna-navy/10'
+      )}
+      aria-label={`${LABELS[currentLang].label} → ${LABELS[otherLang].label}`}
+      title={LABELS[otherLang].label}
+    >
+      <span aria-hidden="true">{LABELS[currentLang].flag}</span>
+      <span>{LABELS[currentLang].short}</span>
+      <span aria-hidden="true" className="opacity-40">·</span>
+      <span aria-hidden="true">{LABELS[otherLang].short}</span>
+    </button>
   );
 }

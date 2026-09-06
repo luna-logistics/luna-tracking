@@ -35,7 +35,7 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/95 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
         <Link to={urlFor('home', lang)} className="shrink-0 flex items-center gap-2" aria-label={t('brand.name')}>
           {/* Horizontal 1600×400 (4:1) — phoenix + wordmark on one line. At
               h-10 (40px) the width is 160px and the wordmark stays crisp.
