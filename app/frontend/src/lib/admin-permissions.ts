@@ -15,6 +15,7 @@ export const ADMIN_PERMISSIONS = [
   'auth_providers',
   'content',
   'blog',
+  'pages',
   'admins',
 ] as const;
 export type AdminPermission = (typeof ADMIN_PERMISSIONS)[number];

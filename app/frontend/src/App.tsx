@@ -47,6 +47,9 @@ const BlogPost = lazy(() => import('@/pages/BlogPost'));
 const AdminBlog = lazy(() => import('@/pages/AdminBlog'));
 const AdminBlogForm = lazy(() => import('@/pages/AdminBlogForm'));
 const AdminCollaborators = lazy(() => import('@/pages/AdminCollaborators'));
+const AdminCustomPages = lazy(() => import('@/pages/AdminCustomPages'));
+const AdminCustomPageForm = lazy(() => import('@/pages/AdminCustomPageForm'));
+const CustomPage = lazy(() => import('@/pages/CustomPage'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 
 const queryClient = new QueryClient();
@@ -140,7 +143,17 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
             <Route path="/admin/blog/nouveau" element={<AdminBlogForm />} />
             <Route path="/admin/blog/:id" element={<AdminBlogForm />} />
             <Route path="/admin/collaborateurs" element={<AdminCollaborators />} />
+            <Route path="/admin/pages" element={<AdminCustomPages />} />
+            <Route path="/admin/pages/nouvelle" element={<AdminCustomPageForm />} />
+            <Route path="/admin/pages/:id" element={<AdminCustomPageForm />} />
           </Route>
+
+          {/* Admin-authored top-level pages — /:slug (FR) and /en/:slug (EN).
+              React Router v6 ranks static routes above single-param routes so
+              /suivi, /tarifs, /blog, /admin, ... still win. Unknown slugs fall
+              through to CustomPage, which shows a real noindex 404 rather than
+              serving the FR homepage canonical (last summer's leak). */}
+          <Route path="/:slug" element={<PublicLayout><CustomPage /></PublicLayout>} />
 
           <Route path="*" element={<PublicLayout><NotFound /></PublicLayout>} />
         </Routes>

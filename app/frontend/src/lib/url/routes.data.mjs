@@ -30,6 +30,7 @@ export const ROUTES = {
   blogIndex:    { indexable: true,  bilingual: true,  fr: '/blog',            en: '/blog' },
   adminBlog:    { indexable: false, bilingual: false, fr: '/admin/blog',      en: '/admin/blog' },
   adminCollaborators: { indexable: false, bilingual: false, fr: '/admin/collaborateurs', en: '/admin/collaborateurs' },
+  adminCustomPages:   { indexable: false, bilingual: false, fr: '/admin/pages',           en: '/admin/pages' },
 };
 
 export function urlFor(key, lang = 'fr') {
@@ -45,6 +46,10 @@ export function productUrl(slug, lang = 'fr') {
 
 export function blogPostUrl(slug, lang = 'fr') {
   return `${urlFor('blogIndex', lang)}/${slug}`;
+}
+
+export function customPageUrl(slug, lang = 'fr') {
+  return lang === 'en' ? `/en/${slug}` : `/${slug}`;
 }
 
 export function allIndexableUrls() {

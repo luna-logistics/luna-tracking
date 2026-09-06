@@ -38,7 +38,8 @@ export type RouteKey =
   | 'adminContent'
   | 'blogIndex'
   | 'adminBlog'
-  | 'adminCollaborators';
+  | 'adminCollaborators'
+  | 'adminCustomPages';
 
 type RouteDef = {
   indexable: boolean;
@@ -71,6 +72,7 @@ export const ROUTES: Record<RouteKey, RouteDef> = {
   blogIndex:    { indexable: true,  bilingual: true,  fr: '/blog',            en: '/blog' },
   adminBlog:    { indexable: false, bilingual: false, fr: '/admin/blog',      en: '/admin/blog' },
   adminCollaborators: { indexable: false, bilingual: false, fr: '/admin/collaborateurs', en: '/admin/collaborateurs' },
+  adminCustomPages:   { indexable: false, bilingual: false, fr: '/admin/pages',           en: '/admin/pages' },
 };
 
 export function urlFor(key: RouteKey, lang: Lang = 'fr'): string {
@@ -96,6 +98,12 @@ export function matchUrl(pathname: string): { key: RouteKey; lang: Lang } | null
   // Blog post detail: /blog/{slug} and /en/blog/{slug} share the same slug.
   const blog = matchBlogPostUrl(pathname);
   if (blog) return { key: 'blogIndex', lang: blog.lang };
+  // Custom (admin-authored) top-level pages live at /{slug_fr} and /en/{slug_en}.
+  // We only report the language here — the slug itself is resolved against
+  // Supabase at page-render time (reserved slugs are blocked at write time
+  // so this can never shadow a fixed route).
+  const custom = matchCustomPageUrl(pathname);
+  if (custom) return { key: 'home', lang: custom.lang };
   return null;
 }
 
@@ -123,6 +131,20 @@ export function matchBlogPostUrl(pathname: string): { slug: string; lang: Lang }
   const enMatch = pathname.match(/^\/en\/blog\/([a-z0-9-]+)$/);
   if (enMatch) return { slug: enMatch[1], lang: 'en' };
   const frMatch = pathname.match(/^\/blog\/([a-z0-9-]+)$/);
+  if (frMatch) return { slug: frMatch[1], lang: 'fr' };
+  return null;
+}
+
+/** Build a custom page URL for the given slug + language. */
+export function customPageUrl(slug: string, lang: Lang = 'fr'): string {
+  return lang === 'en' ? `/en/${slug}` : `/${slug}`;
+}
+
+/** Detect a custom-page URL (single-segment path outside every fixed route). */
+export function matchCustomPageUrl(pathname: string): { slug: string; lang: Lang } | null {
+  const enMatch = pathname.match(/^\/en\/([a-z0-9-]+)$/);
+  if (enMatch) return { slug: enMatch[1], lang: 'en' };
+  const frMatch = pathname.match(/^\/([a-z0-9-]+)$/);
   if (frMatch) return { slug: frMatch[1], lang: 'fr' };
   return null;
 }

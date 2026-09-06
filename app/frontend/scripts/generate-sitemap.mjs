@@ -16,7 +16,7 @@ import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const { allIndexableUrls, productUrl, blogPostUrl } = await import(
+const { allIndexableUrls, productUrl, blogPostUrl, customPageUrl } = await import(
   pathToFileURL(resolve(__dirname, '..', 'src/lib/url/routes.data.mjs')).href
 );
 
@@ -59,7 +59,14 @@ for (const row of blogRows) {
   if (typeof row.slug_en === 'string') blogUrls.push(blogPostUrl(row.slug_en, 'en'));
 }
 
-const emitted = [...staticUrls, ...productUrls, ...blogUrls];
+const customPageRows = await fetchRows('custom_pages', 'select=slug_fr,slug_en&published=eq.true');
+const customPageUrls = [];
+for (const row of customPageRows) {
+  if (typeof row.slug_fr === 'string') customPageUrls.push(customPageUrl(row.slug_fr, 'fr'));
+  if (typeof row.slug_en === 'string') customPageUrls.push(customPageUrl(row.slug_en, 'en'));
+}
+
+const emitted = [...staticUrls, ...productUrls, ...blogUrls, ...customPageUrls];
 const now = new Date().toISOString().split('T')[0];
 const xml =
   '<?xml version="1.0" encoding="UTF-8"?>\n' +
@@ -73,5 +80,5 @@ const xml =
 writeFileSync(join(DIST, 'sitemap.xml'), xml, 'utf8');
 console.log(
   `[sitemap] wrote ${emitted.length} URLs to dist/sitemap.xml ` +
-  `(${staticUrls.length} static + ${productUrls.length} product + ${blogUrls.length} blog).`
+  `(${staticUrls.length} static + ${productUrls.length} product + ${blogUrls.length} blog + ${customPageUrls.length} custom-page).`
 );

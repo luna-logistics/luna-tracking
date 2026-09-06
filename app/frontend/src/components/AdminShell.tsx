@@ -2,7 +2,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, MapPin, Package, ShoppingCart, Boxes,
-  KeyRound, FileText, Newspaper, UserCog, LogOut, ExternalLink,
+  KeyRound, FileText, Newspaper, UserCog, LogOut, ExternalLink, FilePlus,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
@@ -33,6 +33,7 @@ export function AdminShell() {
     { to: '/admin/auth-sociale',           label: t('admin.sidebar_auth_providers'),  icon: KeyRound,        permission: 'auth_providers' },
     { to: '/admin/contenus',               label: t('admin.sidebar_content'),         icon: FileText,        permission: 'content' },
     { to: '/admin/blog',                   label: t('admin.sidebar_blog'),            icon: Newspaper,       permission: 'blog' },
+    { to: '/admin/pages',                  label: t('admin.sidebar_pages'),           icon: FilePlus,        permission: 'pages' },
     { to: '/admin/collaborateurs',         label: t('admin.sidebar_collaborators'),   icon: UserCog,         permission: 'admins' },
   ] as const).filter((it) => it.permission === 'always' || can(it.permission as AdminPermission)) as Array<{ to: string; label: string; icon: typeof LayoutDashboard; permission: AdminPermission | 'always' }>;
 
