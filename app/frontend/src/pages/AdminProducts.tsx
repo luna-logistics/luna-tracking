@@ -9,10 +9,11 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/components/ui/sonner';
 import Papa from 'papaparse';
-import { Upload, Trash2, Languages } from 'lucide-react';
+import { Upload, Trash2, Languages, Wand2, Check, X } from 'lucide-react';
 import { BilingualPair } from '@/components/BilingualPair';
 import { translateText } from '@/lib/translate';
 import { slugify } from '@/lib/blog';
+import { suggestHsCode, type HsSuggestion } from '@/lib/hs-classifier';
 import {
   fetchAllProducts, fetchProductCategories, upsertProduct, toggleProductActive, deleteProduct,
   upsertCategory, deleteCategory, uploadProductImage,
@@ -321,6 +322,13 @@ function ProductForm({
         </div>
       </div>
 
+      <HsClassifier
+        nameFr={values.name_fr ?? ''} nameEn={values.name_en ?? ''}
+        descriptionFr={values.description_fr ?? null} descriptionEn={values.description_en ?? null}
+        current={values.hs_code ?? null}
+        onApply={(code) => set('hs_code', code)}
+      />
+
       <ProductImageSlot
         slug={values.slug_fr ?? values.slug_en ?? ''}
         url={values.image_url ?? null}
@@ -425,6 +433,107 @@ function ProductImageSlot({
  * matching-language product name and a DeepL translate button that fills
  * the OTHER side from the current title. Same pattern as the blog form.
  */
+/**
+ * HS-code suggestion box. Runs the local classifier on product name +
+ * description; shows the suggested code + label + confidence and asks for
+ * confirmation before applying. Never overwrites an existing code silently.
+ */
+function HsClassifier({
+  nameFr, nameEn, descriptionFr, descriptionEn, current, onApply,
+}: {
+  nameFr: string; nameEn: string;
+  descriptionFr: string | null; descriptionEn: string | null;
+  current: string | null;
+  onApply: (code: string) => void;
+}) {
+  const { t } = useTranslation();
+  const [suggestion, setSuggestion] = useState<HsSuggestion | null | 'none'>(null);
+
+  const run = () => {
+    const s = suggestHsCode(nameFr, nameEn, descriptionFr, descriptionEn);
+    setSuggestion(s ?? 'none');
+  };
+
+  const alreadyThatCode = suggestion && suggestion !== 'none' && current === suggestion.code;
+  const conflict = suggestion && suggestion !== 'none' && current && current !== suggestion.code;
+
+  return (
+    <div className="rounded-xl border-2 border-dashed border-luna-blue/30 bg-luna-cyan/5 p-4">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <div className="text-sm font-semibold text-luna-navy inline-flex items-center gap-1.5">
+            <Wand2 className="h-4 w-4" />
+            {t('admin.hs_detect_title')}
+          </div>
+          <p className="mt-1 text-xs text-slate-600 max-w-xl">{t('admin.hs_detect_intro')}</p>
+        </div>
+        <Button type="button" size="sm" variant="outline" onClick={run} disabled={!nameFr.trim() && !nameEn.trim()}>
+          <Wand2 className="h-3.5 w-3.5" />
+          {t('admin.hs_detect_run')}
+        </Button>
+      </div>
+
+      {suggestion === 'none' && (
+        <div className="mt-3 rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-900">
+          {t('admin.hs_no_match')}
+        </div>
+      )}
+
+      {suggestion && suggestion !== 'none' && (
+        <div className="mt-3 rounded-md bg-white border border-slate-200 p-3">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <div className="text-xs uppercase tracking-wide text-slate-500 font-semibold inline-flex items-center gap-1.5">
+                {t('admin.hs_suggestion')}
+                <ConfidencePill level={suggestion.confidence} />
+              </div>
+              <div className="mt-1 font-mono text-lg text-luna-navy">{suggestion.code}</div>
+              <div className="text-sm text-slate-700">{suggestion.labelFr}</div>
+              <div className="mt-1 text-xs text-slate-500">
+                {t('admin.hs_matched')}: <span className="italic">{suggestion.matched.join(', ')}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {alreadyThatCode ? (
+                <span className="text-xs text-green-700 font-medium inline-flex items-center gap-1">
+                  <Check className="h-3.5 w-3.5" />
+                  {t('admin.hs_already_applied')}
+                </span>
+              ) : (
+                <Button type="button" size="sm" variant="navy" onClick={() => onApply(suggestion.code)}>
+                  <Check className="h-3.5 w-3.5" />
+                  {conflict ? t('admin.hs_replace') : t('admin.hs_apply')}
+                </Button>
+              )}
+              <Button type="button" size="sm" variant="ghost" onClick={() => setSuggestion(null)}>
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+          {conflict && (
+            <p className="mt-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+              {t('admin.hs_conflict', { current })}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ConfidencePill({ level }: { level: HsSuggestion['confidence'] }) {
+  const { t } = useTranslation();
+  const style =
+    level === 'high'   ? 'bg-green-100 text-green-800' :
+    level === 'medium' ? 'bg-luna-cyan/20 text-luna-navy' :
+                         'bg-amber-100 text-amber-900';
+  return (
+    <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold', style)}>
+      {t(`admin.hs_confidence_${level}`)}
+    </span>
+  );
+}
+
 function ProductSlugsPair({
   slugFr, slugEn, titleFr, titleEn, onFr, onEn,
 }: {
