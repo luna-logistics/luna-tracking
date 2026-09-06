@@ -105,8 +105,11 @@ export const EDITABLE_PAGES: EditablePage[] = [
   {
     key: 'tracking', labelFr: 'Suivi de colis', labelEn: 'Tracking',
     fields: [
-      { key: 'page_title', kind: 'text',     i18nKey: 'tracking.page_title', labelFr: 'Titre de la page',  labelEn: 'Page title' },
-      { key: 'page_intro', kind: 'textarea', i18nKey: 'tracking.page_intro', labelFr: 'Texte d\'introduction', labelEn: 'Intro text' },
+      { key: 'page_title',       kind: 'text',     i18nKey: 'tracking.page_title', labelFr: 'Titre de la page',    labelEn: 'Page title' },
+      { key: 'page_intro',       kind: 'textarea', i18nKey: 'tracking.page_intro', labelFr: 'Texte d\'introduction', labelEn: 'Intro text' },
+      { key: 'password_label',   kind: 'text',     i18nKey: 'tracking.password_label',    labelFr: 'Libellé du champ mot de passe',  labelEn: 'Password field label' },
+      { key: 'unavailable_title',kind: 'text',     i18nKey: 'tracking.unavailable_title', labelFr: 'Titre "indisponible"',           labelEn: '"Unavailable" title' },
+      { key: 'unavailable_body', kind: 'textarea', i18nKey: 'tracking.unavailable_body',  labelFr: 'Texte "indisponible"',           labelEn: '"Unavailable" body' },
       metaTitle('tracking.meta_title'),
       metaDescription('tracking.meta_description'),
     ],
@@ -125,9 +128,13 @@ export const EDITABLE_PAGES: EditablePage[] = [
   {
     key: 'contact', labelFr: 'Contact', labelEn: 'Contact',
     fields: [
-      { key: 'page_title', kind: 'text',     i18nKey: 'contact.page_title', labelFr: 'Titre de la page',  labelEn: 'Page title' },
-      { key: 'page_intro', kind: 'textarea', i18nKey: 'contact.page_intro', labelFr: 'Texte d\'introduction', labelEn: 'Intro text' },
-      { key: 'hours_body', kind: 'textarea', i18nKey: 'contact.hours_body', labelFr: 'Horaires (bloc)',    labelEn: 'Opening hours (block)' },
+      { key: 'page_title',      kind: 'text',     i18nKey: 'contact.page_title', labelFr: 'Titre de la page',  labelEn: 'Page title' },
+      { key: 'page_intro',      kind: 'textarea', i18nKey: 'contact.page_intro', labelFr: 'Texte d\'introduction', labelEn: 'Intro text' },
+      { key: 'email_title',     kind: 'text',     i18nKey: 'contact.email_title',     labelFr: 'Carte email — titre',    labelEn: 'Email card — title' },
+      { key: 'address_title',   kind: 'text',     i18nKey: 'contact.address_title',   labelFr: 'Carte adresse — titre',  labelEn: 'Address card — title' },
+      { key: 'instagram_title', kind: 'text',     i18nKey: 'contact.instagram_title', labelFr: 'Carte Instagram — titre', labelEn: 'Instagram card — title' },
+      { key: 'hours_title',     kind: 'text',     i18nKey: 'contact.hours_title',     labelFr: 'Carte horaires — titre', labelEn: 'Hours card — title' },
+      { key: 'hours_body',      kind: 'textarea', i18nKey: 'contact.hours_body',      labelFr: 'Horaires (texte)',      labelEn: 'Hours (body)' },
       metaTitle('contact.meta_title'),
       metaDescription('contact.meta_description'),
     ],
@@ -149,8 +156,22 @@ export const EDITABLE_PAGES: EditablePage[] = [
   {
     key: 'forwarding', labelFr: 'Réexpédition internationale', labelEn: 'International forwarding',
     fields: [
-      { key: 'page_title', kind: 'text',     i18nKey: 'forwarding.page_title', labelFr: 'Titre de la page',   labelEn: 'Page title' },
-      { key: 'intro',      kind: 'textarea', i18nKey: 'forwarding.intro',      labelFr: 'Texte d\'introduction', labelEn: 'Intro text' },
+      { key: 'page_title',         kind: 'text',     i18nKey: 'forwarding.page_title', labelFr: 'Titre de la page',   labelEn: 'Page title' },
+      { key: 'intro',              kind: 'textarea', i18nKey: 'forwarding.intro',      labelFr: 'Texte d\'introduction', labelEn: 'Intro text' },
+      { key: 'how_title',          kind: 'text',     i18nKey: 'forwarding.how_title',          labelFr: 'Titre bloc "comment ça marche"', labelEn: 'How-it-works title' },
+      { key: 'how_step1_title',    kind: 'text',     i18nKey: 'forwarding.how_step1_title',    labelFr: 'Étape 1 (titre)',    labelEn: 'Step 1 (title)' },
+      { key: 'how_step1_body',     kind: 'textarea', i18nKey: 'forwarding.how_step1_body',     labelFr: 'Étape 1 (texte)',    labelEn: 'Step 1 (body)' },
+      { key: 'how_step2_title',    kind: 'text',     i18nKey: 'forwarding.how_step2_title',    labelFr: 'Étape 2 (titre)',    labelEn: 'Step 2 (title)' },
+      { key: 'how_step2_body',     kind: 'textarea', i18nKey: 'forwarding.how_step2_body',     labelFr: 'Étape 2 (texte)',    labelEn: 'Step 2 (body)' },
+      { key: 'how_step3_title',    kind: 'text',     i18nKey: 'forwarding.how_step3_title',    labelFr: 'Étape 3 (titre)',    labelEn: 'Step 3 (title)' },
+      { key: 'how_step3_body',     kind: 'textarea', i18nKey: 'forwarding.how_step3_body',     labelFr: 'Étape 3 (texte)',    labelEn: 'Step 3 (body)' },
+      { key: 'examples_title',     kind: 'text',     i18nKey: 'forwarding.examples_title',     labelFr: 'Titre bloc "exemples"', labelEn: 'Examples block title' },
+      { key: 'example_us_title',   kind: 'text',     i18nKey: 'forwarding.example_us_title',   labelFr: 'Exemple US (titre)', labelEn: 'US example (title)' },
+      { key: 'example_us_body',    kind: 'textarea', i18nKey: 'forwarding.example_us_body',    labelFr: 'Exemple US (texte)', labelEn: 'US example (body)' },
+      { key: 'example_cn_title',   kind: 'text',     i18nKey: 'forwarding.example_cn_title',   labelFr: 'Exemple Chine (titre)', labelEn: 'China example (title)' },
+      { key: 'example_cn_body',    kind: 'textarea', i18nKey: 'forwarding.example_cn_body',    labelFr: 'Exemple Chine (texte)', labelEn: 'China example (body)' },
+      { key: 'form_title',         kind: 'text',     i18nKey: 'forwarding.form_title',         labelFr: 'Titre du formulaire',    labelEn: 'Form title' },
+      { key: 'form_intro',         kind: 'textarea', i18nKey: 'forwarding.form_intro',         labelFr: 'Intro du formulaire',    labelEn: 'Form intro' },
       metaTitle('forwarding.meta_title'),
       metaDescription('forwarding.meta_description'),
     ],
@@ -158,6 +179,17 @@ export const EDITABLE_PAGES: EditablePage[] = [
       { key: 'forwarding_og', labelFr: 'Image de partage', labelEn: 'Share image',
         hintFr: '1200×630 px recommandé.', hintEn: '1200×630 px recommended.' },
     ],
+  },
+  {
+    key: 'blog', labelFr: 'Blog (index)', labelEn: 'Blog (index)',
+    fields: [
+      { key: 'page_title', kind: 'text',     i18nKey: 'blog.page_title', labelFr: 'Titre de la page',   labelEn: 'Page title' },
+      { key: 'page_intro', kind: 'textarea', i18nKey: 'blog.page_intro', labelFr: 'Texte d\'introduction', labelEn: 'Intro text' },
+      { key: 'empty',      kind: 'textarea', i18nKey: 'blog.empty',      labelFr: 'Texte "aucun article"', labelEn: '"No articles" text' },
+      metaTitle('blog.meta_title'),
+      metaDescription('blog.meta_description'),
+    ],
+    images: [],
   },
 ];
 

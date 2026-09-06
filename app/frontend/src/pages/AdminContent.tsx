@@ -212,9 +212,15 @@ function FieldSlot({
         {labelLang}
       </label>
       {field.kind === 'textarea' ? (
-        <Textarea rows={3} value={value} onChange={(e) => setValue(e.target.value)} />
+        <Textarea rows={8} value={value} onChange={(e) => setValue(e.target.value)} />
       ) : (
         <Input value={value} onChange={(e) => setValue(e.target.value)} />
+      )}
+      <SeoCounter fieldKey={field.key} value={value} />
+      {field.kind === 'textarea' && field.key !== 'meta_description' && (
+        <div className="mt-1 text-[11px] text-slate-500">
+          {t('admin_content.markdown_hint')}
+        </div>
       )}
       <div className="mt-2 flex items-center justify-between gap-2 flex-wrap">
         <span className="text-xs text-slate-400">
@@ -238,6 +244,44 @@ function FieldSlot({
           </Button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Live length gauge for Bing/Google-critical SEO fields. Renders nothing
+ * for regular content fields — only meta_title (50-60) and
+ * meta_description (120-160) get the counter + color-coded status so an
+ * admin sees at a glance whether the field is under/over target before
+ * saving.
+ */
+function SeoCounter({ fieldKey, value }: { fieldKey: string; value: string }) {
+  const { t } = useTranslation();
+  const limits =
+    fieldKey === 'meta_title'       ? { min: 50, max: 60, label: t('admin_content.seo_title_target') } :
+    fieldKey === 'meta_description' ? { min: 120, max: 160, label: t('admin_content.seo_desc_target') } :
+    null;
+  if (!limits) return null;
+  const len = value.length;
+  const status =
+    len === 0           ? 'empty' :
+    len < limits.min    ? 'short' :
+    len > limits.max    ? 'long' :
+                          'ok';
+  const color =
+    status === 'ok'    ? 'text-emerald-700'  :
+    status === 'empty' ? 'text-slate-400'    :
+                         'text-amber-700';
+  const badge =
+    status === 'ok'    ? '✓' :
+    status === 'empty' ? '·' :
+    status === 'short' ? t('admin_content.seo_short') :
+                         t('admin_content.seo_long');
+  return (
+    <div className={cn('mt-1 text-[11px] flex items-center gap-2', color)}>
+      <span className="font-medium">{len}/{limits.max}</span>
+      <span>· {limits.label}</span>
+      <span>· {badge}</span>
     </div>
   );
 }

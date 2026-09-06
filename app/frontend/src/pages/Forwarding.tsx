@@ -11,6 +11,7 @@ import { toast } from '@/components/ui/sonner';
 import { submitForwardingRequest } from '@/lib/forwarding';
 import { useContent, useSiteImage } from '@/contexts/SiteContentContext';
 import { Ed } from '@/components/Ed';
+import { Block } from '@/components/Block';
 
 export default function Forwarding() {
   const { t } = useTranslation();
@@ -18,6 +19,14 @@ export default function Forwarding() {
   const metaDescription = useContent('forwarding', 'meta_description', t('forwarding.meta_description'));
   const pageTitle       = useContent('forwarding', 'page_title',       t('forwarding.page_title'));
   const pageIntro       = useContent('forwarding', 'intro',            t('forwarding.intro'));
+  const howTitle        = useContent('forwarding', 'how_title',        t('forwarding.how_title'));
+  const examplesTitle   = useContent('forwarding', 'examples_title',   t('forwarding.examples_title'));
+  const exampleUsTitle  = useContent('forwarding', 'example_us_title', t('forwarding.example_us_title'));
+  const exampleUsBody   = useContent('forwarding', 'example_us_body',  t('forwarding.example_us_body'));
+  const exampleCnTitle  = useContent('forwarding', 'example_cn_title', t('forwarding.example_cn_title'));
+  const exampleCnBody   = useContent('forwarding', 'example_cn_body',  t('forwarding.example_cn_body'));
+  const formTitle       = useContent('forwarding', 'form_title',       t('forwarding.form_title'));
+  const formIntro       = useContent('forwarding', 'form_intro',       t('forwarding.form_intro'));
   const ogImage         = useSiteImage('forwarding_og', '') || undefined;
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -48,9 +57,9 @@ export default function Forwarding() {
   };
 
   const steps = [
-    { icon: Mail, title: t('forwarding.how_step1_title'), body: t('forwarding.how_step1_body') },
-    { icon: Truck, title: t('forwarding.how_step2_title'), body: t('forwarding.how_step2_body') },
-    { icon: Boxes, title: t('forwarding.how_step3_title'), body: t('forwarding.how_step3_body') },
+    { key: '1', icon: Mail,  title: useContent('forwarding', 'how_step1_title', t('forwarding.how_step1_title')), body: useContent('forwarding', 'how_step1_body', t('forwarding.how_step1_body')) },
+    { key: '2', icon: Truck, title: useContent('forwarding', 'how_step2_title', t('forwarding.how_step2_title')), body: useContent('forwarding', 'how_step2_body', t('forwarding.how_step2_body')) },
+    { key: '3', icon: Boxes, title: useContent('forwarding', 'how_step3_title', t('forwarding.how_step3_title')), body: useContent('forwarding', 'how_step3_body', t('forwarding.how_step3_body')) },
   ];
 
   return (
@@ -62,54 +71,71 @@ export default function Forwarding() {
           <Ed page="forwarding" field="page_title" as="h1" className="text-3xl sm:text-4xl font-bold block">
             {pageTitle}
           </Ed>
-          <Ed page="forwarding" field="intro" as="p" multiline className="mt-3 text-white/90 max-w-2xl block">
+          <Ed page="forwarding" field="intro" as="div" multiline markdown className="mt-3 text-white/90 max-w-2xl block">
             {pageIntro}
           </Ed>
         </div>
       </section>
 
-      <section className="py-14">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <h2 className="text-2xl font-bold text-luna-navy text-center">{t('forwarding.how_title')}</h2>
-          <ol className="mt-8 grid gap-6 md:grid-cols-3">
-            {steps.map((s, i) => (
-              <li key={s.title} className="rounded-2xl border-2 border-luna-blue/30 bg-white p-6 text-center shadow-sm">
-                <div className="relative inline-block">
-                  <IconCircle icon={s.icon} variant="onLight" label={s.title} />
-                  <span className="absolute -top-2 -right-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-luna-cyan text-luna-navy text-xs font-bold ring-2 ring-white">
-                    {i + 1}
-                  </span>
-                </div>
-                <h3 className="mt-4 text-lg font-semibold text-luna-navy">{s.title}</h3>
-                <p className="mt-2 text-sm text-slate-600 leading-relaxed">{s.body}</p>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
+      <Block name="forwarding-how">
+        <section className="py-14">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6">
+            <Ed page="forwarding" field="how_title" as="h2" className="text-2xl font-bold text-luna-navy text-center block">
+              {howTitle}
+            </Ed>
+            <ol className="mt-8 grid gap-6 md:grid-cols-3">
+              {steps.map((s, i) => (
+                <li key={s.key} className="rounded-2xl border-2 border-luna-blue/30 bg-white p-6 text-center shadow-sm">
+                  <div className="relative inline-block">
+                    <IconCircle icon={s.icon} variant="onLight" label={s.title} />
+                    <span className="absolute -top-2 -right-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-luna-cyan text-luna-navy text-xs font-bold ring-2 ring-white">
+                      {i + 1}
+                    </span>
+                  </div>
+                  <Ed page="forwarding" field={`how_step${s.key}_title`} as="h3" className="mt-4 text-lg font-semibold text-luna-navy block">{s.title}</Ed>
+                  <Ed page="forwarding" field={`how_step${s.key}_body`}  as="p"  multiline className="mt-2 text-sm text-slate-600 leading-relaxed block">{s.body}</Ed>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+      </Block>
 
-      <section className="pb-14">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <h2 className="text-2xl font-bold text-luna-navy text-center">{t('forwarding.examples_title')}</h2>
-          <div className="mt-8 grid gap-6 md:grid-cols-2">
-            <div className="rounded-2xl border-2 border-luna-blue/30 bg-white p-6 shadow-sm">
-              <div className="text-xs uppercase tracking-wide text-luna-blue font-semibold">🇺🇸 → 🇨🇩</div>
-              <h3 className="mt-2 text-lg font-semibold text-luna-navy">{t('forwarding.example_us_title')}</h3>
-              <p className="mt-2 text-sm text-slate-700">{t('forwarding.example_us_body')}</p>
-            </div>
-            <div className="rounded-2xl border-2 border-luna-blue/30 bg-white p-6 shadow-sm">
-              <div className="text-xs uppercase tracking-wide text-luna-blue font-semibold">🇨🇳 → 🇨🇩</div>
-              <h3 className="mt-2 text-lg font-semibold text-luna-navy">{t('forwarding.example_cn_title')}</h3>
-              <p className="mt-2 text-sm text-slate-700">{t('forwarding.example_cn_body')}</p>
+      <Block name="forwarding-examples">
+        <section className="pb-14">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6">
+            <Ed page="forwarding" field="examples_title" as="h2" className="text-2xl font-bold text-luna-navy text-center block">
+              {examplesTitle}
+            </Ed>
+            <div className="mt-8 grid gap-6 md:grid-cols-2">
+              <Block name="forwarding-example-us">
+                <div className="rounded-2xl border-2 border-luna-blue/30 bg-white p-6 shadow-sm">
+                  <div className="text-xs uppercase tracking-wide text-luna-blue font-semibold">🇺🇸 → 🇨🇩</div>
+                  <Ed page="forwarding" field="example_us_title" as="h3" className="mt-2 text-lg font-semibold text-luna-navy block">{exampleUsTitle}</Ed>
+                  <Ed page="forwarding" field="example_us_body"  as="p"  multiline className="mt-2 text-sm text-slate-700 block">{exampleUsBody}</Ed>
+                </div>
+              </Block>
+              <Block name="forwarding-example-cn">
+                <div className="rounded-2xl border-2 border-luna-blue/30 bg-white p-6 shadow-sm">
+                  <div className="text-xs uppercase tracking-wide text-luna-blue font-semibold">🇨🇳 → 🇨🇩</div>
+                  <Ed page="forwarding" field="example_cn_title" as="h3" className="mt-2 text-lg font-semibold text-luna-navy block">{exampleCnTitle}</Ed>
+                  <Ed page="forwarding" field="example_cn_body"  as="p"  multiline className="mt-2 text-sm text-slate-700 block">{exampleCnBody}</Ed>
+                </div>
+              </Block>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </Block>
 
-      <section className="pb-20">
-        <div className="mx-auto max-w-3xl px-4 sm:px-6">
-          <h2 className="text-2xl font-bold text-luna-navy">{t('forwarding.form_title')}</h2>
-          <p className="mt-2 text-slate-600">{t('forwarding.form_intro')}</p>
+      <Block name="forwarding-form">
+        <section className="pb-20">
+          <div className="mx-auto max-w-3xl px-4 sm:px-6">
+            <Ed page="forwarding" field="form_title" as="h2" className="text-2xl font-bold text-luna-navy block">
+              {formTitle}
+            </Ed>
+            <Ed page="forwarding" field="form_intro" as="p" multiline className="mt-2 text-slate-600 block">
+              {formIntro}
+            </Ed>
 
           {submitted ? (
             <div className="mt-8 rounded-2xl border-2 border-luna-cyan bg-white p-8 text-center shadow-sm">
@@ -154,8 +180,9 @@ export default function Forwarding() {
               </div>
             </form>
           )}
-        </div>
-      </section>
+          </div>
+        </section>
+      </Block>
     </>
   );
 }

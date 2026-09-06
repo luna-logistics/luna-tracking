@@ -5,10 +5,17 @@ import { CalendarDays, ArrowRight } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { fetchPublishedPosts, postTitle, postExcerpt, postImageAlt, postSlug, type BlogPost } from '@/lib/blog';
 import { urlFor } from '@/lib/url/routes';
+import { useContent } from '@/contexts/SiteContentContext';
+import { Ed } from '@/components/Ed';
 
 export default function BlogIndex() {
   const { t, i18n } = useTranslation();
   const lang: 'fr' | 'en' = i18n.language === 'en' ? 'en' : 'fr';
+  const metaTitle       = useContent('blog', 'meta_title',       t('blog.meta_title'));
+  const metaDescription = useContent('blog', 'meta_description', t('blog.meta_description'));
+  const pageTitle       = useContent('blog', 'page_title',       t('blog.page_title'));
+  const pageIntro       = useContent('blog', 'page_intro',       t('blog.page_intro'));
+  const emptyText       = useContent('blog', 'empty',            t('blog.empty'));
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -20,12 +27,16 @@ export default function BlogIndex() {
 
   return (
     <>
-      <SEO title={t('blog.meta_title')} description={t('blog.meta_description')} />
+      <SEO title={metaTitle} description={metaDescription} />
 
       <section className="bg-luna-gradient text-white">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-12 sm:py-16">
-          <h1 className="text-3xl sm:text-4xl font-bold">{t('blog.page_title')}</h1>
-          <p className="mt-3 text-white/90 max-w-2xl">{t('blog.page_intro')}</p>
+          <Ed page="blog" field="page_title" as="h1" className="text-3xl sm:text-4xl font-bold block">
+            {pageTitle}
+          </Ed>
+          <Ed page="blog" field="page_intro" as="div" multiline markdown className="mt-3 text-white/90 max-w-2xl block">
+            {pageIntro}
+          </Ed>
         </div>
       </section>
 
@@ -34,9 +45,9 @@ export default function BlogIndex() {
           {loading ? (
             <div className="py-16 text-center text-slate-500">{t('common.loading')}</div>
           ) : posts.length === 0 ? (
-            <div className="py-16 text-center text-slate-500 rounded-2xl border-2 border-dashed border-slate-300 bg-white">
-              {t('blog.empty')}
-            </div>
+            <Ed page="blog" field="empty" as="div" multiline className="py-16 text-center text-slate-500 rounded-2xl border-2 border-dashed border-slate-300 bg-white block">
+              {emptyText}
+            </Ed>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {posts.map((p) => {

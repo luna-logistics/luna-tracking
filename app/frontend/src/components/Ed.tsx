@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ElementType, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pencil, Check, X } from 'lucide-react';
+import Markdown from 'markdown-to-jsx';
 import { useContent, useSiteContentContext } from '@/contexts/SiteContentContext';
 import { useEditMode } from '@/contexts/EditModeContext';
 import { saveSiteContent } from '@/lib/site-content';
@@ -31,12 +32,14 @@ type EdProps = {
   as?: ElementType;
   /** Textarea instead of input when editing — for longer text. */
   multiline?: boolean;
+  /** Render text as Markdown (lists, bold, links) when not editing. */
+  markdown?: boolean;
   className?: string;
   /** Optional trailing UI (e.g. an icon) rendered alongside the text. */
   trailing?: ReactNode;
 };
 
-export function Ed({ page, field, children, as, multiline = false, className, trailing }: EdProps) {
+export function Ed({ page, field, children, as, multiline = false, markdown = false, className, trailing }: EdProps) {
   const { editMode } = useEditMode();
   const value = useContent(page, field, children);
   const { i18n, t } = useTranslation();
@@ -54,6 +57,14 @@ export function Ed({ page, field, children, as, multiline = false, className, tr
   const Tag = (as ?? 'span') as ElementType;
 
   if (!editMode) {
+    if (markdown && value) {
+      return (
+        <Tag className={cn('prose-luna', className)}>
+          <Markdown options={MD_OPTS}>{value}</Markdown>
+          {trailing}
+        </Tag>
+      );
+    }
     return <Tag className={className}>{value}{trailing}</Tag>;
   }
 
@@ -83,7 +94,7 @@ export function Ed({ page, field, children, as, multiline = false, className, tr
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Escape') cancel(); if (e.key === 'Enter' && e.ctrlKey) void commit(); }}
-            rows={3}
+            rows={8}
             className="min-w-[16rem] w-full rounded-md border-2 border-luna-cyan bg-white px-2 py-1 text-inherit shadow-sm focus:outline-none"
           />
         ) : (
@@ -111,14 +122,27 @@ export function Ed({ page, field, children, as, multiline = false, className, tr
     <Tag
       className={cn(
         'group relative cursor-pointer rounded-sm outline outline-2 outline-dashed outline-luna-cyan/50 outline-offset-2 transition-colors hover:outline-luna-cyan hover:bg-luna-cyan/10',
+        markdown && 'prose-luna',
         className
       )}
       onClick={() => setEditing(true)}
       title={t('edit_mode.click_to_edit')}
     >
-      {value}
+      {markdown && value ? <Markdown options={MD_OPTS}>{value}</Markdown> : value}
       <Pencil className="inline-block h-3 w-3 ml-1 opacity-40 group-hover:opacity-80 align-baseline" aria-hidden="true" />
       {trailing}
     </Tag>
   );
 }
+
+/** Markdown renderer options — safe subset (no raw HTML). */
+const MD_OPTS = {
+  disableParsingRawHTML: true,
+  overrides: {
+    a: { props: { className: 'text-luna-blue underline hover:no-underline', rel: 'noopener', target: '_blank' } },
+    ul: { props: { className: 'list-disc list-inside space-y-1 my-2' } },
+    ol: { props: { className: 'list-decimal list-inside space-y-1 my-2' } },
+    strong: { props: { className: 'font-semibold' } },
+    p: { props: { className: 'my-1' } },
+  },
+} as const;

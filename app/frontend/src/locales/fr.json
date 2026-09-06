@@ -508,7 +508,12 @@
     "reset": "Réinitialiser",
     "reset_tooltip": "Effacer la personnalisation et revenir au texte par défaut du site",
     "reset_confirm": "Effacer votre personnalisation et revenir au texte par défaut du site ?",
-    "reset_done": "Retour au texte par défaut"
+    "reset_done": "Retour au texte par défaut",
+    "markdown_hint": "Astuce : vous pouvez utiliser Markdown pour la mise en forme — **gras**, *italique*, - liste à puces, 1. liste numérotée, [texte du lien](https://…).",
+    "seo_title_target": "cible 50-60 caractères (Bing / Google)",
+    "seo_desc_target": "cible 120-160 caractères (Bing / Google)",
+    "seo_short": "trop court",
+    "seo_long": "trop long"
   },
   "admin_auth": {
     "title": "Connexions sociales",

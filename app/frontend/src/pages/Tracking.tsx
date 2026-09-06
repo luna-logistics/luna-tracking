@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { fetchTrackingStatus, type TrackingResult } from '@/lib/tracking';
 import { useContent } from '@/contexts/SiteContentContext';
 import { Ed } from '@/components/Ed';
+import { Block } from '@/components/Block';
 
 export default function Tracking() {
   const { t, i18n } = useTranslation();
@@ -16,6 +17,9 @@ export default function Tracking() {
   const metaDescription = useContent('tracking', 'meta_description', t('tracking.meta_description'));
   const pageTitle       = useContent('tracking', 'page_title',       t('tracking.page_title'));
   const pageIntro       = useContent('tracking', 'page_intro',       t('tracking.page_intro'));
+  const passwordLabel   = useContent('tracking', 'password_label',   t('tracking.password_label'));
+  const unavailableTitle= useContent('tracking', 'unavailable_title',t('tracking.unavailable_title'));
+  const unavailableBody = useContent('tracking', 'unavailable_body', t('tracking.unavailable_body'));
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<TrackingResult | null>(null);
@@ -44,13 +48,13 @@ export default function Tracking() {
               {pageTitle}
             </Ed>
           </div>
-          <Ed page="tracking" field="page_intro" as="p" multiline className="text-slate-600 mb-8 block">
+          <Ed page="tracking" field="page_intro" as="div" multiline markdown className="text-slate-600 mb-8 block">
             {pageIntro}
           </Ed>
 
           <form onSubmit={onSubmit} className="rounded-2xl border-2 border-luna-blue/30 bg-white p-6 shadow-sm">
             <Label htmlFor="tracking-password" className="text-luna-navy">
-              {t('tracking.password_label')}
+              <Ed page="tracking" field="password_label">{passwordLabel}</Ed>
             </Label>
             <Input
               id="tracking-password"
@@ -75,8 +79,12 @@ export default function Tracking() {
                   <div className="flex items-start gap-3">
                     <AlertTriangle className="h-5 w-5 text-amber-700 mt-0.5" aria-hidden="true" />
                     <div>
-                      <h2 className="font-semibold text-amber-900">{t('tracking.unavailable_title')}</h2>
-                      <p className="mt-1 text-sm text-amber-900/90">{result.message || t('tracking.unavailable_body')}</p>
+                      <Ed page="tracking" field="unavailable_title" as="h2" className="font-semibold text-amber-900 block">
+                        {unavailableTitle}
+                      </Ed>
+                      <Ed page="tracking" field="unavailable_body" as="p" multiline className="mt-1 text-sm text-amber-900/90 block">
+                        {result.message || unavailableBody}
+                      </Ed>
                     </div>
                   </div>
                 </div>

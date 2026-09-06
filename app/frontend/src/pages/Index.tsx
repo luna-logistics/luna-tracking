@@ -61,7 +61,7 @@ export default function Index() {
             <Ed page="home" field="hero_title" as="h1" className="text-4xl sm:text-5xl font-bold leading-tight block">
               {heroTitle}
             </Ed>
-            <Ed page="home" field="hero_subtitle" as="p" multiline className="mt-5 text-lg text-white/90 max-w-xl block">
+            <Ed page="home" field="hero_subtitle" as="div" multiline markdown className="mt-5 text-lg text-white/90 max-w-xl block">
               {heroSubtitle}
             </Ed>
             <div className="mt-8 flex flex-wrap gap-3">

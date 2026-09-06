@@ -92,7 +92,7 @@ export default function ShopAndShip() {
           <Ed page="shop-and-ship" field="page_title" as="h1" className="text-3xl sm:text-4xl font-bold block">
             {pageTitle}
           </Ed>
-          <Ed page="shop-and-ship" field="page_intro" as="p" multiline className="mt-3 text-white/90 max-w-2xl block">
+          <Ed page="shop-and-ship" field="page_intro" as="div" multiline markdown className="mt-3 text-white/90 max-w-2xl block">
             {pageIntro}
           </Ed>
         </div>

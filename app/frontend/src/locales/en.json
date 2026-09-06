@@ -508,7 +508,12 @@
     "reset": "Reset",
     "reset_tooltip": "Clear the custom value and fall back to the site default",
     "reset_confirm": "Clear your custom value and fall back to the site default?",
-    "reset_done": "Fell back to site default"
+    "reset_done": "Fell back to site default",
+    "markdown_hint": "Tip: you can use Markdown for formatting — **bold**, *italic*, - bullet list, 1. numbered list, [link text](https://…).",
+    "seo_title_target": "target 50-60 characters (Bing / Google)",
+    "seo_desc_target": "target 120-160 characters (Bing / Google)",
+    "seo_short": "too short",
+    "seo_long": "too long"
   },
   "admin_auth": {
     "title": "Social logins",
