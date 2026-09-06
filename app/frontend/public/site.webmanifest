@@ -1,0 +1,14 @@
+{
+  "name": "Luna Tracking Logistics",
+  "short_name": "Luna Tracking",
+  "description": "Fret aérien, maritime et terrestre entre la Belgique et le Congo — suivi en temps réel.",
+  "icons": [
+    { "src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/android-chrome-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ],
+  "theme_color": "#002F67",
+  "background_color": "#002F67",
+  "display": "standalone",
+  "start_url": "/",
+  "scope": "/"
+}
