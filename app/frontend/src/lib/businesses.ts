@@ -66,6 +66,17 @@ export async function fetchMyBusinesses(): Promise<Array<{ business: Business; r
     .filter((r) => r.business);
 }
 
+/**
+ * Creates the business through a SECURITY DEFINER RPC — the RPC reads
+ * auth.uid() itself, refuses if NULL, and inserts server-side. This
+ * sidesteps a class of RLS-vs-JWT edge cases that hit a raw INSERT:
+ * stale access tokens, PostgREST claim propagation quirks, timing after
+ * refresh, etc. The RPC does its own validation and the owner-member
+ * trigger still fires afterwards.
+ *
+ * We also proactively refresh the JWT so the RPC sees a fresh session
+ * whenever the tab has been idle for a while.
+ */
 export async function createBusiness(input: {
   name: string;
   country?: string;
@@ -74,39 +85,16 @@ export async function createBusiness(input: {
   vat_number?: string;
   company_number?: string;
 }) {
-  // Refresh the JWT before the insert. Default Supabase access-token
-  // lifetime is 1 h and PostgREST's `auth.uid()` returns NULL for an
-  // expired token — the RLS check `owner_user_id = auth.uid()` then
-  // fails as "new row violates row-level security". Cheap round-trip;
-  // avoids a class of "worked yesterday, broken today" bugs.
-  const { data: { session }, error: refreshErr } = await supabase.auth.refreshSession();
-  if (refreshErr || !session?.user) {
-    // Fall back to the cached user (still throws if we truly have no
-    // session at all).
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
-    return insertBusiness(user.id, input);
-  }
-  return insertBusiness(session.user.id, input);
-}
+  await supabase.auth.refreshSession().catch(() => { /* fall through to RPC */ });
 
-async function insertBusiness(ownerUserId: string, input: {
-  name: string;
-  country?: string;
-  currency?: Currency;
-  legal_name?: string;
-  vat_number?: string;
-  company_number?: string;
-}) {
-  const { data, error } = await supabase.from('businesses').insert({
-    owner_user_id: ownerUserId,
-    name: input.name.trim(),
-    country: input.country ?? 'BE',
-    currency: input.currency ?? 'EUR',
-    legal_name: input.legal_name ?? null,
-    vat_number: input.vat_number ?? null,
-    company_number: input.company_number ?? null,
-  }).select().single();
+  const { data, error } = await supabase.rpc('create_business', {
+    p_name:           input.name.trim(),
+    p_country:        input.country ?? 'BE',
+    p_currency:       input.currency ?? 'EUR',
+    p_legal_name:     input.legal_name ?? null,
+    p_vat_number:     input.vat_number ?? null,
+    p_company_number: input.company_number ?? null,
+  }).single();
   if (error) throw error;
   return data as Business;
 }
