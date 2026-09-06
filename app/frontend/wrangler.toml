@@ -23,19 +23,23 @@
 
 name = "luna-tracking"
 compatibility_date = "2026-01-01"
-main = "worker.js"
 
 [assets]
 directory = "./dist"
-# SPA fallback is owned by worker.js (via env.ASSETS.fetch). We turn OFF
-# the binding's built-in SPA fallback so ASSETS returns a real 404 for
-# missing paths — the worker then serves the SHELL with FR-homepage
-# canonical / description / OG tags stripped, closing the canonical leak
-# that would otherwise attach the FR homepage's SEO to every unmatched
-# URL.
-not_found_handling = "none"
+# SPA fallback: a request for /suivi (no file on disk) serves dist/index.html
+# so React Router can take over.
+not_found_handling = "single-page-application"
 # Canonicalize URLs by dropping the trailing slash: `/en/shop-and-ship/`
 # 307-redirects to `/en/shop-and-ship`, then the assets binding serves
 # `en/shop-and-ship/index.html` from the prerender.
 html_handling = "drop-trailing-slash"
-binding = "ASSETS"
+
+# NOTE ─── canonical leak deferred, not forgotten
+# The FR homepage prerender in dist/index.html carries canonical=/,
+# description and og:* — served as the SPA fallback, these leak the
+# homepage's SEO onto every unmatched URL. A previous attempt to fix
+# this with a Worker script (worker.js + main = "worker.js" +
+# not_found_handling = "none") tripped Cloudflare Error 1101 in prod,
+# so we rolled back. Follow-up: iterate on worker.js locally with
+# `wrangler dev` before re-enabling. Until then, the pre-worker
+# behaviour holds.
