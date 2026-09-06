@@ -1,8 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  fetchAllSiteContent, fetchAllSiteImages, contentKey,
-  type SiteContentRow, type SiteImageRow,
+  fetchAllSiteContent, fetchAllSiteImages, fetchAllSiteBlocks, contentKey,
+  type SiteContentRow, type SiteImageRow, type SiteBlockRow,
 } from '@/lib/site-content';
 
 /**
@@ -19,6 +19,9 @@ import {
 type Ctx = {
   content: Map<string, string>;
   images: Map<string, string>;
+  /** hidden-block set — presence in this set means the block is currently
+   *  hidden by admin choice. Absence = default visible. */
+  hiddenBlocks: Set<string>;
   loading: boolean;
   refresh: () => Promise<void>;
 };
@@ -26,6 +29,7 @@ type Ctx = {
 const SiteContentContext = createContext<Ctx>({
   content: new Map(),
   images: new Map(),
+  hiddenBlocks: new Set(),
   loading: true,
   refresh: async () => {},
 });
@@ -33,12 +37,14 @@ const SiteContentContext = createContext<Ctx>({
 export function SiteContentProvider({ children }: { children: ReactNode }) {
   const [contentRows, setContentRows] = useState<SiteContentRow[]>([]);
   const [imageRows, setImageRows] = useState<SiteImageRow[]>([]);
+  const [blockRows, setBlockRows] = useState<SiteBlockRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    const [c, i] = await Promise.all([fetchAllSiteContent(), fetchAllSiteImages()]);
+    const [c, i, b] = await Promise.all([fetchAllSiteContent(), fetchAllSiteImages(), fetchAllSiteBlocks()]);
     setContentRows(c);
     setImageRows(i);
+    setBlockRows(b);
     setLoading(false);
   }, []);
 
@@ -47,8 +53,9 @@ export function SiteContentProvider({ children }: { children: ReactNode }) {
   const value = useMemo<Ctx>(() => {
     const content = new Map(contentRows.map((r) => [contentKey(r.page_key, r.lang, r.field_key), r.value]));
     const images = new Map(imageRows.map((r) => [r.image_key, r.url]));
-    return { content, images, loading, refresh };
-  }, [contentRows, imageRows, loading, refresh]);
+    const hiddenBlocks = new Set(blockRows.filter((r) => r.hidden).map((r) => r.block_key));
+    return { content, images, hiddenBlocks, loading, refresh };
+  }, [contentRows, imageRows, blockRows, loading, refresh]);
 
   return <SiteContentContext.Provider value={value}>{children}</SiteContentContext.Provider>;
 }
@@ -67,6 +74,12 @@ export function useContent(page: string, field: string, defaultValue: string): s
 export function useSiteImage(imageKey: string, defaultUrl: string): string {
   const { images } = useContext(SiteContentContext);
   return images.get(imageKey) ?? defaultUrl;
+}
+
+/** True when the admin has hidden a block by its key. */
+export function useBlockHidden(blockKey: string): boolean {
+  const { hiddenBlocks } = useContext(SiteContentContext);
+  return hiddenBlocks.has(blockKey);
 }
 
 /** Full access — used by the admin editor to refresh after saves. */

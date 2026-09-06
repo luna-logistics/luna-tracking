@@ -467,6 +467,13 @@
     "view_html_title": "View HTML",
     "back_visual_title": "Back to visual editor"
   },
+  "block": {
+    "hide": "Hide",
+    "show": "Show",
+    "hidden_ribbon": "Hidden on public site",
+    "now_hidden": "Block hidden from the public site",
+    "now_visible": "Block visible again"
+  },
   "edit_mode": {
     "enter": "Edit",
     "exit": "Done",

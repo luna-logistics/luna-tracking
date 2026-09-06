@@ -16,6 +16,13 @@ export type SiteImageRow = {
   updated_at: string;
 };
 
+export type SiteBlockRow = {
+  id: string;
+  block_key: string;
+  hidden: boolean;
+  updated_at: string;
+};
+
 /** Compose the cache key used by the runtime resolver + the admin editor. */
 export const contentKey = (page: string, lang: 'fr' | 'en', field: string) =>
   `${page}::${lang}::${field}`;
@@ -30,6 +37,18 @@ export async function fetchAllSiteImages(): Promise<SiteImageRow[]> {
   const { data, error } = await supabase.from('site_images').select('*');
   if (error) { console.warn('[site-images] fetch failed:', error.message); return []; }
   return (data ?? []) as SiteImageRow[];
+}
+
+export async function fetchAllSiteBlocks(): Promise<SiteBlockRow[]> {
+  const { data, error } = await supabase.from('site_blocks').select('*');
+  if (error) { console.warn('[site-blocks] fetch failed:', error.message); return []; }
+  return (data ?? []) as SiteBlockRow[];
+}
+
+export async function setBlockHidden(block_key: string, hidden: boolean) {
+  const { error } = await supabase.from('site_blocks')
+    .upsert({ block_key, hidden }, { onConflict: 'block_key' });
+  if (error) throw error;
 }
 
 /**

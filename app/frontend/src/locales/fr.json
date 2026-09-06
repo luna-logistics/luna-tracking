@@ -467,6 +467,13 @@
     "view_html_title": "Voir le HTML",
     "back_visual_title": "Retour à l'édition visuelle"
   },
+  "block": {
+    "hide": "Masquer",
+    "show": "Afficher",
+    "hidden_ribbon": "Masqué du site",
+    "now_hidden": "Bloc masqué du site public",
+    "now_visible": "Bloc à nouveau visible"
+  },
   "edit_mode": {
     "enter": "Éditer",
     "exit": "Terminer",
