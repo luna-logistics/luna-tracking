@@ -93,3 +93,18 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Wait for CF edge to propagate
+        # Cloudflare Workers-with-Assets propagation is fast (~30s) but not
+        # instant. Give the edge a moment before IndexNow follows the key
+        # file link — a 403 there means "key file not reachable" and
+        # invalidates the batch.
+        run: sleep 45
+
+      - name: Notify IndexNow (Bing + partners)
+        # Best-effort: never fail the deploy on a search-engine ping.
+        # `continue-on-error` on a POST that IndexNow classifies as 429
+        # (rate limit) or a transient network hiccup would otherwise
+        # block subsequent commits.
+        continue-on-error: true
+        run: node scripts/indexnow-submit.mjs
