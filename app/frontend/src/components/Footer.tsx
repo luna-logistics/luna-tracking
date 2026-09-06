@@ -22,13 +22,19 @@ export function Footer() {
       <div className="bg-luna-navy-deep text-white">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-12 grid gap-10 md:grid-cols-3">
           <div>
-            <img
-              src="/brand/logo-luna-navbar2.png"
-              alt={t('brand.name')}
-              className="h-12 w-auto mb-4"
-              width={192}
-              height={48}
-            />
+            {/* The horizontal logo is authored for a WHITE ground (dark-blue
+                wordmark). On the navy footer its text would disappear —
+                wrap it in a white pill so the contrast holds without
+                needing a second color-flipped export. */}
+            <div className="inline-flex rounded-xl bg-white p-3 shadow-sm mb-4">
+              <img
+                src="/brand/logo-luna-navbar2.png"
+                alt={t('brand.name')}
+                className="h-12 w-auto block"
+                width={192}
+                height={48}
+              />
+            </div>
             <p className="text-sm text-white/80 leading-relaxed">{t('footer.about_body')}</p>
           </div>
 
