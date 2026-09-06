@@ -54,6 +54,25 @@ const ROUTE_I18N = {
   blogIndex:   'blog',
 };
 
+/** Which i18n field feeds the initial-HTML <h1> per page + optional
+ *  <h2>s. Only used to inject a body skeleton into `<div id="root">` so
+ *  Bing (and any non-JS crawler) sees a real heading structure BEFORE
+ *  React hydrates. React clears `#root` on mount so users still see the
+ *  full app — the skeleton is invisible in-browser.
+ *
+ *  Every field here is admin-editable via `<Ed page field>` on the live
+ *  page + /admin/contenus + DeepL translation, and the prerender picks
+ *  up the same site_content overrides. */
+const ROUTE_HEADINGS = {
+  home:        { h1: 'hero_title',   h2s: ['pillars_title', 'how_title'] },
+  tracking:    { h1: 'page_title',   h2s: [] },
+  pricing:     { h1: 'page_title',   h2s: [] },
+  contact:     { h1: 'page_title',   h2s: ['email_title', 'address_title', 'hours_title'] },
+  shopAndShip: { h1: 'page_title',   h2s: [] },
+  forwarding:  { h1: 'page_title',   h2s: ['how_title', 'examples_title', 'form_title'] },
+  blogIndex:   { h1: 'page_title',   h2s: [] },
+};
+
 // ─── Fetch admin overrides + dynamic slugs from Supabase ──────────────────
 const SB_URL = process.env.VITE_SUPABASE_URL;
 const SB_KEY = process.env.VITE_SUPABASE_ANON_KEY;
@@ -96,6 +115,20 @@ const setHtmlLang = (html, lang) =>
 /** Insert a chunk of markup just before </head>. */
 const injectHead = (html, chunk) =>
   html.replace(/<\/head>/i, `${chunk}\n</head>`);
+
+/** Replace `<div id="root"></div>` with a fallback body that carries the
+ *  page's H1 + a few H2s. React discards this content on mount (it uses
+ *  `createRoot(...).render(...)`, not `hydrate`), so this only ever
+ *  reaches non-JS crawlers — Bing indexer, some social-preview bots,
+ *  Google's first-pass indexer before its render queue picks up the
+ *  page. Visible-in-browser rendering is unchanged. */
+function injectBodySkeleton(html, { h1, h2s = [] }) {
+  if (!h1) return html;
+  const parts = [`  <h1>${escapeHtml(h1)}</h1>`];
+  for (const t of h2s) if (t) parts.push(`  <h2>${escapeHtml(t)}</h2>`);
+  const skeleton = `<div id="root">\n${parts.join('\n')}\n</div>`;
+  return html.replace(/<div id="root"><\/div>/i, skeleton);
+}
 
 /**
  * Emit the head chunk. Every tag carries `data-rh="true"` so
@@ -245,8 +278,20 @@ async function emitStaticRoute(key, def) {
       ogImageAlt: title,
       hreflangs, jsonLd,
     });
+
+    // Body skeleton: resolve H1 + H2 fields for this page. Admin
+    // overrides (site_content) win over the i18n JSON default — same
+    // precedence <Ed> uses on the live page, so what Bing sees in the
+    // initial HTML matches what visitors read after React hydrates.
+    const headings = ROUTE_HEADINGS[key];
+    const skel = headings ? {
+      h1:  overrideOr(i18nPage, lang, headings.h1, readI18n(lang, i18nPage, headings.h1)),
+      h2s: headings.h2s.map((f) => overrideOr(i18nPage, lang, f, readI18n(lang, i18nPage, f))).filter(Boolean),
+    } : null;
+
     let html = setHtmlLang(shellHtml, lang);
     html = injectHead(html, head);
+    if (skel) html = injectBodySkeleton(html, skel);
     await writeHtml(urlPath, html);
   }
 }
@@ -291,6 +336,9 @@ async function emitBlogPost(row) {
     });
     let html = setHtmlLang(shellHtml, lang);
     html = injectHead(html, head);
+    html = injectBodySkeleton(html, {
+      h1: (lang === 'en' ? row.title_en : row.title_fr) || title,
+    });
     await writeHtml(urlPath, html);
   }
 }
@@ -330,6 +378,9 @@ async function emitCustomPage(row) {
     });
     let html = setHtmlLang(shellHtml, lang);
     html = injectHead(html, head);
+    html = injectBodySkeleton(html, {
+      h1: (lang === 'en' ? row.title_en : row.title_fr) || title,
+    });
     await writeHtml(urlPath, html);
   }
 }
@@ -367,6 +418,7 @@ async function emitProduct(row) {
     });
     let html = setHtmlLang(shellHtml, lang);
     html = injectHead(html, head);
+    html = injectBodySkeleton(html, { h1: name });
     await writeHtml(urlPath, html);
   }
 }
