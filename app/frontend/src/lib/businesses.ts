@@ -74,10 +74,32 @@ export async function createBusiness(input: {
   vat_number?: string;
   company_number?: string;
 }) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
+  // Refresh the JWT before the insert. Default Supabase access-token
+  // lifetime is 1 h and PostgREST's `auth.uid()` returns NULL for an
+  // expired token — the RLS check `owner_user_id = auth.uid()` then
+  // fails as "new row violates row-level security". Cheap round-trip;
+  // avoids a class of "worked yesterday, broken today" bugs.
+  const { data: { session }, error: refreshErr } = await supabase.auth.refreshSession();
+  if (refreshErr || !session?.user) {
+    // Fall back to the cached user (still throws if we truly have no
+    // session at all).
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+    return insertBusiness(user.id, input);
+  }
+  return insertBusiness(session.user.id, input);
+}
+
+async function insertBusiness(ownerUserId: string, input: {
+  name: string;
+  country?: string;
+  currency?: Currency;
+  legal_name?: string;
+  vat_number?: string;
+  company_number?: string;
+}) {
   const { data, error } = await supabase.from('businesses').insert({
-    owner_user_id: user.id,
+    owner_user_id: ownerUserId,
     name: input.name.trim(),
     country: input.country ?? 'BE',
     currency: input.currency ?? 'EUR',
