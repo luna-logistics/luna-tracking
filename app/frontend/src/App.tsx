@@ -7,6 +7,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ProfileProvider } from '@/contexts/ProfileContext';
+import { BusinessProvider } from '@/contexts/BusinessContext';
 import { CartProvider } from '@/contexts/CartContext';
 import { SiteContentProvider } from '@/contexts/SiteContentContext';
 import { EditModeProvider } from '@/contexts/EditModeContext';
@@ -17,6 +18,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { AdminGate } from '@/components/AdminGate';
 import { OnboardingGate, AccountTypeGate } from '@/components/AccountTypeGate';
 import { setVisitLanguage } from '@/i18n';
+import { Package, FileText, Users as UsersIcon, Receipt, Wallet, BarChart3, Files, MapPin } from 'lucide-react';
 
 // Eager: homepage + login (critical paths).
 import Index from '@/pages/Index';
@@ -37,7 +39,21 @@ const AccountOrders = lazy(() => import('@/pages/AccountOrders'));
 const AccountInvoices = lazy(() => import('@/pages/AccountInvoices'));
 const AccountShell = lazy(() => import('@/components/AccountShell').then((m) => ({ default: m.AccountShell })));
 const Onboarding = lazy(() => import('@/pages/Onboarding'));
+const BusinessShell = lazy(() => import('@/components/BusinessShell').then((m) => ({ default: m.BusinessShell })));
 const BusinessDashboard = lazy(() => import('@/pages/BusinessDashboard'));
+const BusinessCreate = lazy(() => import('@/pages/BusinessCreate'));
+const BusinessTeam = lazy(() => import('@/pages/BusinessTeam'));
+const BusinessSettings = lazy(() => import('@/pages/BusinessSettings'));
+// Placeholder pages — shell + URL work today, real modules in phases 3–8.
+const BusinessPlaceholder = lazy(() => import('@/pages/BusinessPlaceholder').then((m) => ({ default: m.BusinessPlaceholder })));
+const BusinessPlaceholderShipments = () => <BusinessPlaceholder icon={Package}   titleKey="business_nav.shipments"  bodyKey="business_placeholder.shipments_body" />;
+const BusinessPlaceholderQuotes    = () => <BusinessPlaceholder icon={FileText}  titleKey="business_nav.quotes"     bodyKey="business_placeholder.quotes_body" />;
+const BusinessPlaceholderClients   = () => <BusinessPlaceholder icon={UsersIcon} titleKey="business_nav.clients"    bodyKey="business_placeholder.clients_body" />;
+const BusinessPlaceholderInvoicing = () => <BusinessPlaceholder icon={Receipt}   titleKey="business_nav.invoicing"  bodyKey="business_placeholder.invoicing_body" />;
+const BusinessPlaceholderExpenses  = () => <BusinessPlaceholder icon={Wallet}    titleKey="business_nav.expenses"   bodyKey="business_placeholder.expenses_body" />;
+const BusinessPlaceholderReports   = () => <BusinessPlaceholder icon={BarChart3} titleKey="business_nav.reports"    bodyKey="business_placeholder.reports_body" />;
+const BusinessPlaceholderDocuments = () => <BusinessPlaceholder icon={Files}     titleKey="business_nav.documents"  bodyKey="business_placeholder.documents_body" />;
+const BusinessPlaceholderAddresses = () => <BusinessPlaceholder icon={MapPin}    titleKey="business_nav.addresses"  bodyKey="business_placeholder.addresses_body" />;
 const AdminShell = lazy(() => import('@/components/AdminShell').then((m) => ({ default: m.AdminShell })));
 const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'));
 const AdminCities = lazy(() => import('@/pages/AdminCities'));
@@ -148,20 +164,44 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
           </Route>
 
           {/* Business area — protected + gated by account_type='business'.
-              Phase 0 ships routing + placeholder dashboard only; a real
-              BusinessShell (sidebar nav, KPIs, modules) lands in Phase 2. */}
+              The /entreprise/nouvelle create-business page lives OUTSIDE
+              the shell (a user with no business yet has nothing to show
+              in the sidebar); every other business route is inside the
+              BusinessShell, which handles the "no business yet" redirect
+              itself. */}
           <Route
-            path={t('/entreprise', '/business')}
+            path={t('/entreprise/nouvelle', '/business/new')}
             element={
               <ProtectedRoute>
                 <OnboardingGate>
                   <AccountTypeGate expect="business">
-                    <PublicLayout><BusinessDashboard /></PublicLayout>
+                    <BusinessCreate />
                   </AccountTypeGate>
                 </OnboardingGate>
               </ProtectedRoute>
             }
           />
+          <Route element={
+            <ProtectedRoute>
+              <OnboardingGate>
+                <AccountTypeGate expect="business">
+                  <BusinessShell />
+                </AccountTypeGate>
+              </OnboardingGate>
+            </ProtectedRoute>
+          }>
+            <Route path={t('/entreprise',              '/business')}              element={<BusinessDashboard />} />
+            <Route path={t('/entreprise/expeditions',  '/business/shipments')}    element={<BusinessPlaceholderShipments />} />
+            <Route path={t('/entreprise/devis',        '/business/quotes')}       element={<BusinessPlaceholderQuotes />} />
+            <Route path={t('/entreprise/clients',      '/business/clients')}      element={<BusinessPlaceholderClients />} />
+            <Route path={t('/entreprise/facturation',  '/business/invoicing')}    element={<BusinessPlaceholderInvoicing />} />
+            <Route path={t('/entreprise/depenses',     '/business/expenses')}     element={<BusinessPlaceholderExpenses />} />
+            <Route path={t('/entreprise/rapports',     '/business/reports')}      element={<BusinessPlaceholderReports />} />
+            <Route path={t('/entreprise/documents',    '/business/documents')}    element={<BusinessPlaceholderDocuments />} />
+            <Route path={t('/entreprise/adresses',     '/business/addresses')}    element={<BusinessPlaceholderAddresses />} />
+            <Route path={t('/entreprise/equipe',       '/business/team')}         element={<BusinessTeam />} />
+            <Route path={t('/entreprise/parametres',   '/business/settings')}     element={<BusinessSettings />} />
+          </Route>
 
           {/* Admin — FR-only convention. AdminGate wraps ProtectedRoute so a
               signed-in-but-not-admin user gets the "access denied" card, not
@@ -214,6 +254,7 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ProfileProvider>
+          <BusinessProvider>
           <EditModeProvider>
             <SiteContentProvider>
               <CartProvider>
@@ -226,6 +267,7 @@ const App = () => (
               </CartProvider>
             </SiteContentProvider>
           </EditModeProvider>
+          </BusinessProvider>
         </ProfileProvider>
       </AuthProvider>
     </QueryClientProvider>
