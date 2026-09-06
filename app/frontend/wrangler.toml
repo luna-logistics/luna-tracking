@@ -23,16 +23,19 @@
 
 name = "luna-tracking"
 compatibility_date = "2026-01-01"
+main = "worker.js"
 
 [assets]
 directory = "./dist"
-# SPA behaviour: a request for /suivi (no file on disk) serves dist/index.html
-# and lets React Router handle the route.
-not_found_handling = "single-page-application"
-# Canonicalize URLs by dropping the trailing slash: a request for
-# `/en/shop-and-ship/` 307-redirects to `/en/shop-and-ship`, then the
-# assets binding serves `en/shop-and-ship/index.html` from the prerender.
-# This replaces the buggy `/*/  /:splat  301` rule that used to sit in
-# public/_redirects and formed a redirect loop with html_handling's
-# default `auto-trailing-slash`.
+# SPA fallback is owned by worker.js (via env.ASSETS.fetch). We turn OFF
+# the binding's built-in SPA fallback so ASSETS returns a real 404 for
+# missing paths — the worker then serves the SHELL with FR-homepage
+# canonical / description / OG tags stripped, closing the canonical leak
+# that would otherwise attach the FR homepage's SEO to every unmatched
+# URL.
+not_found_handling = "none"
+# Canonicalize URLs by dropping the trailing slash: `/en/shop-and-ship/`
+# 307-redirects to `/en/shop-and-ship`, then the assets binding serves
+# `en/shop-and-ship/index.html` from the prerender.
 html_handling = "drop-trailing-slash"
+binding = "ASSETS"

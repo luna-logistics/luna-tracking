@@ -103,8 +103,14 @@ export default function CustomPage() {
     image: page.og_image ?? undefined,
   } : null;
 
+  // Only emit the alternate hreflang when the OTHER language's slug is
+  // actually populated. Custom pages started bilingual by contract, but a
+  // NULL slug would produce `https://.../undefined` — a broken link that
+  // Google will flag.
   const altSlug = lang === 'en' ? page.slug_fr : page.slug_en;
-  const altHref = lang === 'en' ? `${SITE_URL}/${altSlug}` : `${SITE_URL}/en/${altSlug}`;
+  const altHref = !altSlug
+    ? null
+    : lang === 'en' ? `${SITE_URL}/${altSlug}` : `${SITE_URL}/en/${altSlug}`;
 
   return (
     <>
@@ -117,8 +123,8 @@ export default function CustomPage() {
         noindex={!isPublished}
       />
       <Helmet>
-        {isPublished && <link rel="alternate" hrefLang={lang === 'en' ? 'fr' : 'en'} href={altHref} />}
-        {isPublished && <link rel="alternate" hrefLang="x-default" href={`${SITE_URL}/${page.slug_fr}`} />}
+        {isPublished && altHref && <link rel="alternate" hrefLang={lang === 'en' ? 'fr' : 'en'} href={altHref} />}
+        {isPublished && page.slug_fr && <link rel="alternate" hrefLang="x-default" href={`${SITE_URL}/${page.slug_fr}`} />}
         {jsonLd && <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>}
       </Helmet>
 

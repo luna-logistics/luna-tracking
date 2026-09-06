@@ -97,6 +97,8 @@ export default function ShopAndShipProduct() {
         title={`${productMetaTitle(product, lang)} — ${t('brand.name')}`}
         description={productMetaDescription(product, lang) ?? undefined}
         type="article"
+        image={product.image_url ?? undefined}
+        imageAlt={productName(product, lang)}
       />
       <Helmet>
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
