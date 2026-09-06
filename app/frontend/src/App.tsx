@@ -47,6 +47,9 @@ const BusinessSettings = lazy(() => import('@/pages/BusinessSettings'));
 const BusinessClients = lazy(() => import('@/pages/BusinessClients'));
 const BusinessClientForm = lazy(() => import('@/pages/BusinessClientForm'));
 const BusinessClientDetail = lazy(() => import('@/pages/BusinessClientDetail'));
+const BusinessShipments = lazy(() => import('@/pages/BusinessShipments'));
+const BusinessShipmentForm = lazy(() => import('@/pages/BusinessShipmentForm'));
+const BusinessShipmentDetail = lazy(() => import('@/pages/BusinessShipmentDetail'));
 // Placeholder pages — shell + URL work today, real modules in phases 3–8.
 const BusinessPlaceholder = lazy(() => import('@/pages/BusinessPlaceholder').then((m) => ({ default: m.BusinessPlaceholder })));
 const BusinessPlaceholderShipments = () => <BusinessPlaceholder icon={Package}   titleKey="business_nav.shipments"  bodyKey="business_placeholder.shipments_body" />;
@@ -194,7 +197,10 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
             </ProtectedRoute>
           }>
             <Route path={t('/entreprise',              '/business')}              element={<BusinessDashboard />} />
-            <Route path={t('/entreprise/expeditions',  '/business/shipments')}    element={<BusinessPlaceholderShipments />} />
+            <Route path={t('/entreprise/expeditions',  '/business/shipments')}    element={<BusinessShipments />} />
+            <Route path={t('/entreprise/expeditions/new', '/business/shipments/new')} element={<BusinessShipmentForm />} />
+            <Route path={t('/entreprise/expeditions/:id/edit', '/business/shipments/:id/edit')} element={<BusinessShipmentForm />} />
+            <Route path={t('/entreprise/expeditions/:id', '/business/shipments/:id')} element={<BusinessShipmentDetail />} />
             <Route path={t('/entreprise/devis',        '/business/quotes')}       element={<BusinessPlaceholderQuotes />} />
             <Route path={t('/entreprise/clients',      '/business/clients')}      element={<BusinessClients />} />
             <Route path={t('/entreprise/clients/new',  '/business/clients/new')}  element={<BusinessClientForm />} />

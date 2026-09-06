@@ -16,6 +16,8 @@ import {
   upsertAddress, deleteAddress,
   type BusinessCustomer, type CustomerAddress,
 } from '@/lib/customers';
+import { fetchClientShipments, type Shipment } from '@/lib/shipments';
+import { ShipmentStatusBadge } from '@/components/ShipmentStatusBadge';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 
@@ -34,14 +36,19 @@ export default function BusinessClientDetail() {
   const { id } = useParams<{ id: string }>();
   const [customer, setCustomer] = useState<BusinessCustomer | null>(null);
   const [addresses, setAddresses] = useState<CustomerAddress[]>([]);
+  const [shipments, setShipments] = useState<Shipment[]>([]);
   const [tab, setTab] = useState<Tab>('info');
   const [loading, setLoading] = useState(true);
 
   const reload = async () => {
     if (!id) return;
     setLoading(true);
-    const [c, a] = await Promise.all([fetchCustomer(id), fetchCustomerAddresses(id)]);
-    setCustomer(c); setAddresses(a);
+    const [c, a, s] = await Promise.all([
+      fetchCustomer(id),
+      fetchCustomerAddresses(id),
+      fetchClientShipments(id),
+    ]);
+    setCustomer(c); setAddresses(a); setShipments(s);
     setLoading(false);
   };
   useEffect(() => { void reload(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [id]);
@@ -97,7 +104,7 @@ export default function BusinessClientDetail() {
       <div className="mt-6">
         {tab === 'info'      && <InfoTab customer={customer} />}
         {tab === 'addresses' && <AddressesTab customerId={customer.id} addresses={addresses} canWrite={canWrite} onChanged={reload} />}
-        {tab === 'history'   && <HistoryTab />}
+        {tab === 'history'   && <HistoryTab shipments={shipments} />}
       </div>
     </>
   );
@@ -324,26 +331,72 @@ function AddressForm({
   );
 }
 
-function HistoryTab() {
+function HistoryTab({ shipments }: { shipments: Shipment[] }) {
   const { t } = useTranslation();
-  const items: Array<{ icon: typeof Truck; key: string }> = [
-    { icon: Truck,    key: 'shipments' },
-    { icon: FileText, key: 'quotes' },
-    { icon: Receipt,  key: 'invoices' },
-  ];
   return (
-    <div className="grid gap-4 md:grid-cols-3">
-      {items.map(({ icon: Icon, key }) => (
-        <div key={key} className="rounded-2xl border-2 border-dashed border-luna-blue/30 bg-white p-6 text-center">
-          <Icon className="h-6 w-6 mx-auto text-luna-blue" aria-hidden="true" />
-          <div className="mt-3 font-semibold text-luna-navy">{t(`business_nav.${key}`)}</div>
-          <p className="mt-1 text-xs text-slate-500">{t('business_client_detail.history_placeholder')}</p>
+    <div className="space-y-6">
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold text-luna-navy flex items-center gap-2">
+            <Truck className="h-5 w-5" />
+            {t('business_nav.shipments')}
+          </h2>
+          <span className="text-xs text-slate-500">{shipments.length}</span>
         </div>
-      ))}
-      <div className="md:col-span-3 mt-2 rounded-2xl bg-luna-navy/[0.03] border border-luna-blue/20 p-4 text-xs text-slate-600 flex items-center gap-2">
-        <Sparkles className="h-4 w-4 text-luna-blue" aria-hidden="true" />
-        {t('business_client_detail.history_note')}
-      </div>
+        {shipments.length === 0 ? (
+          <div className="rounded-2xl border-2 border-dashed border-slate-300 bg-white p-6 text-center text-slate-500 text-sm">
+            {t('business_client_detail.no_shipments')}
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-slate-200 bg-white overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-luna-navy">
+                <tr>
+                  <th className="text-left px-4 py-2 font-semibold">{t('business_shipments.col_ref')}</th>
+                  <th className="text-left px-4 py-2 font-semibold">{t('business_shipments.col_route')}</th>
+                  <th className="text-left px-4 py-2 font-semibold">{t('business_shipments.col_mode')}</th>
+                  <th className="text-left px-4 py-2 font-semibold">{t('business_shipments.col_status')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {shipments.map((s) => (
+                  <tr key={s.id}>
+                    <td className="px-4 py-2 font-mono">
+                      <Link to={`../../expeditions/${s.id}`} className="text-luna-blue hover:underline">{s.reference}</Link>
+                    </td>
+                    <td className="px-4 py-2 text-slate-700 text-xs">
+                      {[s.origin_city, s.origin_country].filter(Boolean).join(', ') || '—'}
+                      {' → '}
+                      {[s.destination_city, s.destination_country].filter(Boolean).join(', ') || '—'}
+                    </td>
+                    <td className="px-4 py-2 text-slate-700 text-xs">{t(`shipment_mode.${s.mode}`)}</td>
+                    <td className="px-4 py-2"><ShipmentStatusBadge status={s.status} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section>
+        <div className="grid gap-4 md:grid-cols-2">
+          {[
+            { icon: FileText, key: 'quotes' },
+            { icon: Receipt,  key: 'invoices' },
+          ].map(({ icon: Icon, key }) => (
+            <div key={key} className="rounded-2xl border-2 border-dashed border-luna-blue/30 bg-white p-6 text-center">
+              <Icon className="h-6 w-6 mx-auto text-luna-blue" aria-hidden="true" />
+              <div className="mt-3 font-semibold text-luna-navy">{t(`business_nav.${key}`)}</div>
+              <p className="mt-1 text-xs text-slate-500">{t('business_client_detail.history_placeholder')}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 rounded-2xl bg-luna-navy/[0.03] border border-luna-blue/20 p-4 text-xs text-slate-600 flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-luna-blue" aria-hidden="true" />
+          {t('business_client_detail.history_note')}
+        </div>
+      </section>
     </div>
   );
 }
