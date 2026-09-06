@@ -46,6 +46,7 @@ const BlogIndex = lazy(() => import('@/pages/BlogIndex'));
 const BlogPost = lazy(() => import('@/pages/BlogPost'));
 const AdminBlog = lazy(() => import('@/pages/AdminBlog'));
 const AdminBlogForm = lazy(() => import('@/pages/AdminBlogForm'));
+const AdminCollaborators = lazy(() => import('@/pages/AdminCollaborators'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 
 const queryClient = new QueryClient();
@@ -138,6 +139,7 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
             <Route path="/admin/blog" element={<AdminBlog />} />
             <Route path="/admin/blog/nouveau" element={<AdminBlogForm />} />
             <Route path="/admin/blog/:id" element={<AdminBlogForm />} />
+            <Route path="/admin/collaborateurs" element={<AdminCollaborators />} />
           </Route>
 
           <Route path="*" element={<PublicLayout><NotFound /></PublicLayout>} />

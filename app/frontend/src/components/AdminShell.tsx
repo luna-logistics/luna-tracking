@@ -1,29 +1,40 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { LayoutDashboard, MapPin, Package, ShoppingCart, Boxes, KeyRound, FileText, Newspaper, LogOut } from 'lucide-react';
+import {
+  LayoutDashboard, MapPin, Package, ShoppingCart, Boxes,
+  KeyRound, FileText, Newspaper, UserCog, LogOut, ExternalLink,
+} from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { urlFor } from '@/lib/url/routes';
+import { useAdminCan } from '@/lib/admin-permissions';
+import type { AdminPermission } from '@/lib/admin-permissions';
 import { cn } from '@/lib/utils';
 
 /**
- * Admin sidebar shell. FR-only by convention (see URL registry: admin route
- * has bilingual:false), so the labels don't switch. Sits under a ProtectedRoute
- * — role-gating (admin-only) is a future chantier once profiles.role exists.
+ * Admin sidebar shell. Filters entries by the current admin's per-section
+ * permissions; a section the user can't touch simply doesn't appear.
+ * Dashboard (/admin) is always visible so a permission-less collaborator
+ * still has a landing page.
  */
 export function AdminShell() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { signOut, user } = useAuth();
   const location = useLocation();
+  const can = useAdminCan();
+  const lang = i18n.language === 'en' ? 'en' : 'fr';
 
-  const items = [
-    { to: '/admin', label: t('admin.sidebar_dashboard'), icon: LayoutDashboard },
-    { to: '/admin/destinations', label: t('admin.sidebar_cities'), icon: MapPin },
-    { to: '/admin/produits', label: t('admin.sidebar_products'), icon: Package },
-    { to: '/admin/commandes', label: t('admin.sidebar_orders'), icon: ShoppingCart },
-    { to: '/admin/demandes-reexpedition', label: t('admin.sidebar_forwarding'), icon: Boxes },
-    { to: '/admin/auth-sociale', label: t('admin.sidebar_auth_providers'), icon: KeyRound },
-    { to: '/admin/contenus', label: t('admin.sidebar_content'), icon: FileText },
-    { to: '/admin/blog', label: t('admin.sidebar_blog'), icon: Newspaper },
-  ];
+  const items: Array<{ to: string; label: string; icon: typeof LayoutDashboard; permission: AdminPermission | 'always' }> = ([
+    { to: '/admin',                        label: t('admin.sidebar_dashboard'),       icon: LayoutDashboard, permission: 'always' },
+    { to: '/admin/destinations',           label: t('admin.sidebar_cities'),          icon: MapPin,          permission: 'destinations' },
+    { to: '/admin/produits',               label: t('admin.sidebar_products'),        icon: Package,         permission: 'products' },
+    { to: '/admin/commandes',              label: t('admin.sidebar_orders'),          icon: ShoppingCart,    permission: 'orders' },
+    { to: '/admin/demandes-reexpedition',  label: t('admin.sidebar_forwarding'),      icon: Boxes,           permission: 'forwarding' },
+    { to: '/admin/auth-sociale',           label: t('admin.sidebar_auth_providers'),  icon: KeyRound,        permission: 'auth_providers' },
+    { to: '/admin/contenus',               label: t('admin.sidebar_content'),         icon: FileText,        permission: 'content' },
+    { to: '/admin/blog',                   label: t('admin.sidebar_blog'),            icon: Newspaper,       permission: 'blog' },
+    { to: '/admin/collaborateurs',         label: t('admin.sidebar_collaborators'),   icon: UserCog,         permission: 'admins' },
+  ] as const).filter((it) => it.permission === 'always' || can(it.permission as AdminPermission)) as Array<{ to: string; label: string; icon: typeof LayoutDashboard; permission: AdminPermission | 'always' }>;
 
   return (
     <div className="admin-shell min-h-screen bg-background flex">
@@ -34,14 +45,13 @@ export function AdminShell() {
           </div>
           <div className="text-xs text-white/60 mt-1 truncate">{user?.email}</div>
         </div>
-        <nav className="flex-1 py-4 px-2 space-y-1">
+        <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
           {items.map((it) => {
             const active = location.pathname === it.to;
             const Icon = it.icon;
             return (
               <Link
-                key={it.to}
-                to={it.to}
+                key={it.to} to={it.to}
                 className={cn(
                   'flex items-center gap-2 rounded-md px-3 py-2 text-sm',
                   active ? 'bg-luna-cyan text-luna-navy font-semibold' : 'text-white/80 hover:bg-white/10 hover:text-white'
@@ -53,7 +63,18 @@ export function AdminShell() {
             );
           })}
         </nav>
-        <div className="p-3 border-t border-white/10">
+        <div className="p-3 border-t border-white/10 space-y-2">
+          <Link
+            to={urlFor('home', lang)}
+            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-white/80 hover:bg-white/10 hover:text-white"
+          >
+            <ExternalLink className="h-4 w-4" />
+            {t('admin.back_to_site')}
+          </Link>
+          <div className="rounded-md bg-white/5 p-2 flex items-center justify-between">
+            <span className="text-xs text-white/60">{t('admin.language')}</span>
+            <LanguageSwitcher variant="dark" />
+          </div>
           <button
             type="button"
             onClick={() => signOut()}
@@ -64,20 +85,28 @@ export function AdminShell() {
           </button>
         </div>
       </aside>
+
+      {/* Mobile chrome — same three actions surfaced */}
       <div className="flex-1 min-w-0">
-        <div className="md:hidden bg-luna-navy-deep text-white px-4 py-3 flex items-center justify-between">
+        <div className="md:hidden bg-luna-navy-deep text-white px-4 py-3 flex items-center justify-between gap-3">
           <span className="text-sm font-semibold">{t('nav.admin')}</span>
-          <button onClick={() => signOut()} className="text-xs text-white/80">
-            {t('nav.logout')}
-          </button>
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher variant="dark" />
+            <Link to={urlFor('home', lang)} className="text-xs text-white/80 hover:text-white inline-flex items-center gap-1">
+              <ExternalLink className="h-3 w-3" />
+              {t('admin.back_to_site_short')}
+            </Link>
+            <button onClick={() => signOut()} className="text-xs text-white/80">
+              {t('nav.logout')}
+            </button>
+          </div>
         </div>
         <div className="md:hidden bg-white border-b border-slate-200 px-4 py-2 flex gap-3 overflow-x-auto">
           {items.map((it) => {
             const active = location.pathname === it.to;
             return (
               <Link
-                key={it.to}
-                to={it.to}
+                key={it.to} to={it.to}
                 className={cn(
                   'text-sm whitespace-nowrap rounded-md px-3 py-1',
                   active ? 'bg-luna-navy text-white' : 'text-luna-navy hover:bg-luna-navy/10'

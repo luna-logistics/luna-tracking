@@ -37,7 +37,8 @@ export type RouteKey =
   | 'adminAuthProviders'
   | 'adminContent'
   | 'blogIndex'
-  | 'adminBlog';
+  | 'adminBlog'
+  | 'adminCollaborators';
 
 type RouteDef = {
   indexable: boolean;
@@ -69,6 +70,7 @@ export const ROUTES: Record<RouteKey, RouteDef> = {
   adminContent: { indexable: false, bilingual: false, fr: '/admin/contenus', en: '/admin/contenus' },
   blogIndex:    { indexable: true,  bilingual: true,  fr: '/blog',            en: '/blog' },
   adminBlog:    { indexable: false, bilingual: false, fr: '/admin/blog',      en: '/admin/blog' },
+  adminCollaborators: { indexable: false, bilingual: false, fr: '/admin/collaborateurs', en: '/admin/collaborateurs' },
 };
 
 export function urlFor(key: RouteKey, lang: Lang = 'fr'): string {
