@@ -485,7 +485,24 @@
     "charge_amount": "Montant",
     "charge_billable": "Facturable",
     "documents_title": "Documents",
-    "documents_placeholder": "Bordereaux, BL, factures fournisseurs, justificatifs — arrivent en Phase 8."
+    "documents_hint": "Facture, colisage, BL/CMR/AWB, justificatifs douaniers, photos — max 25 Mo par fichier.",
+    "docs_upload": "Ajouter des fichiers",
+    "docs_drop_zone": "Glissez-déposez vos fichiers ici, ou cliquez sur « Ajouter des fichiers ».",
+    "docs_uploaded_one": "1 fichier ajouté.",
+    "docs_uploaded_other": "{{count}} fichiers ajoutés.",
+    "docs_empty": "Aucun document pour l'instant.",
+    "doc_kind": "Type",
+    "doc_label": "Libellé (facultatif)",
+    "doc_save": "Enregistrer",
+    "doc_delete_confirm": "Supprimer ce document ?"
+  },
+  "document_kind": {
+    "invoice": "Facture",
+    "packing_list": "Colisage",
+    "bill_of_lading": "BL / CMR / AWB",
+    "customs": "Douane",
+    "photo": "Photo",
+    "other": "Autre"
   },
   "admin": {
     "meta_title": "Administration — Luna Tracking Logistics",

@@ -485,7 +485,24 @@
     "charge_amount": "Amount",
     "charge_billable": "Billable",
     "documents_title": "Documents",
-    "documents_placeholder": "Waybills, BL, supplier invoices, receipts — coming in Phase 8."
+    "documents_hint": "Invoice, packing list, BL/CMR/AWB, customs paperwork, photos — 25 MB max per file.",
+    "docs_upload": "Upload files",
+    "docs_drop_zone": "Drag & drop files here, or click \"Upload files\".",
+    "docs_uploaded_one": "1 file uploaded.",
+    "docs_uploaded_other": "{{count}} files uploaded.",
+    "docs_empty": "No documents yet.",
+    "doc_kind": "Type",
+    "doc_label": "Label (optional)",
+    "doc_save": "Save",
+    "doc_delete_confirm": "Delete this document?"
+  },
+  "document_kind": {
+    "invoice": "Invoice",
+    "packing_list": "Packing list",
+    "bill_of_lading": "BL / CMR / AWB",
+    "customs": "Customs",
+    "photo": "Photo",
+    "other": "Other"
   },
   "admin": {
     "meta_title": "Admin — Luna Tracking Logistics",

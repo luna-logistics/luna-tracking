@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft, Pencil, Package, Receipt, ArrowRight,
-  Plus, Trash2, Save, Loader2, MapPin, CheckCircle2, Circle, Files,
+  Plus, Trash2, Save, Loader2, MapPin, CheckCircle2, Circle,
+  Files, Upload, Download, FileText, Image as ImageIcon,
 } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,11 @@ import {
   updateShipmentStatus, sumBillable,
   type Shipment, type ShipmentPackage, type ShipmentCharge, type ChargeKind,
 } from '@/lib/shipments';
+import {
+  fetchDocuments, uploadDocument, signedUrl, updateDocument, deleteDocument,
+  formatBytes, DOCUMENT_KINDS,
+  type ShipmentDocument, type DocumentKind,
+} from '@/lib/shipment-documents';
 import { fetchCustomer, type BusinessCustomer } from '@/lib/customers';
 import {
   SHIPMENT_PIPELINE, SHIPMENT_STATUSES, type ShipmentStatus,
@@ -39,6 +45,7 @@ export default function BusinessShipmentDetail() {
   const [customer, setCustomer] = useState<BusinessCustomer | null>(null);
   const [packages, setPackages] = useState<ShipmentPackage[]>([]);
   const [charges, setCharges] = useState<ShipmentCharge[]>([]);
+  const [documents, setDocuments] = useState<ShipmentDocument[]>([]);
   const [tab, setTab] = useState<Tab>('overview');
   const [loading, setLoading] = useState(true);
 
@@ -48,12 +55,13 @@ export default function BusinessShipmentDetail() {
     const s = await fetchShipment(id);
     setShipment(s);
     if (s) {
-      const [p, c, cust] = await Promise.all([
+      const [p, c, d, cust] = await Promise.all([
         fetchPackages(s.id),
         fetchCharges(s.id),
+        fetchDocuments(s.id),
         s.customer_id ? fetchCustomer(s.customer_id) : Promise.resolve(null),
       ]);
-      setPackages(p); setCharges(c); setCustomer(cust);
+      setPackages(p); setCharges(c); setDocuments(d); setCustomer(cust);
     }
     setLoading(false);
   };
@@ -120,6 +128,9 @@ export default function BusinessShipmentDetail() {
             {k === 'charges' && charges.length > 0 && (
               <span className="ml-1 rounded-full bg-slate-100 text-slate-600 px-1.5 text-[10px]">{charges.length}</span>
             )}
+            {k === 'documents' && documents.length > 0 && (
+              <span className="ml-1 rounded-full bg-slate-100 text-slate-600 px-1.5 text-[10px]">{documents.length}</span>
+            )}
           </button>
         ))}
       </div>
@@ -128,7 +139,7 @@ export default function BusinessShipmentDetail() {
         {tab === 'overview'  && <OverviewTab s={shipment} customer={customer} charges={charges} />}
         {tab === 'packages'  && <PackagesTab shipmentId={shipment.id} packages={packages} defaultCurrency={shipment.currency} canWrite={canWrite} onChanged={reload} />}
         {tab === 'charges'   && <ChargesTab shipmentId={shipment.id} charges={charges} defaultCurrency={shipment.currency} canWrite={canWrite} onChanged={reload} />}
-        {tab === 'documents' && <DocumentsPlaceholder />}
+        {tab === 'documents' && <DocumentsTab shipmentId={shipment.id} businessId={shipment.business_id} documents={documents} canWrite={canWrite} onChanged={reload} />}
       </div>
     </>
   );
@@ -608,14 +619,217 @@ function ChargeForm({
   );
 }
 
-function DocumentsPlaceholder() {
+// ─── Documents tab ────────────────────────────────────────────────────
+function DocumentsTab({
+  shipmentId, businessId, documents, canWrite, onChanged,
+}: {
+  shipmentId: string; businessId: string;
+  documents: ShipmentDocument[]; canWrite: boolean;
+  onChanged: () => Promise<void>;
+}) {
   const { t } = useTranslation();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+
+  const handleFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setBusy(true);
+    let ok = 0;
+    let failed = 0;
+    for (const file of Array.from(files)) {
+      try {
+        await uploadDocument({ shipmentId, businessId, file });
+        ok++;
+      } catch (err) {
+        failed++;
+        toast.error(errorMessage(err, t('common.error_generic')));
+      }
+    }
+    if (ok > 0) toast.success(t('business_shipment_detail.docs_uploaded', { count: ok }));
+    await onChanged();
+    setBusy(false);
+    if (inputRef.current) inputRef.current.value = '';
+  };
+
   return (
-    <div className="rounded-2xl border-2 border-dashed border-luna-blue/30 bg-white p-8 text-center">
-      <Files className="h-6 w-6 mx-auto text-luna-blue" aria-hidden="true" />
-      <p className="mt-3 font-semibold text-luna-navy">{t('business_shipment_detail.documents_title')}</p>
-      <p className="mt-1 text-xs text-slate-500">{t('business_shipment_detail.documents_placeholder')}</p>
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-lg font-semibold text-luna-navy flex items-center gap-2">
+            <Files className="h-5 w-5" />
+            {t('business_shipment_detail.documents_title')}
+          </h2>
+          <p className="mt-1 text-xs text-slate-500">{t('business_shipment_detail.documents_hint')}</p>
+        </div>
+        {canWrite && (
+          <Button size="sm" variant="navy" onClick={() => inputRef.current?.click()} disabled={busy}>
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            {t('business_shipment_detail.docs_upload')}
+          </Button>
+        )}
+        <input
+          ref={inputRef} type="file" multiple hidden
+          onChange={(e) => void handleFiles(e.target.files)}
+          accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+        />
+      </div>
+
+      {canWrite && (
+        <div
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={(e) => {
+            e.preventDefault(); setDragOver(false);
+            void handleFiles(e.dataTransfer.files);
+          }}
+          className={cn(
+            'mb-4 rounded-2xl border-2 border-dashed p-6 text-center text-sm transition-colors',
+            dragOver ? 'border-luna-blue bg-luna-blue/5 text-luna-navy' : 'border-slate-300 bg-white text-slate-500',
+          )}
+        >
+          <Upload className="h-5 w-5 mx-auto mb-2 opacity-60" aria-hidden="true" />
+          {t('business_shipment_detail.docs_drop_zone')}
+        </div>
+      )}
+
+      {documents.length === 0 && !canWrite && (
+        <EmptyBlock text={t('business_shipment_detail.docs_empty')} />
+      )}
+
+      {documents.length > 0 && (
+        <ul className="space-y-2">
+          {documents.map((d) => (
+            <DocumentRow key={d.id} doc={d} canWrite={canWrite} onChanged={onChanged} />
+          ))}
+        </ul>
+      )}
     </div>
+  );
+}
+
+function DocumentRow({
+  doc, canWrite, onChanged,
+}: {
+  doc: ShipmentDocument; canWrite: boolean; onChanged: () => Promise<void>;
+}) {
+  const { t, i18n } = useTranslation();
+  const [editing, setEditing] = useState(false);
+  const [kind, setKind] = useState<DocumentKind>(doc.kind);
+  const [label, setLabel] = useState(doc.label ?? '');
+  const [busy, setBusy] = useState(false);
+
+  const isImage = doc.mime_type?.startsWith('image/');
+  const Icon = isImage ? ImageIcon : FileText;
+
+  const open = async () => {
+    try {
+      const url = await signedUrl(doc.storage_path);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      toast.error(errorMessage(err, t('common.error_generic')));
+    }
+  };
+
+  const save = async () => {
+    setBusy(true);
+    try {
+      await updateDocument(doc.id, { kind, label: label.trim() || null });
+      await onChanged();
+      setEditing(false);
+    } catch (err) {
+      toast.error(errorMessage(err, t('common.error_generic')));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async () => {
+    if (!confirm(t('business_shipment_detail.doc_delete_confirm'))) return;
+    setBusy(true);
+    try {
+      await deleteDocument(doc);
+      await onChanged();
+    } catch (err) {
+      toast.error(errorMessage(err, t('common.error_generic')));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <li className="rounded-2xl border border-slate-200 bg-white p-3">
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 shrink-0 rounded-lg bg-slate-100 p-2 text-slate-600">
+          <Icon className="h-5 w-5" aria-hidden="true" />
+        </div>
+        <div className="min-w-0 flex-1">
+          {!editing ? (
+            <>
+              <button type="button" onClick={open}
+                className="text-left font-semibold text-luna-navy hover:text-luna-blue truncate block max-w-full">
+                {doc.filename}
+              </button>
+              <p className="text-xs text-slate-500 mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
+                <span className="inline-flex items-center rounded-full bg-luna-blue/10 text-luna-blue px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide">
+                  {t(`document_kind.${doc.kind}`)}
+                </span>
+                {doc.label && <span className="italic">{doc.label}</span>}
+                <span>{formatBytes(doc.byte_size)}</span>
+                <span>{new Date(doc.uploaded_at).toLocaleDateString(i18n.language)}</span>
+              </p>
+            </>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-[180px_1fr] items-end">
+              <div>
+                <Label className="text-luna-navy text-xs uppercase tracking-wide">{t('business_shipment_detail.doc_kind')}</Label>
+                <Select value={kind} onValueChange={(v) => setKind(v as DocumentKind)}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {DOCUMENT_KINDS.map((k) => (
+                      <SelectItem key={k} value={k}>{t(`document_kind.${k}`)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-luna-navy text-xs uppercase tracking-wide">{t('business_shipment_detail.doc_label')}</Label>
+                <Input className="mt-1" value={label} onChange={(e) => setLabel(e.target.value)} maxLength={120} />
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          {!editing ? (
+            <>
+              <Button size="sm" variant="outline" onClick={open} disabled={busy}>
+                <Download className="h-3.5 w-3.5" />
+              </Button>
+              {canWrite && (
+                <>
+                  <Button size="sm" variant="outline" onClick={() => setEditing(true)} disabled={busy}>
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button size="sm" variant="ghost" className="text-red-600 hover:bg-red-50" onClick={remove} disabled={busy}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              <Button size="sm" variant="ghost" onClick={() => { setEditing(false); setKind(doc.kind); setLabel(doc.label ?? ''); }} disabled={busy}>
+                {t('business_client_detail.cancel')}
+              </Button>
+              <Button size="sm" variant="navy" onClick={save} disabled={busy}>
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {t('business_shipment_detail.doc_save')}
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+    </li>
   );
 }
 
