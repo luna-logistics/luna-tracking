@@ -20,6 +20,7 @@ export type RouteKey =
   | 'tracking'
   | 'publicTracking'
   | 'rateCalculator'
+  | 'apiDocs'
   | 'pricing'
   | 'contact'
   | 'shopAndShip'
@@ -69,6 +70,7 @@ export const ROUTES: Record<RouteKey, RouteDef> = {
   tracking:        { indexable: true,  bilingual: true,  fr: '/suivi',              en: '/tracking' },
   publicTracking:  { indexable: false, bilingual: true,  fr: '/suivi/lien/:token',  en: '/tracking/link/:token' },
   rateCalculator:  { indexable: true,  bilingual: true,  fr: '/calculateur',        en: '/calculator' },
+  apiDocs:         { indexable: true,  bilingual: true,  fr: '/docs/api',           en: '/docs/api' },
   pricing:         { indexable: true,  bilingual: true,  fr: '/tarifs',             en: '/pricing' },
   contact:         { indexable: true,  bilingual: true,  fr: '/contact',            en: '/contact' },
   shopAndShip:     { indexable: true,  bilingual: true,  fr: '/achat-envoi',        en: '/shop-and-ship' },

@@ -28,6 +28,7 @@ import Login from '@/pages/Login';
 const Tracking = lazy(() => import('@/pages/Tracking'));
 const PublicTracking = lazy(() => import('@/pages/PublicTracking'));
 const RateCalculator = lazy(() => import('@/pages/RateCalculator'));
+const ApiDocs = lazy(() => import('@/pages/ApiDocs'));
 const Pricing = lazy(() => import('@/pages/Pricing'));
 const Contact = lazy(() => import('@/pages/Contact'));
 const ShopAndShip = lazy(() => import('@/pages/ShopAndShip'));
@@ -139,6 +140,7 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
           <Route path={t('/suivi', '/tracking')} element={<PublicLayout><Tracking /></PublicLayout>} />
           <Route path={t('/suivi/lien/:token', '/tracking/link/:token')} element={<PublicLayout><PublicTracking /></PublicLayout>} />
           <Route path={t('/calculateur', '/calculator')} element={<PublicLayout><RateCalculator /></PublicLayout>} />
+          <Route path={t('/docs/api', '/docs/api')} element={<PublicLayout><ApiDocs /></PublicLayout>} />
           <Route path={t('/tarifs', '/pricing')} element={<PublicLayout><Pricing /></PublicLayout>} />
           <Route path={t('/contact', '/contact')} element={<PublicLayout><Contact /></PublicLayout>} />
           <Route path={t('/achat-envoi', '/shop-and-ship')} element={<PublicLayout><ShopAndShip /></PublicLayout>} />

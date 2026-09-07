@@ -48,6 +48,8 @@ export function Footer() {
               <li><Link to={urlFor('forwarding', lang)} className="text-white/80 hover:text-white">{t('nav.forwarding')}</Link></li>
               <li><Link to={urlFor('blogIndex', lang)} className="text-white/80 hover:text-white">{t('nav.blog')}</Link></li>
               <li><Link to={urlFor('pricing', lang)} className="text-white/80 hover:text-white">{t('nav.pricing')}</Link></li>
+              <li><Link to={urlFor('rateCalculator', lang)} className="text-white/80 hover:text-white">{t('nav.calculator')}</Link></li>
+              <li><Link to={urlFor('apiDocs', lang)} className="text-white/80 hover:text-white">{t('nav.api_docs')}</Link></li>
               <li><Link to={urlFor('contact', lang)} className="text-white/80 hover:text-white">{t('nav.contact')}</Link></li>
             </ul>
           </div>
