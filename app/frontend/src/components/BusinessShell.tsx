@@ -2,7 +2,7 @@ import { Link, Outlet, useLocation, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, Package, FileText, Users, Receipt,
-  Wallet, BarChart3, Files, MapPin, UserCog, Settings,
+  Wallet, BarChart3, Files, MapPin, UserCog, Settings, Key,
   LogOut, ExternalLink, ChevronDown,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -45,6 +45,7 @@ export function BusinessShell() {
     { to: urlFor('businessAddresses', lang), label: t('business_nav.addresses'),  icon: MapPin,          permission: 'always' },
     { to: urlFor('businessTeam',      lang), label: t('business_nav.team'),       icon: UserCog,         permission: 'members.read' },
     { to: urlFor('businessSettings',  lang), label: t('business_nav.settings'),   icon: Settings,        permission: 'business.update' },
+    { to: urlFor('businessApiKeys',   lang), label: t('business_nav.api_keys'),   icon: Key,             permission: 'business.update' },
   ] as const).filter((it) => it.permission === 'always' || can(it.permission as BusinessAction));
 
   return (

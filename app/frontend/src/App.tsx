@@ -52,6 +52,7 @@ const BusinessClientDetail = lazy(() => import('@/pages/BusinessClientDetail'));
 const BusinessShipments = lazy(() => import('@/pages/BusinessShipments'));
 const BusinessShipmentForm = lazy(() => import('@/pages/BusinessShipmentForm'));
 const BusinessShipmentDetail = lazy(() => import('@/pages/BusinessShipmentDetail'));
+const BusinessApiKeys = lazy(() => import('@/pages/BusinessApiKeys'));
 const BusinessQuotes = lazy(() => import('@/pages/BusinessQuotes'));
 const BusinessQuoteForm = lazy(() => import('@/pages/BusinessQuoteForm'));
 const BusinessQuoteDetail = lazy(() => import('@/pages/BusinessQuoteDetail'));
@@ -222,6 +223,7 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
             <Route path={t('/entreprise/adresses',     '/business/addresses')}    element={<BusinessPlaceholderAddresses />} />
             <Route path={t('/entreprise/equipe',       '/business/team')}         element={<BusinessTeam />} />
             <Route path={t('/entreprise/parametres',   '/business/settings')}     element={<BusinessSettings />} />
+            <Route path={t('/entreprise/cles-api',     '/business/api-keys')}     element={<BusinessApiKeys />} />
           </Route>
 
           {/* Admin — FR-only convention. AdminGate wraps ProtectedRoute so a

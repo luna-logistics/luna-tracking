@@ -92,13 +92,62 @@ async function extractAuth(req: Request): Promise<{ auth: Auth | null; supabase:
     return { auth: { kind: 'jwt', user_id: user.id }, supabase };
   }
 
-  // ApiKey scheme is reserved for Phase 7 — recognized here so callers
-  // fail with 401 rather than a mislabelled 400 once keys ship.
   if (parsed.scheme === 'apikey') {
-    return { auth: null, supabase: null };
+    // Verify via SECURITY DEFINER RPC (safe for anon). Returns the
+    // matching (api_key_id, business_id, permissions) row when the key
+    // is valid and not revoked.
+    const anon = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+    );
+    const { data } = await anon.rpc('verify_api_key', { p_full_key: parsed.value });
+    const row = Array.isArray(data) && data.length > 0 ? data[0] : null;
+    if (!row) return { auth: null, supabase: null };
+    const service = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    // If a service-role key is set (Phase 7 wiring), scope reads to the
+    // business via a service client. Without one we still authenticate
+    // the caller but reads that need row-level filtering fall back to
+    // the anon client with an explicit business_id filter in the query.
+    const supabase = service
+      ? createClient(Deno.env.get('SUPABASE_URL')!, service)
+      : anon;
+    return {
+      auth: {
+        kind: 'api_key',
+        api_key_id: row.api_key_id,
+        business_id: row.business_id,
+        permissions: (row.permissions ?? []) as string[],
+      },
+      supabase,
+    };
   }
 
   return { auth: null, supabase: null };
+}
+
+/** Fire-and-forget log entry. Never throws so a slow logger can't
+ *  make the API request itself fail. */
+function logCall(
+  auth: Auth | null,
+  method: string,
+  path: string,
+  status: number,
+  elapsedMs: number,
+): void {
+  try {
+    const anon = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+    );
+    void anon.rpc('log_api_call', {
+      p_api_key_id: auth?.kind === 'api_key' ? auth.api_key_id : null,
+      p_business_id: auth?.kind === 'api_key' ? auth.business_id : null,
+      p_method: method,
+      p_path: path,
+      p_status: status,
+      p_response_ms: elapsedMs,
+    }).then(() => {}, () => {});
+  } catch { /* ignore */ }
 }
 
 // ─── Response helpers ────────────────────────────────────────────────
@@ -147,8 +196,9 @@ const me: Handler = async (ctx) => {
 const listShipments: Handler = async (ctx) => {
   if (!ctx.auth || !ctx.supabase) return fail('unauthorized', 'authentication required', 401);
   const url = new URL(ctx.req.url);
-  const businessId = url.searchParams.get('business_id');
-  if (!businessId) return fail('missing_param', 'business_id query parameter is required', 400);
+  const scoped = resolveBusinessId(ctx, url.searchParams.get('business_id'));
+  if ('response' in scoped) return scoped.response;
+  const businessId = scoped.businessId;
   const limit = clampInt(url.searchParams.get('limit'), 1, 100, 50);
   const status = url.searchParams.get('status');
 
@@ -167,7 +217,11 @@ const getShipment: Handler = async (ctx) => {
   if (!ctx.auth || !ctx.supabase) return fail('unauthorized', 'authentication required', 401);
   const id = ctx.segments[1];
   if (!isUuid(id)) return fail('bad_id', 'invalid shipment id', 400);
-  const { data, error } = await ctx.supabase.from('shipments').select('*').eq('id', id).maybeSingle();
+  let q = ctx.supabase.from('shipments').select('*').eq('id', id);
+  // API-key auth uses a service-role client; RLS is bypassed, so
+  // enforce the business scope explicitly.
+  if (ctx.auth.kind === 'api_key') q = q.eq('business_id', ctx.auth.business_id);
+  const { data, error } = await q.maybeSingle();
   if (error) return fail('db_error', error.message, 500);
   if (!data) return fail('not_found', 'shipment not found', 404);
   return ok(data);
@@ -176,8 +230,9 @@ const getShipment: Handler = async (ctx) => {
 const listCustomers: Handler = async (ctx) => {
   if (!ctx.auth || !ctx.supabase) return fail('unauthorized', 'authentication required', 401);
   const url = new URL(ctx.req.url);
-  const businessId = url.searchParams.get('business_id');
-  if (!businessId) return fail('missing_param', 'business_id query parameter is required', 400);
+  const scoped = resolveBusinessId(ctx, url.searchParams.get('business_id'));
+  if ('response' in scoped) return scoped.response;
+  const businessId = scoped.businessId;
   const limit = clampInt(url.searchParams.get('limit'), 1, 200, 100);
   const includeInactive = url.searchParams.get('include_inactive') === 'true';
 
@@ -196,7 +251,9 @@ const getCustomer: Handler = async (ctx) => {
   if (!ctx.auth || !ctx.supabase) return fail('unauthorized', 'authentication required', 401);
   const id = ctx.segments[1];
   if (!isUuid(id)) return fail('bad_id', 'invalid customer id', 400);
-  const { data, error } = await ctx.supabase.from('business_customers').select('*').eq('id', id).maybeSingle();
+  let q = ctx.supabase.from('business_customers').select('*').eq('id', id);
+  if (ctx.auth.kind === 'api_key') q = q.eq('business_id', ctx.auth.business_id);
+  const { data, error } = await q.maybeSingle();
   if (error) return fail('db_error', error.message, 500);
   if (!data) return fail('not_found', 'customer not found', 404);
   return ok(data);
@@ -270,23 +327,29 @@ const routes: Route[] = [
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
 
+  const started = Date.now();
   const url = new URL(req.url);
   const path = normalizePath(url);
   const segments = path.split('/').filter(Boolean);
   const method = req.method.toUpperCase() as Method;
 
+  const finish = (auth: Auth | null, res: Response): Response => {
+    logCall(auth, method, path, res.status, Date.now() - started);
+    return res;
+  };
+
   // Root discovery — helpful when someone hits the function URL bare.
   if (segments.length === 0) {
-    return ok({
+    return finish(null, ok({
       name: 'Luna Tracking API',
       version: API_VERSION,
       docs: null,
       endpoints: routes.map((r) => `${r.method} /${describeRoute(r)}`),
-    });
+    }));
   }
 
   const route = routes.find((r) => r.method === method && r.match(segments));
-  if (!route) return fail('not_found', `no route for ${method} ${path}`, 404);
+  if (!route) return finish(null, fail('not_found', `no route for ${method} ${path}`, 404));
 
   const { auth, supabase } = await extractAuth(req);
   const ctx: Ctx = {
@@ -295,10 +358,11 @@ serve(async (req) => {
   };
 
   try {
-    return await route.handler(ctx);
+    const res = await route.handler(ctx);
+    return finish(auth, res);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    return fail('internal', 'unexpected error', 500, message);
+    return finish(auth, fail('internal', 'unexpected error', 500, message));
   }
 });
 
@@ -307,6 +371,24 @@ serve(async (req) => {
 function isUuid(s: string | undefined): s is string {
   if (!s) return false;
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+}
+/** Resolve business_id for a scoped list/query. An ApiKey caller is
+ *  locked to its own business_id (a mismatched query param is a 403).
+ *  A JWT caller must pass business_id — RLS still enforces membership. */
+function resolveBusinessId(
+  ctx: Ctx,
+  fromQuery: string | null,
+): { businessId: string } | { response: Response } {
+  if (ctx.auth?.kind === 'api_key') {
+    const scoped = ctx.auth.business_id;
+    if (fromQuery && fromQuery !== scoped) {
+      return { response: fail('forbidden', 'API key is not scoped to that business', 403) };
+    }
+    return { businessId: scoped };
+  }
+  if (!fromQuery) return { response: fail('missing_param', 'business_id query parameter is required', 400) };
+  if (!isUuid(fromQuery)) return { response: fail('bad_id', 'business_id must be a UUID', 400) };
+  return { businessId: fromQuery };
 }
 function clampInt(v: string | null, min: number, max: number, def: number): number {
   const n = v == null ? def : parseInt(v, 10);

@@ -44,6 +44,7 @@ export type RouteKey =
   | 'businessAddresses'
   | 'businessTeam'
   | 'businessSettings'
+  | 'businessApiKeys'
   | 'admin'
   | 'adminCities'
   | 'adminProducts'
@@ -92,6 +93,7 @@ export const ROUTES: Record<RouteKey, RouteDef> = {
   businessAddresses: { indexable: false, bilingual: true, fr: '/entreprise/adresses',        en: '/business/addresses' },
   businessTeam:      { indexable: false, bilingual: true, fr: '/entreprise/equipe',          en: '/business/team' },
   businessSettings:  { indexable: false, bilingual: true, fr: '/entreprise/parametres',      en: '/business/settings' },
+  businessApiKeys:   { indexable: false, bilingual: true, fr: '/entreprise/cles-api',         en: '/business/api-keys' },
   admin:           { indexable: false, bilingual: false, fr: '/admin',              en: '/admin' },
   adminCities:     { indexable: false, bilingual: false, fr: '/admin/destinations', en: '/admin/destinations' },
   adminProducts:   { indexable: false, bilingual: false, fr: '/admin/produits',     en: '/admin/produits' },
