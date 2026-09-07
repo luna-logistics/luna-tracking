@@ -20,7 +20,7 @@ import { useBusiness } from '@/contexts/BusinessContext';
 import {
   fetchShipment, fetchPackages, fetchCharges,
   upsertPackage, deletePackage, upsertCharge, deleteCharge,
-  updateShipmentStatus, sumBillable,
+  updateShipmentStatus, sumBillable, computePackageTotals,
   setTrackingEnabled, rotateTrackingToken,
   type Shipment, type ShipmentPackage, type ShipmentCharge, type ChargeKind,
 } from '@/lib/shipments';
@@ -34,6 +34,7 @@ import {
   type ShipmentEvent,
 } from '@/lib/shipment-events';
 import { fetchCustomer, type BusinessCustomer } from '@/lib/customers';
+import { supabase } from '@/lib/supabase';
 import {
   SHIPMENT_PIPELINE, SHIPMENT_STATUSES, type ShipmentStatus,
 } from '@/lib/shipment-status';
@@ -151,7 +152,7 @@ export default function BusinessShipmentDetail() {
       </div>
 
       <div className="mt-6">
-        {tab === 'overview'  && <OverviewTab s={shipment} customer={customer} charges={charges} />}
+        {tab === 'overview'  && <OverviewTab s={shipment} customer={customer} charges={charges} packages={packages} />}
         {tab === 'packages'  && <PackagesTab shipmentId={shipment.id} packages={packages} defaultCurrency={shipment.currency} canWrite={canWrite} onChanged={reload} />}
         {tab === 'charges'   && <ChargesTab shipmentId={shipment.id} charges={charges} defaultCurrency={shipment.currency} canWrite={canWrite} onChanged={reload} />}
         {tab === 'documents' && <DocumentsTab shipmentId={shipment.id} businessId={shipment.business_id} documents={documents} canWrite={canWrite} onChanged={reload} />}
@@ -199,9 +200,14 @@ function Pipeline({ status }: { status: ShipmentStatus }) {
   );
 }
 
-function OverviewTab({ s, customer, charges }: { s: Shipment; customer: BusinessCustomer | null; charges: ShipmentCharge[] }) {
+function OverviewTab({ s, customer, charges, packages }: {
+  s: Shipment; customer: BusinessCustomer | null;
+  charges: ShipmentCharge[]; packages: ShipmentPackage[];
+}) {
   const { t } = useTranslation();
   const billed = sumBillable(s.currency, charges);
+  const totals = computePackageTotals(packages);
+  const hasPackages = packages.length > 0;
   const fmt = (n: number | null | undefined, unit = '') =>
     n === null || n === undefined ? '—' : `${Number(n).toLocaleString()} ${unit}`.trim();
 
@@ -242,6 +248,26 @@ function OverviewTab({ s, customer, charges }: { s: Shipment; customer: Business
           <Dt>{t('business_shipment_detail.total_billed')}</Dt>
           <Dd className="font-semibold">{billed.toLocaleString()} {s.currency}</Dd>
         </dl>
+        {hasPackages && (
+          <div className="mt-4 rounded-xl bg-luna-blue/5 border border-luna-blue/20 p-3">
+            <p className="text-xs font-semibold text-luna-navy uppercase tracking-wide">
+              {t('business_shipment_detail.package_totals_title')}
+            </p>
+            <p className="mt-1 text-sm text-luna-navy">
+              {t('business_shipment_detail.package_totals_line', {
+                lines: totals.line_count,
+                pieces: totals.count,
+                weight: totals.weight_kg.toLocaleString(),
+                volume: totals.volume_m3.toLocaleString(),
+              })}
+              {totals.volume_partial && (
+                <span className="ml-1 text-xs text-amber-700">
+                  ({t('business_shipment_detail.package_totals_volume_partial')})
+                </span>
+              )}
+            </p>
+          </div>
+        )}
       </section>
 
       <AddressCard title={t('business_shipment_form.section_origin')} s={s} prefix="origin" />
@@ -301,12 +327,30 @@ function PackagesTab({
 }) {
   const { t } = useTranslation();
   const [editing, setEditing] = useState<ShipmentPackage | 'new' | null>(null);
+  const [adopting, setAdopting] = useState(false);
 
-  const totalWeight = packages.reduce((sum, p) => sum + Number(p.weight_kg ?? 0) * p.quantity, 0);
+  const totals = computePackageTotals(packages);
+
+  const adopt = async () => {
+    setAdopting(true);
+    try {
+      const { error } = await supabase.from('shipments').update({
+        total_weight_kg: totals.weight_kg,
+        total_volume_m3: totals.volume_m3,
+      }).eq('id', shipmentId);
+      if (error) throw error;
+      toast.success(t('business_shipment_detail.package_totals_adopted'));
+      await onChanged();
+    } catch (err) {
+      toast.error(errorMessage(err, t('common.error_generic')));
+    } finally {
+      setAdopting(false);
+    }
+  };
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
         <div>
           <h2 className="text-lg font-semibold text-luna-navy flex items-center gap-2">
             <Package className="h-5 w-5" />
@@ -315,18 +359,27 @@ function PackagesTab({
           {packages.length > 0 && (
             <p className="mt-1 text-xs text-slate-500">
               {t('business_shipment_detail.packages_total', {
-                count: packages.reduce((s, p) => s + p.quantity, 0),
-                weight: totalWeight.toLocaleString(),
+                count: totals.count,
+                weight: totals.weight_kg.toLocaleString(),
+                volume: totals.volume_m3.toLocaleString(),
               })}
             </p>
           )}
         </div>
-        {canWrite && !editing && (
-          <Button size="sm" variant="navy" onClick={() => setEditing('new')}>
-            <Plus className="h-4 w-4" />
-            {t('business_shipment_detail.package_add')}
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {canWrite && !editing && packages.length > 0 && (
+            <Button size="sm" variant="outline" onClick={adopt} disabled={adopting} title={t('business_shipment_detail.package_totals_adopt_hint')}>
+              {adopting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {t('business_shipment_detail.package_totals_adopt')}
+            </Button>
+          )}
+          {canWrite && !editing && (
+            <Button size="sm" variant="navy" onClick={() => setEditing('new')}>
+              <Plus className="h-4 w-4" />
+              {t('business_shipment_detail.package_add')}
+            </Button>
+          )}
+        </div>
       </div>
 
       {editing && (

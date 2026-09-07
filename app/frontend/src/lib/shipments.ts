@@ -216,6 +216,42 @@ export function sumBillable(shipmentCurrency: Currency, charges: ShipmentCharge[
     .reduce((sum, c) => sum + Number(c.amount ?? 0), 0);
 }
 
+/** Roll up totals from packages. Volume is computed only for packages
+ *  with all three dimensions; a mixed set counts them partially and
+ *  flags that fact so the UI can say so. */
+export type PackageTotals = {
+  count: number;                 // total pieces (sum of quantity)
+  line_count: number;            // number of package lines
+  weight_kg: number;             // total weight in kg (sum of weight * qty)
+  volume_m3: number;             // total volume in m³ (only from packages that have L×W×H)
+  volume_partial: boolean;       // true if some packages lack dimensions
+};
+
+export function computePackageTotals(packages: ShipmentPackage[]): PackageTotals {
+  let count = 0;
+  let weight = 0;
+  let volume = 0;
+  let volumePartial = false;
+  for (const p of packages) {
+    const qty = Number(p.quantity ?? 0);
+    count += qty;
+    if (p.weight_kg != null) weight += Number(p.weight_kg) * qty;
+    if (p.length_cm != null && p.width_cm != null && p.height_cm != null) {
+      // cm³ → m³: divide by 1_000_000
+      volume += (Number(p.length_cm) * Number(p.width_cm) * Number(p.height_cm) / 1_000_000) * qty;
+    } else if (p.length_cm != null || p.width_cm != null || p.height_cm != null) {
+      volumePartial = true;
+    }
+  }
+  return {
+    count,
+    line_count: packages.length,
+    weight_kg: Number(weight.toFixed(3)),
+    volume_m3: Number(volume.toFixed(4)),
+    volume_partial: volumePartial,
+  };
+}
+
 // ─── Templates ────────────────────────────────────────────────────────
 
 export async function fetchTemplates(businessId: string): Promise<ShipmentTemplate[]> {
