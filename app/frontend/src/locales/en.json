@@ -457,6 +457,7 @@
     "tab_packages": "Packages",
     "tab_charges": "Billable costs",
     "tab_documents": "Documents",
+    "tab_activity": "Activity",
     "section_shipment": "Shipment",
     "section_totals": "Totals & billing",
     "no_notes": "No notes.",
@@ -494,7 +495,17 @@
     "doc_kind": "Type",
     "doc_label": "Label (optional)",
     "doc_save": "Save",
-    "doc_delete_confirm": "Delete this document?"
+    "doc_delete_confirm": "Delete this document?",
+    "activity_title": "Activity",
+    "activity_empty": "No events yet.",
+    "activity_actor_unknown": "A team member",
+    "add_note_label": "Add a note",
+    "add_note_placeholder": "e.g. Customer asked to advance pickup to Sep 12…",
+    "add_note_submit": "Post",
+    "evt_created": "Shipment created",
+    "evt_status_change": "Status updated:",
+    "evt_document_added": "Document added:",
+    "evt_document_removed": "Document removed:"
   },
   "document_kind": {
     "invoice": "Invoice",

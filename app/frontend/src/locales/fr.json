@@ -457,6 +457,7 @@
     "tab_packages": "Colis",
     "tab_charges": "Coûts facturables",
     "tab_documents": "Documents",
+    "tab_activity": "Activité",
     "section_shipment": "Expédition",
     "section_totals": "Totaux et facturation",
     "no_notes": "Aucune note.",
@@ -494,7 +495,17 @@
     "doc_kind": "Type",
     "doc_label": "Libellé (facultatif)",
     "doc_save": "Enregistrer",
-    "doc_delete_confirm": "Supprimer ce document ?"
+    "doc_delete_confirm": "Supprimer ce document ?",
+    "activity_title": "Activité",
+    "activity_empty": "Aucun événement pour l'instant.",
+    "activity_actor_unknown": "Un membre",
+    "add_note_label": "Ajouter une note",
+    "add_note_placeholder": "Ex. Le client a demandé un enlèvement avancé au 12/09…",
+    "add_note_submit": "Publier",
+    "evt_created": "Expédition créée",
+    "evt_status_change": "Statut mis à jour :",
+    "evt_document_added": "Document ajouté :",
+    "evt_document_removed": "Document supprimé :"
   },
   "document_kind": {
     "invoice": "Facture",

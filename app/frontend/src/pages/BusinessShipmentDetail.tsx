@@ -5,6 +5,7 @@ import {
   ArrowLeft, Pencil, Package, Receipt, ArrowRight,
   Plus, Trash2, Save, Loader2, MapPin, CheckCircle2, Circle,
   Files, Upload, Download, FileText, Image as ImageIcon,
+  History, MessageSquarePlus, FilePlus, FileMinus, Sparkles,
 } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,10 @@ import {
   formatBytes, DOCUMENT_KINDS,
   type ShipmentDocument, type DocumentKind,
 } from '@/lib/shipment-documents';
+import {
+  fetchEvents, addNote,
+  type ShipmentEvent,
+} from '@/lib/shipment-events';
 import { fetchCustomer, type BusinessCustomer } from '@/lib/customers';
 import {
   SHIPMENT_PIPELINE, SHIPMENT_STATUSES, type ShipmentStatus,
@@ -34,7 +39,7 @@ import { CURRENCIES, type Currency } from '@/lib/businesses';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 
-type Tab = 'overview' | 'packages' | 'charges' | 'documents';
+type Tab = 'overview' | 'packages' | 'charges' | 'documents' | 'activity';
 
 /** Shipment detail with pipeline header + 4 tabs. */
 export default function BusinessShipmentDetail() {
@@ -46,6 +51,7 @@ export default function BusinessShipmentDetail() {
   const [packages, setPackages] = useState<ShipmentPackage[]>([]);
   const [charges, setCharges] = useState<ShipmentCharge[]>([]);
   const [documents, setDocuments] = useState<ShipmentDocument[]>([]);
+  const [events, setEvents] = useState<ShipmentEvent[]>([]);
   const [tab, setTab] = useState<Tab>('overview');
   const [loading, setLoading] = useState(true);
 
@@ -55,13 +61,14 @@ export default function BusinessShipmentDetail() {
     const s = await fetchShipment(id);
     setShipment(s);
     if (s) {
-      const [p, c, d, cust] = await Promise.all([
+      const [p, c, d, ev, cust] = await Promise.all([
         fetchPackages(s.id),
         fetchCharges(s.id),
         fetchDocuments(s.id),
+        fetchEvents(s.id),
         s.customer_id ? fetchCustomer(s.customer_id) : Promise.resolve(null),
       ]);
-      setPackages(p); setCharges(c); setDocuments(d); setCustomer(cust);
+      setPackages(p); setCharges(c); setDocuments(d); setEvents(ev); setCustomer(cust);
     }
     setLoading(false);
   };
@@ -115,7 +122,7 @@ export default function BusinessShipmentDetail() {
       <Pipeline status={shipment.status} />
 
       <div className="mt-6 border-b border-slate-200 flex flex-wrap gap-1">
-        {(['overview','packages','charges','documents'] as Tab[]).map((k) => (
+        {(['overview','packages','charges','documents','activity'] as Tab[]).map((k) => (
           <button key={k} type="button" onClick={() => setTab(k)}
             className={cn(
               'px-4 py-2 text-sm font-medium border-b-2 -mb-px',
@@ -131,6 +138,9 @@ export default function BusinessShipmentDetail() {
             {k === 'documents' && documents.length > 0 && (
               <span className="ml-1 rounded-full bg-slate-100 text-slate-600 px-1.5 text-[10px]">{documents.length}</span>
             )}
+            {k === 'activity' && events.length > 0 && (
+              <span className="ml-1 rounded-full bg-slate-100 text-slate-600 px-1.5 text-[10px]">{events.length}</span>
+            )}
           </button>
         ))}
       </div>
@@ -140,6 +150,7 @@ export default function BusinessShipmentDetail() {
         {tab === 'packages'  && <PackagesTab shipmentId={shipment.id} packages={packages} defaultCurrency={shipment.currency} canWrite={canWrite} onChanged={reload} />}
         {tab === 'charges'   && <ChargesTab shipmentId={shipment.id} charges={charges} defaultCurrency={shipment.currency} canWrite={canWrite} onChanged={reload} />}
         {tab === 'documents' && <DocumentsTab shipmentId={shipment.id} businessId={shipment.business_id} documents={documents} canWrite={canWrite} onChanged={reload} />}
+        {tab === 'activity'  && <ActivityTab shipmentId={shipment.id} businessId={shipment.business_id} events={events} canWrite={canWrite} onChanged={reload} />}
       </div>
     </>
   );
@@ -831,6 +842,155 @@ function DocumentRow({
       </div>
     </li>
   );
+}
+
+// ─── Activity tab ─────────────────────────────────────────────────────
+function ActivityTab({
+  shipmentId, businessId, events, canWrite, onChanged,
+}: {
+  shipmentId: string; businessId: string;
+  events: ShipmentEvent[]; canWrite: boolean;
+  onChanged: () => Promise<void>;
+}) {
+  const { t, i18n } = useTranslation();
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!note.trim() || busy) return;
+    setBusy(true);
+    try {
+      await addNote(shipmentId, businessId, note);
+      setNote('');
+      await onChanged();
+    } catch (err) {
+      toast.error(errorMessage(err, t('common.error_generic')));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const ordered = [...events].reverse();
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold text-luna-navy flex items-center gap-2">
+          <History className="h-5 w-5" />
+          {t('business_shipment_detail.activity_title')}
+        </h2>
+      </div>
+
+      {canWrite && (
+        <form onSubmit={submit} className="mb-6 rounded-2xl border-2 border-luna-blue/20 bg-white p-4">
+          <Label className="text-luna-navy text-xs uppercase tracking-wide">
+            {t('business_shipment_detail.add_note_label')}
+          </Label>
+          <Textarea
+            className="mt-2"
+            rows={2}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder={t('business_shipment_detail.add_note_placeholder')}
+            maxLength={2000}
+          />
+          <div className="mt-2 flex justify-end">
+            <Button type="submit" size="sm" variant="navy" disabled={busy || !note.trim()}>
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquarePlus className="h-4 w-4" />}
+              {t('business_shipment_detail.add_note_submit')}
+            </Button>
+          </div>
+        </form>
+      )}
+
+      {ordered.length === 0 ? (
+        <EmptyBlock text={t('business_shipment_detail.activity_empty')} />
+      ) : (
+        <ol className="relative border-l-2 border-slate-200 ml-3 space-y-4 pl-6">
+          {ordered.map((e) => (
+            <EventItem key={e.id} event={e} locale={i18n.language} />
+          ))}
+        </ol>
+      )}
+    </div>
+  );
+}
+
+function EventItem({ event, locale }: { event: ShipmentEvent; locale: string }) {
+  const { t } = useTranslation();
+  const Icon = eventIcon(event.kind);
+  const iconClass = eventIconClass(event.kind);
+  const when = new Date(event.created_at).toLocaleString(locale, {
+    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  });
+  const actor = event.actor_name || t('business_shipment_detail.activity_actor_unknown');
+  return (
+    <li className="relative">
+      <span className={cn(
+        'absolute -left-[38px] top-0.5 flex h-8 w-8 items-center justify-center rounded-full ring-4 ring-white',
+        iconClass,
+      )}>
+        <Icon className="h-4 w-4" aria-hidden="true" />
+      </span>
+      <div className="rounded-xl border border-slate-200 bg-white p-3">
+        <p className="text-sm text-luna-navy">
+          <EventLabel event={event} />
+        </p>
+        <p className="mt-1 text-xs text-slate-500">
+          <span className="font-medium">{actor}</span>
+          <span className="mx-1.5">·</span>
+          <time dateTime={event.created_at}>{when}</time>
+        </p>
+      </div>
+    </li>
+  );
+}
+
+function EventLabel({ event }: { event: ShipmentEvent }) {
+  const { t } = useTranslation();
+  if (event.kind === 'created') {
+    return <>{t('business_shipment_detail.evt_created')}</>;
+  }
+  if (event.kind === 'status_change') {
+    const from = event.from_status ? t(`shipment_status.${event.from_status}`) : '—';
+    const to = event.to_status ? t(`shipment_status.${event.to_status}`) : '—';
+    return (
+      <>
+        {t('business_shipment_detail.evt_status_change')}
+        {' '}
+        <span className="text-slate-500">{from}</span>
+        {' → '}
+        <span className="font-semibold">{to}</span>
+      </>
+    );
+  }
+  if (event.kind === 'document_added') {
+    return <>{t('business_shipment_detail.evt_document_added')} <span className="font-mono text-xs">{event.note}</span></>;
+  }
+  if (event.kind === 'document_removed') {
+    return <>{t('business_shipment_detail.evt_document_removed')} <span className="font-mono text-xs">{event.note}</span></>;
+  }
+  return <span className="whitespace-pre-wrap">{event.note}</span>;
+}
+
+function eventIcon(kind: ShipmentEvent['kind']) {
+  switch (kind) {
+    case 'created':          return Sparkles;
+    case 'status_change':    return ArrowRight;
+    case 'document_added':   return FilePlus;
+    case 'document_removed': return FileMinus;
+    default:                 return MessageSquarePlus;
+  }
+}
+function eventIconClass(kind: ShipmentEvent['kind']) {
+  switch (kind) {
+    case 'created':          return 'bg-emerald-100 text-emerald-700';
+    case 'status_change':    return 'bg-luna-blue/15 text-luna-blue';
+    case 'document_added':   return 'bg-amber-100 text-amber-700';
+    case 'document_removed': return 'bg-red-100 text-red-700';
+    default:                 return 'bg-slate-100 text-slate-600';
+  }
 }
 
 function EmptyBlock({ text }: { text: string }) {
