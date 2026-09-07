@@ -10,6 +10,7 @@ export const ROUTES = {
   home:            { indexable: true,  bilingual: true,  fr: '/',                   en: '/' },
   tracking:        { indexable: true,  bilingual: true,  fr: '/suivi',              en: '/tracking' },
   publicTracking:  { indexable: false, bilingual: true,  fr: '/suivi/lien/:token',  en: '/tracking/link/:token' },
+  rateCalculator:  { indexable: true,  bilingual: true,  fr: '/calculateur',        en: '/calculator' },
   pricing:         { indexable: true,  bilingual: true,  fr: '/tarifs',             en: '/pricing' },
   contact:         { indexable: true,  bilingual: true,  fr: '/contact',            en: '/contact' },
   shopAndShip:     { indexable: true,  bilingual: true,  fr: '/achat-envoi',        en: '/shop-and-ship' },

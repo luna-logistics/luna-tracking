@@ -202,6 +202,39 @@ const getCustomer: Handler = async (ctx) => {
   return ok(data);
 };
 
+/** Rate calculator — public, backed by calculate_rates() RPC. Only
+ *  ever returns curated customer-facing pricing. Internal costs and
+ *  markup details stay in Postgres and never cross this boundary. */
+const rates: Handler = async (ctx) => {
+  const url = new URL(ctx.req.url);
+  const origin = url.searchParams.get('origin');
+  const destination = url.searchParams.get('destination');
+  const mode = url.searchParams.get('mode');
+  const weight = parseFloat(url.searchParams.get('weight_kg') || '0');
+  const volume = parseFloat(url.searchParams.get('volume_m3') || '0');
+
+  if (!origin || origin.length !== 2) return fail('missing_param', 'origin (2-letter ISO country code) is required', 400);
+  if (!destination || destination.length !== 2) return fail('missing_param', 'destination (2-letter ISO country code) is required', 400);
+  if (mode && !['air','sea','road','rail','multi'].includes(mode)) return fail('bad_mode', 'mode must be one of air, sea, road, rail, multi', 400);
+  if (!Number.isFinite(weight) || weight < 0) return fail('bad_weight', 'weight_kg must be a non-negative number', 400);
+  if (!Number.isFinite(volume) || volume < 0) return fail('bad_volume', 'volume_m3 must be a non-negative number', 400);
+  if (weight === 0 && volume === 0) return fail('missing_param', 'weight_kg or volume_m3 must be > 0', 400);
+
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_ANON_KEY')!,
+  );
+  const { data, error } = await supabase.rpc('calculate_rates', {
+    p_origin_country: origin.toUpperCase(),
+    p_destination_country: destination.toUpperCase(),
+    p_mode: mode,
+    p_weight_kg: weight,
+    p_volume_m3: volume,
+  });
+  if (error) return fail('db_error', error.message, 500);
+  return ok(data ?? [], { count: (data ?? []).length });
+};
+
 /** Public tracking — no auth. Token grants read; RPC enforces
  *  tracking_enabled and returns null otherwise (mapped to 404 here). */
 const publicTracking: Handler = async (ctx) => {
@@ -229,6 +262,7 @@ const routes: Route[] = [
   { method: 'GET', match: (s) => s.length === 1 && s[0] === 'customers',                handler: listCustomers },
   { method: 'GET', match: (s) => s.length === 2 && s[0] === 'customers' && isUuid(s[1]), handler: getCustomer },
   { method: 'GET', match: (s) => s.length === 2 && s[0] === 'tracking' && isUuid(s[1]),  handler: publicTracking },
+  { method: 'GET', match: (s) => s.length === 1 && s[0] === 'rates',                     handler: rates },
 ];
 
 // ─── Entrypoint ──────────────────────────────────────────────────────
@@ -285,6 +319,7 @@ function describeRoute(r: Route): string {
   if (src.includes("=== 'shipments'"))  return src.includes('length === 2') ? 'shipments/:id' : 'shipments';
   if (src.includes("=== 'customers'"))  return src.includes('length === 2') ? 'customers/:id' : 'customers';
   if (src.includes("=== 'tracking'"))   return 'tracking/:token';
+  if (src.includes("=== 'rates'"))      return 'rates?origin=..&destination=..&mode=..&weight_kg=..&volume_m3=..';
   if (src.includes("=== 'health'"))     return 'health';
   if (src.includes("=== 'me'"))         return 'me';
   return '(unknown)';
