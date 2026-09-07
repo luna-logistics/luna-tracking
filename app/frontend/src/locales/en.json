@@ -189,7 +189,8 @@
   },
   "business_shell": {
     "header": "Business",
-    "no_business": "No business"
+    "no_business": "No business",
+    "admin_console": "Admin console"
   },
   "business_nav": {
     "dashboard": "Dashboard",

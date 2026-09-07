@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, Package, FileText, Users, Receipt,
   Wallet, BarChart3, Files, MapPin, UserCog, Settings, Key,
-  LogOut, ExternalLink, ChevronDown,
+  LogOut, ExternalLink, ChevronDown, Shield,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusiness } from '@/contexts/BusinessContext';
@@ -24,7 +24,7 @@ import type { BusinessAction } from '@/lib/business-permissions';
  */
 export function BusinessShell() {
   const { t, i18n } = useTranslation();
-  const { signOut, user } = useAuth();
+  const { signOut, user, isAdmin } = useAuth();
   const location = useLocation();
   const { current, businesses, loading, can } = useBusiness();
   const lang = i18n.language === 'en' ? 'en' : 'fr';
@@ -83,6 +83,15 @@ export function BusinessShell() {
           </nav>
 
           <div className="mt-3 pt-3 border-t border-white/10 space-y-0.5">
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-luna-cyan-light hover:bg-white/10 hover:text-white"
+              >
+                <Shield className="h-4 w-4" />
+                {t('business_shell.admin_console')}
+              </Link>
+            )}
             <Link
               to={urlFor('home', lang)}
               className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-white/80 hover:bg-white/10 hover:text-white"
@@ -112,6 +121,12 @@ export function BusinessShell() {
           <span className="text-sm font-semibold truncate">{current?.name ?? t('business_shell.header')}</span>
           <div className="flex items-center gap-2">
             <LanguageSwitcher variant="dark" />
+            {isAdmin && (
+              <Link to="/admin" className="text-xs text-luna-cyan-light hover:text-white inline-flex items-center gap-1">
+                <Shield className="h-3 w-3" />
+                Admin
+              </Link>
+            )}
             <Link to={urlFor('home', lang)} className="text-xs text-white/80 hover:text-white inline-flex items-center gap-1">
               <ExternalLink className="h-3 w-3" />
               {t('admin.back_to_site_short')}

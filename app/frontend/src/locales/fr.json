@@ -189,7 +189,8 @@
   },
   "business_shell": {
     "header": "Espace pro",
-    "no_business": "Aucune entreprise"
+    "no_business": "Aucune entreprise",
+    "admin_console": "Administration"
   },
   "business_nav": {
     "dashboard": "Tableau de bord",
