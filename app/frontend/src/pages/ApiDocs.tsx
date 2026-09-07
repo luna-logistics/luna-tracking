@@ -119,7 +119,18 @@ export default function ApiDocs() {
 
           <Step number={1} title={t('api_docs.quick_s1_title')}>
             <p>{t('api_docs.quick_s1_body')}</p>
-            <CodeBlock label="cURL" code={`curl ${API_BASE}/health`} />
+            <MultiCodeBlock samples={[
+              { label: 'cURL', code: `curl ${API_BASE}/health` },
+              { label: 'JavaScript', code: `const res = await fetch('${API_BASE}/health');
+const { data } = await res.json();
+console.log(data);
+// → { status: 'ok', version: 'v1', time: '...' }` },
+              { label: 'Python', code: `import requests
+
+res = requests.get('${API_BASE}/health')
+print(res.json())
+# → {'data': {'status': 'ok', 'version': 'v1', 'time': '...'}}` },
+            ]} />
             <p className="mt-2 text-sm text-slate-600">{t('api_docs.quick_s1_expect')}</p>
             <CodeBlock code={`{
   "data": {
@@ -156,8 +167,35 @@ export default function ApiDocs() {
 
           <Step number={3} title={t('api_docs.quick_s3_title')}>
             <p>{t('api_docs.quick_s3_body')}</p>
-            <CodeBlock label="cURL" code={`curl ${API_BASE}/shipments?business_id=YOUR_BUSINESS_ID \\
-  -H "Authorization: ApiKey lk_live_xxxxxxxx.YOUR_SECRET"`} />
+            <MultiCodeBlock samples={[
+              { label: 'cURL', code: `curl "${API_BASE}/shipments?business_id=YOUR_BUSINESS_ID" \\
+  -H "Authorization: ApiKey lk_live_xxxxxxxx.YOUR_SECRET"` },
+              { label: 'JavaScript', code: `const BUSINESS_ID = 'YOUR_BUSINESS_ID';
+const API_KEY = 'lk_live_xxxxxxxx.YOUR_SECRET';
+
+const res = await fetch(
+  \`${API_BASE}/shipments?business_id=\${BUSINESS_ID}\`,
+  { headers: { Authorization: \`ApiKey \${API_KEY}\` } }
+);
+const { data, error } = await res.json();
+if (error) throw new Error(error.message);
+console.log(data);   // array of shipments` },
+              { label: 'Python', code: `import requests
+
+BUSINESS_ID = 'YOUR_BUSINESS_ID'
+API_KEY = 'lk_live_xxxxxxxx.YOUR_SECRET'
+
+res = requests.get(
+    '${API_BASE}/shipments',
+    params={'business_id': BUSINESS_ID},
+    headers={'Authorization': f'ApiKey {API_KEY}'},
+)
+res.raise_for_status()
+payload = res.json()
+if 'error' in payload:
+    raise RuntimeError(payload['error']['message'])
+print(payload['data'])   # list of shipments` },
+            ]} />
             <p className="mt-2 text-sm text-slate-600">{t('api_docs.quick_s3_expect')}</p>
             <CodeBlock code={`{
   "data": [
@@ -392,6 +430,44 @@ function CodeBlock({ code, label }: { code: string; label?: string }) {
         </button>
       </div>
       <pre className="overflow-x-auto p-3 text-[12px] font-mono text-emerald-100 leading-relaxed">{code}</pre>
+    </div>
+  );
+}
+
+/** Same as CodeBlock but with tabs — one per language. The copy button
+ *  copies whatever tab is currently active. */
+function MultiCodeBlock({ samples }: { samples: { label: string; code: string }[] }) {
+  const [idx, setIdx] = useState(0);
+  const [copied, setCopied] = useState(false);
+  const active = samples[idx];
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(active.code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch { /* ignore */ }
+  };
+  return (
+    <div className="mt-2 rounded-lg border border-slate-200 bg-luna-navy overflow-hidden">
+      <div className="flex items-center justify-between bg-luna-navy-deep pr-3">
+        <div className="flex" role="tablist" aria-label="Code language">
+          {samples.map((s, i) => (
+            <button key={s.label} type="button" role="tab" aria-selected={idx === i}
+              onClick={() => { setIdx(i); setCopied(false); }}
+              className={cn(
+                'px-3 py-1.5 text-[11px] font-mono uppercase tracking-wide border-b-2',
+                idx === i ? 'text-white border-luna-cyan bg-white/5' : 'text-white/50 border-transparent hover:text-white/80',
+              )}>
+              {s.label}
+            </button>
+          ))}
+        </div>
+        <button type="button" onClick={copy}
+          className="text-white/70 hover:text-white text-xs inline-flex items-center gap-1">
+          {copied ? <><Check className="h-3 w-3" /> copied</> : <><Copy className="h-3 w-3" /> copy</>}
+        </button>
+      </div>
+      <pre className="overflow-x-auto p-3 text-[12px] font-mono text-emerald-100 leading-relaxed">{active.code}</pre>
     </div>
   );
 }
