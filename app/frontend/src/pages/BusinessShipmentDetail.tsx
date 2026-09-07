@@ -34,6 +34,7 @@ import {
   type ShipmentEvent,
 } from '@/lib/shipment-events';
 import { fetchCustomer, type BusinessCustomer } from '@/lib/customers';
+import { fetchShipmentMargin, type Margin } from '@/lib/expenses';
 import { supabase } from '@/lib/supabase';
 import {
   SHIPMENT_PIPELINE, SHIPMENT_STATUSES, type ShipmentStatus,
@@ -56,6 +57,7 @@ export default function BusinessShipmentDetail() {
   const [charges, setCharges] = useState<ShipmentCharge[]>([]);
   const [documents, setDocuments] = useState<ShipmentDocument[]>([]);
   const [events, setEvents] = useState<ShipmentEvent[]>([]);
+  const [margin, setMargin] = useState<Margin | null>(null);
   const [tab, setTab] = useState<Tab>('overview');
   const [loading, setLoading] = useState(true);
 
@@ -65,14 +67,15 @@ export default function BusinessShipmentDetail() {
     const s = await fetchShipment(id);
     setShipment(s);
     if (s) {
-      const [p, c, d, ev, cust] = await Promise.all([
+      const [p, c, d, ev, cust, mg] = await Promise.all([
         fetchPackages(s.id),
         fetchCharges(s.id),
         fetchDocuments(s.id),
         fetchEvents(s.id),
         s.customer_id ? fetchCustomer(s.customer_id) : Promise.resolve(null),
+        fetchShipmentMargin(s.id),
       ]);
-      setPackages(p); setCharges(c); setDocuments(d); setEvents(ev); setCustomer(cust);
+      setPackages(p); setCharges(c); setDocuments(d); setEvents(ev); setCustomer(cust); setMargin(mg);
     }
     setLoading(false);
   };
@@ -152,7 +155,7 @@ export default function BusinessShipmentDetail() {
       </div>
 
       <div className="mt-6">
-        {tab === 'overview'  && <OverviewTab s={shipment} customer={customer} charges={charges} packages={packages} />}
+        {tab === 'overview'  && <OverviewTab s={shipment} customer={customer} charges={charges} packages={packages} margin={margin} />}
         {tab === 'packages'  && <PackagesTab shipmentId={shipment.id} packages={packages} defaultCurrency={shipment.currency} canWrite={canWrite} onChanged={reload} />}
         {tab === 'charges'   && <ChargesTab shipmentId={shipment.id} charges={charges} defaultCurrency={shipment.currency} canWrite={canWrite} onChanged={reload} />}
         {tab === 'documents' && <DocumentsTab shipmentId={shipment.id} businessId={shipment.business_id} documents={documents} canWrite={canWrite} onChanged={reload} />}
@@ -200,9 +203,10 @@ function Pipeline({ status }: { status: ShipmentStatus }) {
   );
 }
 
-function OverviewTab({ s, customer, charges, packages }: {
+function OverviewTab({ s, customer, charges, packages, margin }: {
   s: Shipment; customer: BusinessCustomer | null;
   charges: ShipmentCharge[]; packages: ShipmentPackage[];
+  margin: Margin | null;
 }) {
   const { t } = useTranslation();
   const billed = sumBillable(s.currency, charges);
@@ -248,6 +252,41 @@ function OverviewTab({ s, customer, charges, packages }: {
           <Dt>{t('business_shipment_detail.total_billed')}</Dt>
           <Dd className="font-semibold">{billed.toLocaleString()} {s.currency}</Dd>
         </dl>
+        {margin && (
+          <div className={cn('mt-4 rounded-xl border p-3',
+            margin.margin >= 0 ? 'border-emerald-300 bg-emerald-50' : 'border-red-300 bg-red-50',
+          )}>
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <p className="text-[11px] uppercase tracking-wide font-semibold text-slate-600">
+                  {t('business_shipment_detail.margin_title')}
+                </p>
+                <p className={cn('mt-0.5 text-lg font-bold',
+                  margin.margin >= 0 ? 'text-emerald-900' : 'text-red-900')}>
+                  {Number(margin.margin).toLocaleString()} {margin.currency}
+                  {margin.margin_pct !== null && (
+                    <span className="ml-2 text-xs opacity-70">({margin.margin_pct}%)</span>
+                  )}
+                </p>
+              </div>
+              <div className="text-right text-xs text-slate-600">
+                <p>
+                  {t('business_shipment_detail.margin_revenue')}:{' '}
+                  <span className="font-semibold text-luna-navy">{Number(margin.revenue).toLocaleString()} {margin.currency}</span>
+                </p>
+                <p>
+                  {t('business_shipment_detail.margin_cost')}:{' '}
+                  <span className="font-semibold text-slate-800">{Number(margin.cost).toLocaleString()} {margin.currency}</span>
+                </p>
+              </div>
+            </div>
+            {(margin.other_currencies.revenue.length > 0 || margin.other_currencies.cost.length > 0) && (
+              <p className="mt-2 text-[11px] text-amber-800">
+                {t('business_shipment_detail.margin_mixed_currency')}
+              </p>
+            )}
+          </div>
+        )}
         {hasPackages && (
           <div className="mt-4 rounded-xl bg-luna-blue/5 border border-luna-blue/20 p-3">
             <p className="text-xs font-semibold text-luna-navy uppercase tracking-wide">

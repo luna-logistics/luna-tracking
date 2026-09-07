@@ -18,7 +18,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { AdminGate } from '@/components/AdminGate';
 import { OnboardingGate, AccountTypeGate } from '@/components/AccountTypeGate';
 import { setVisitLanguage } from '@/i18n';
-import { Receipt, Wallet, BarChart3 } from 'lucide-react';
+import { Receipt, BarChart3 } from 'lucide-react';
 
 // Eager: homepage + login (critical paths).
 import Index from '@/pages/Index';
@@ -58,6 +58,7 @@ const BusinessApiUsage = lazy(() => import('@/pages/BusinessApiUsage'));
 const BusinessWebhooks = lazy(() => import('@/pages/BusinessWebhooks'));
 const BusinessAddresses = lazy(() => import('@/pages/BusinessAddresses'));
 const BusinessDocuments = lazy(() => import('@/pages/BusinessDocuments'));
+const BusinessExpenses = lazy(() => import('@/pages/BusinessExpenses'));
 const BusinessQuotes = lazy(() => import('@/pages/BusinessQuotes'));
 const BusinessQuoteForm = lazy(() => import('@/pages/BusinessQuoteForm'));
 const BusinessQuoteDetail = lazy(() => import('@/pages/BusinessQuoteDetail'));
@@ -66,7 +67,6 @@ const BusinessQuoteDetail = lazy(() => import('@/pages/BusinessQuoteDetail'));
 // in BusinessShell so they don't advertise themselves as ready.
 const BusinessPlaceholder = lazy(() => import('@/pages/BusinessPlaceholder').then((m) => ({ default: m.BusinessPlaceholder })));
 const BusinessPlaceholderInvoicing = () => <BusinessPlaceholder icon={Receipt}   titleKey="business_nav.invoicing"  bodyKey="business_placeholder.invoicing_body" />;
-const BusinessPlaceholderExpenses  = () => <BusinessPlaceholder icon={Wallet}    titleKey="business_nav.expenses"   bodyKey="business_placeholder.expenses_body" />;
 const BusinessPlaceholderReports   = () => <BusinessPlaceholder icon={BarChart3} titleKey="business_nav.reports"    bodyKey="business_placeholder.reports_body" />;
 const AdminShell = lazy(() => import('@/components/AdminShell').then((m) => ({ default: m.AdminShell })));
 const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'));
@@ -221,7 +221,7 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
             <Route path={t('/entreprise/clients/:id/edit', '/business/clients/:id/edit')} element={<BusinessClientForm />} />
             <Route path={t('/entreprise/clients/:id',  '/business/clients/:id')}  element={<BusinessClientDetail />} />
             <Route path={t('/entreprise/facturation',  '/business/invoicing')}    element={<BusinessPlaceholderInvoicing />} />
-            <Route path={t('/entreprise/depenses',     '/business/expenses')}     element={<BusinessPlaceholderExpenses />} />
+            <Route path={t('/entreprise/depenses',     '/business/expenses')}     element={<BusinessExpenses />} />
             <Route path={t('/entreprise/rapports',     '/business/reports')}      element={<BusinessPlaceholderReports />} />
             <Route path={t('/entreprise/documents',    '/business/documents')}    element={<BusinessDocuments />} />
             <Route path={t('/entreprise/adresses',     '/business/addresses')}    element={<BusinessAddresses />} />
