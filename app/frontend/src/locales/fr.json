@@ -732,6 +732,7 @@
     "toc_auth": "Authentification",
     "toc_responses": "Réponses",
     "toc_endpoints": "Endpoints",
+    "toc_openapi": "Spec OpenAPI",
     "toc_errors": "Erreurs",
     "toc_limits": "Limites",
     "toc_roadmap": "À venir",
@@ -816,6 +817,17 @@
     "ep_usage": "Consommation agrégée : totaux + timeline + top endpoints + par clé, sur la fenêtre demandée.",
     "ep_perms_title": "Permissions (scopes) attachables à une clé",
     "ep_perms_body": "À la création d'une clé, vous cochez ce qu'elle pourra faire. Un cochage minimal réduit le blast radius si la clé fuit.",
+
+    "oa_title": "6bis. Contrat OpenAPI + outils",
+    "oa_intro": "L'API est décrite en OpenAPI 3.1 — un format machine-lisible standard. Vous pouvez l'importer directement dans Postman, Insomnia, Bruno, Swagger Editor, ou tout générateur de SDK. Le fichier est servi en live depuis notre serveur : à chaque nouvelle version de l'API, il reflète automatiquement les nouveaux endpoints.",
+    "oa_url_title": "URL de la spec (JSON)",
+    "oa_open": "ouvrir",
+    "oa_import_title": "Importer dans votre outil favori",
+    "oa_import_body": "Cliquez sur un outil ci-dessous — l'URL de la spec est déjà pré-chargée. Le viewer se remplit tout seul.",
+    "oa_postman_note": "Copiez l'URL ci-dessus puis Postman → Import → Link.",
+    "oa_sdk_title": "Générer un SDK dans votre langage",
+    "oa_sdk_body": "La spec suffit à générer un client typé (TypeScript, Python, Go, Java, Kotlin, Ruby, Rust, PHP, C#…). Deux exemples :",
+
 
     "err_title": "7. Codes d'erreur",
     "err_intro": "Toutes les erreurs ont la même forme : { error: { code, message } }. Le champ code est stable — codez dessus, pas sur le message (qui peut être traduit).",

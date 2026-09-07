@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Code2, Zap, Key, Server, ArrowRight, CheckCircle2, AlertTriangle,
-  Copy, Check, Info, ShieldCheck, Layers, Send, BookOpen,
+  Copy, Check, Info, ShieldCheck, Layers, Send, BookOpen, FileJson, ExternalLink,
 } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
@@ -66,6 +66,7 @@ export default function ApiDocs() {
             <TocLink href="#auth">{t('api_docs.toc_auth')}</TocLink>
             <TocLink href="#responses">{t('api_docs.toc_responses')}</TocLink>
             <TocLink href="#endpoints">{t('api_docs.toc_endpoints')}</TocLink>
+            <TocLink href="#openapi">{t('api_docs.toc_openapi')}</TocLink>
             <TocLink href="#errors">{t('api_docs.toc_errors')}</TocLink>
             <TocLink href="#limits">{t('api_docs.toc_limits')}</TocLink>
             <TocLink href="#roadmap">{t('api_docs.toc_roadmap')}</TocLink>
@@ -294,6 +295,38 @@ print(payload['data'])   # list of shipments` },
                 <li key={s} className="rounded bg-white border border-slate-200 px-2 py-1">{s}</li>
               ))}
             </ul>
+          </Callout>
+        </SectionBlock>
+
+        {/* OPENAPI */}
+        <SectionBlock id="openapi" icon={FileJson} title={t('api_docs.oa_title')}>
+          <p>{t('api_docs.oa_intro')}</p>
+
+          <OpenApiCard />
+
+          <Callout kind="info" title={t('api_docs.oa_import_title')}>
+            <p>{t('api_docs.oa_import_body')}</p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              <ExternalTool label="Swagger Editor" href={`https://editor.swagger.io/?url=${encodeURIComponent(API_BASE + '/openapi.json')}`} />
+              <ExternalTool label="Redocly" href={`https://redocly.github.io/redoc/?url=${encodeURIComponent(API_BASE + '/openapi.json')}`} />
+              <ExternalTool label="ReadyAPI / Postman" href="https://www.postman.com/" note={t('api_docs.oa_postman_note')} />
+            </div>
+          </Callout>
+
+          <Callout kind="ok" title={t('api_docs.oa_sdk_title')}>
+            <p>{t('api_docs.oa_sdk_body')}</p>
+            <pre className="mt-2 overflow-x-auto rounded bg-luna-navy text-emerald-100 p-3 text-[11px] font-mono">
+{`# TypeScript SDK from the spec
+npx @hey-api/openapi-ts \\
+  -i ${API_BASE}/openapi.json \\
+  -o ./src/luna-sdk
+
+# Python SDK
+openapi-generator-cli generate \\
+  -i ${API_BASE}/openapi.json \\
+  -g python \\
+  -o ./luna_sdk`}
+            </pre>
           </Callout>
         </SectionBlock>
 
@@ -554,6 +587,52 @@ function EndpointRow({ method, path, auth, body }: { method: 'GET' | 'POST' | 'P
       </div>
       <span className="text-xs text-slate-500 md:text-right">{auth}</span>
     </div>
+  );
+}
+
+function OpenApiCard() {
+  const { t } = useTranslation();
+  const [copied, setCopied] = useState(false);
+  const url = `${API_BASE}/openapi.json`;
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch { /* ignore */ }
+  };
+  return (
+    <div className="rounded-2xl border-2 border-luna-blue/30 bg-luna-blue/5 p-4">
+      <div className="flex items-center gap-2 text-luna-navy font-semibold">
+        <FileJson className="h-5 w-5" />
+        {t('api_docs.oa_url_title')}
+      </div>
+      <div className="mt-3 flex items-center gap-2 rounded-lg bg-white border border-slate-200 px-3 py-2">
+        <code className="flex-1 text-xs font-mono text-slate-800 truncate" title={url}>{url}</code>
+        <a href={url} target="_blank" rel="noopener noreferrer"
+          className="text-xs text-luna-blue hover:text-luna-navy inline-flex items-center gap-1">
+          <ExternalLink className="h-3 w-3" />
+          {t('api_docs.oa_open')}
+        </a>
+        <button type="button" onClick={copy}
+          className="text-xs text-luna-navy hover:text-luna-blue inline-flex items-center gap-1">
+          {copied ? <><Check className="h-3 w-3 text-emerald-700" /> copied</> : <><Copy className="h-3 w-3" /> copy</>}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ExternalTool({ label, href, note }: { label: string; href: string; note?: string }) {
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer"
+      className="rounded-xl border border-slate-200 bg-white p-3 hover:border-luna-blue hover:bg-luna-blue/5 transition-colors">
+      <p className="font-semibold text-luna-navy inline-flex items-center gap-1.5">
+        <ExternalLink className="h-3.5 w-3.5" />
+        {label}
+      </p>
+      {note && <p className="mt-1 text-xs text-slate-500">{note}</p>}
+    </a>
   );
 }
 

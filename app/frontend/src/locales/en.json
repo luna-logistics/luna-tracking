@@ -732,6 +732,7 @@
     "toc_auth": "Authentication",
     "toc_responses": "Responses",
     "toc_endpoints": "Endpoints",
+    "toc_openapi": "OpenAPI spec",
     "toc_errors": "Errors",
     "toc_limits": "Limits",
     "toc_roadmap": "Roadmap",
@@ -816,6 +817,17 @@
     "ep_usage": "Aggregated usage: totals + timeline + top endpoints + per-key breakdown, over the requested window.",
     "ep_perms_title": "Permissions (scopes) attachable to a key",
     "ep_perms_body": "When you create a key, you pick what it can do. A minimal tick list keeps the blast radius small if the key leaks.",
+
+    "oa_title": "6b. OpenAPI contract + tooling",
+    "oa_intro": "The API is described in OpenAPI 3.1 — the standard machine-readable format. Import it directly into Postman, Insomnia, Bruno, Swagger Editor, or any SDK generator. The file is served live from our server: every new API version reflects automatically.",
+    "oa_url_title": "Spec URL (JSON)",
+    "oa_open": "open",
+    "oa_import_title": "Import into your favourite tool",
+    "oa_import_body": "Click a tool below — the spec URL is preloaded, the viewer fills itself in.",
+    "oa_postman_note": "Copy the URL above, then Postman → Import → Link.",
+    "oa_sdk_title": "Generate an SDK in your language",
+    "oa_sdk_body": "The spec is enough to generate a typed client (TypeScript, Python, Go, Java, Kotlin, Ruby, Rust, PHP, C#…). Two examples:",
+
 
     "err_title": "7. Error codes",
     "err_intro": "Errors always look like { error: { code, message } }. Code the field, not the message (which may be translated).",

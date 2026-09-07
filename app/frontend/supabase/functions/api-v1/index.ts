@@ -31,6 +31,226 @@ const CORS = {
 
 const API_VERSION = 'v1';
 
+// ─── OpenAPI 3.1 spec ────────────────────────────────────────────────
+// Machine-readable contract, hand-maintained alongside the handlers.
+// If you add / remove / change a route in this file, update this too.
+const OPENAPI_SPEC = {
+  openapi: '3.1.0',
+  info: {
+    title: 'Luna Tracking API',
+    version: '1.0.0',
+    summary: 'Freight logistics API for Luna Tracking Logistics.',
+    description: 'Read-only public API today (shipments, quotes, rates, tracking, usage). Write endpoints, webhooks setup via API, and paid tiers are on the roadmap. Documentation: https://lunatrackinglogistics.com/docs/api',
+    contact: { name: 'Luna Tracking Logistics', email: 'info@lunatrackinglogistics.be', url: 'https://lunatrackinglogistics.com/contact' },
+    license: { name: 'Proprietary', url: 'https://lunatrackinglogistics.com/mentions-legales' },
+  },
+  servers: [
+    { url: 'https://zlpzajjfzezjildvchoz.functions.supabase.co/api-v1', description: 'Production' },
+  ],
+  security: [{ bearerAuth: [] }, { apiKeyAuth: [] }],
+  tags: [
+    { name: 'System', description: 'Health & discovery.' },
+    { name: 'Account', description: 'Caller identity.' },
+    { name: 'Shipments', description: 'Shipment records (business-scoped).' },
+    { name: 'Customers', description: 'B2B customer address book (business-scoped).' },
+    { name: 'Rates', description: 'Public rate calculator.' },
+    { name: 'Tracking', description: 'Public shipment tracking by opt-in token.' },
+    { name: 'Usage', description: 'API call telemetry (business-scoped).' },
+  ],
+  components: {
+    securitySchemes: {
+      bearerAuth: {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        description: 'Supabase JWT session token — for interactive user calls.',
+      },
+      apiKeyAuth: {
+        type: 'apiKey',
+        in: 'header',
+        name: 'Authorization',
+        description: 'Long-lived key: `ApiKey lk_live_<prefix>.<secret>` — generated at /entreprise/cles-api.',
+      },
+    },
+    responses: {
+      Unauthorized: { description: 'Missing or invalid credentials.',
+        content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+      Forbidden: { description: 'Credentials valid but insufficient scope.',
+        content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+      NotFound: { description: 'Resource does not exist or is not visible.',
+        content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+      BadRequest: { description: 'Invalid parameter.',
+        content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+    },
+    parameters: {
+      BusinessId: { name: 'business_id', in: 'query', required: true, schema: { type: 'string', format: 'uuid' },
+        description: 'The business the request is scoped to. Ignored for ApiKey callers (locked to key\'s business).' },
+      Limit100: { name: 'limit', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 100, default: 50 } },
+    },
+    schemas: {
+      Error: { type: 'object', required: ['error'], properties: {
+        error: { type: 'object', required: ['code', 'message'], properties: {
+          code: { type: 'string', examples: ['unauthorized'] },
+          message: { type: 'string' },
+          detail: {},
+        } },
+      } },
+      Health: { type: 'object', properties: {
+        data: { type: 'object', properties: {
+          status: { type: 'string', enum: ['ok'] },
+          version: { type: 'string', enum: ['v1'] },
+          time: { type: 'string', format: 'date-time' },
+        } } } },
+      Me: { type: 'object', properties: {
+        data: { type: 'object', properties: {
+          user_id: { type: 'string', format: 'uuid' },
+          businesses: { type: 'array', items: { $ref: '#/components/schemas/BusinessSummary' } },
+          memberships: { type: 'array', items: { type: 'object', properties: {
+            business_id: { type: 'string', format: 'uuid' },
+            role: { type: 'string', enum: ['owner','admin','manager','accounting','operations','viewer'] },
+            joined_at: { type: 'string', format: 'date-time' },
+          } } },
+        } } } },
+      BusinessSummary: { type: 'object', properties: {
+        id: { type: 'string', format: 'uuid' },
+        name: { type: 'string' },
+        country: { type: 'string', minLength: 2, maxLength: 2 },
+        currency: { type: 'string', minLength: 3, maxLength: 3 },
+      } },
+      ShipmentSummary: { type: 'object', properties: {
+        id: { type: 'string', format: 'uuid' },
+        reference: { type: 'string', examples: ['SHP-2026-00042'] },
+        status: { type: 'string', enum: ['draft','quoted','booked','received','in_transit','customs','delivered','cancelled'] },
+        direction: { type: 'string', enum: ['export','import','domestic'] },
+        mode: { type: 'string', enum: ['air','sea','road','rail','multi'] },
+        currency: { type: 'string' },
+        origin_city: { type: 'string', nullable: true },
+        origin_country: { type: 'string', nullable: true },
+        destination_city: { type: 'string', nullable: true },
+        destination_country: { type: 'string', nullable: true },
+        estimated_delivery: { type: 'string', format: 'date', nullable: true },
+        created_at: { type: 'string', format: 'date-time' },
+      } },
+      Customer: { type: 'object', properties: {
+        id: { type: 'string', format: 'uuid' },
+        display_name: { type: 'string' },
+        kind: { type: 'string', enum: ['individual','company'] },
+        email: { type: 'string', nullable: true },
+        phone: { type: 'string', nullable: true },
+        city: { type: 'string', nullable: true },
+        country: { type: 'string', nullable: true },
+        is_active: { type: 'boolean' },
+        created_at: { type: 'string', format: 'date-time' },
+      } },
+      Rate: { type: 'object', properties: {
+        provider_code: { type: 'string' },
+        provider_name: { type: 'string' },
+        service_mode: { type: 'string', enum: ['air','sea','road','rail','multi'] },
+        currency: { type: 'string' },
+        customer_price: { type: 'number' },
+        transit_days_min: { type: 'integer', nullable: true },
+        transit_days_max: { type: 'integer', nullable: true },
+      } },
+      PublicTracking: { type: 'object', properties: {
+        reference: { type: 'string' },
+        status: { type: 'string' },
+        direction: { type: 'string' },
+        mode: { type: 'string' },
+        carrier_name: { type: 'string', nullable: true },
+        tracking_number: { type: 'string', nullable: true },
+        origin_city: { type: 'string', nullable: true },
+        origin_country: { type: 'string', nullable: true },
+        destination_city: { type: 'string', nullable: true },
+        destination_country: { type: 'string', nullable: true },
+        estimated_pickup: { type: 'string', format: 'date', nullable: true },
+        estimated_delivery: { type: 'string', format: 'date', nullable: true },
+        actual_pickup: { type: 'string', format: 'date', nullable: true },
+        actual_delivery: { type: 'string', format: 'date', nullable: true },
+        package_count: { type: 'integer' },
+        total_weight_kg: { type: 'number', nullable: true },
+        events: { type: 'array', items: { type: 'object', properties: {
+          kind: { type: 'string' },
+          from_status: { type: 'string', nullable: true },
+          to_status: { type: 'string', nullable: true },
+          created_at: { type: 'string', format: 'date-time' },
+        } } },
+      } },
+      UsageSummary: { type: 'object', description: 'Full shape at /docs/api (business_api_usage).' },
+    },
+  },
+  paths: {
+    '/': { get: { tags: ['System'], summary: 'Discovery', description: 'Lists all endpoints for humans and reflective tools.', security: [],
+      responses: { '200': { description: 'OK', content: { 'application/json': {} } } } } },
+    '/health': { get: { tags: ['System'], summary: 'Liveness probe', security: [],
+      responses: { '200': { description: 'Alive', content: { 'application/json': { schema: { $ref: '#/components/schemas/Health' } } } } } } },
+    '/openapi.json': { get: { tags: ['System'], summary: 'This document', security: [],
+      responses: { '200': { description: 'OpenAPI 3.1 spec', content: { 'application/json': {} } } } } },
+    '/me': { get: { tags: ['Account'], summary: 'Caller identity + businesses', security: [{ bearerAuth: [] }],
+      responses: {
+        '200': { description: 'OK', content: { 'application/json': { schema: { $ref: '#/components/schemas/Me' } } } },
+        '401': { $ref: '#/components/responses/Unauthorized' } } } },
+    '/shipments': { get: { tags: ['Shipments'], summary: 'List shipments',
+      parameters: [
+        { $ref: '#/components/parameters/BusinessId' },
+        { $ref: '#/components/parameters/Limit100' },
+        { name: 'status', in: 'query', schema: { type: 'string' } },
+      ],
+      responses: {
+        '200': { description: 'OK', content: { 'application/json': { schema: { type: 'object', properties: {
+          data: { type: 'array', items: { $ref: '#/components/schemas/ShipmentSummary' } },
+          meta: { type: 'object', properties: { count: { type: 'integer' }, limit: { type: 'integer' } } },
+        } } } } },
+        '400': { $ref: '#/components/responses/BadRequest' },
+        '401': { $ref: '#/components/responses/Unauthorized' } } } },
+    '/shipments/{id}': { get: { tags: ['Shipments'], summary: 'Get a shipment by id',
+      parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+      responses: {
+        '200': { description: 'OK', content: { 'application/json': {} } },
+        '400': { $ref: '#/components/responses/BadRequest' },
+        '401': { $ref: '#/components/responses/Unauthorized' },
+        '404': { $ref: '#/components/responses/NotFound' } } } },
+    '/customers': { get: { tags: ['Customers'], summary: 'List customers',
+      parameters: [
+        { $ref: '#/components/parameters/BusinessId' },
+        { name: 'limit', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 200, default: 100 } },
+        { name: 'include_inactive', in: 'query', schema: { type: 'boolean', default: false } },
+      ],
+      responses: { '200': { description: 'OK', content: { 'application/json': { schema: { type: 'object', properties: {
+        data: { type: 'array', items: { $ref: '#/components/schemas/Customer' } },
+        meta: { type: 'object' },
+      } } } } } } } },
+    '/customers/{id}': { get: { tags: ['Customers'], summary: 'Get a customer by id',
+      parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+      responses: {
+        '200': { description: 'OK', content: { 'application/json': {} } },
+        '404': { $ref: '#/components/responses/NotFound' } } } },
+    '/rates': { get: { tags: ['Rates'], summary: 'Freight rate calculator', security: [],
+      parameters: [
+        { name: 'origin',      in: 'query', required: true, schema: { type: 'string', minLength: 2, maxLength: 2 }, description: 'ISO 3166-1 alpha-2 country code.' },
+        { name: 'destination', in: 'query', required: true, schema: { type: 'string', minLength: 2, maxLength: 2 } },
+        { name: 'mode',        in: 'query', schema: { type: 'string', enum: ['air','sea','road','rail','multi'] } },
+        { name: 'weight_kg',   in: 'query', schema: { type: 'number', minimum: 0 } },
+        { name: 'volume_m3',   in: 'query', schema: { type: 'number', minimum: 0 } },
+      ],
+      responses: { '200': { description: 'OK', content: { 'application/json': { schema: { type: 'object', properties: {
+        data: { type: 'array', items: { $ref: '#/components/schemas/Rate' } },
+        meta: { type: 'object' },
+      } } } } } } } },
+    '/tracking/{token}': { get: { tags: ['Tracking'], summary: 'Public shipment tracking by opt-in token', security: [],
+      parameters: [{ name: 'token', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+      responses: {
+        '200': { description: 'OK', content: { 'application/json': { schema: { type: 'object', properties: {
+          data: { $ref: '#/components/schemas/PublicTracking' } } } } } },
+        '404': { $ref: '#/components/responses/NotFound' } } } },
+    '/usage/summary': { get: { tags: ['Usage'], summary: 'Aggregated API usage',
+      parameters: [
+        { $ref: '#/components/parameters/BusinessId' },
+        { name: 'range', in: 'query', schema: { type: 'string', enum: ['24h','7d','30d'], default: '7d' } },
+      ],
+      responses: { '200': { description: 'OK', content: { 'application/json': {} } } } } },
+  },
+};
+
 // ─── Routing helpers ─────────────────────────────────────────────────
 
 type Method = 'GET' | 'POST' | 'PATCH' | 'DELETE';
@@ -174,6 +394,17 @@ const health: Handler = async () => {
     status: 'ok',
     version: API_VERSION,
     time: new Date().toISOString(),
+  });
+};
+
+/** OpenAPI 3.1 spec — served as JSON. Consumers paste this URL into
+ *  Postman / Insomnia / Bruno / Hoppscotch / editor.swagger.io / any
+ *  OpenAPI-based SDK generator. Content-Type is application/json (not
+ *  the envelope wrapper — this is a well-known standard shape). */
+const openapi: Handler = async () => {
+  return new Response(JSON.stringify(OPENAPI_SPEC, null, 2), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json', 'X-Api-Version': API_VERSION, ...CORS },
   });
 };
 
@@ -349,6 +580,7 @@ const routes: Route[] = [
   { method: 'GET', match: (s) => s.length === 2 && s[0] === 'tracking' && isUuid(s[1]),  handler: publicTracking },
   { method: 'GET', match: (s) => s.length === 1 && s[0] === 'rates',                     handler: rates },
   { method: 'GET', match: (s) => s.length === 2 && s[0] === 'usage' && s[1] === 'summary', handler: usageSummary },
+  { method: 'GET', match: (s) => s.length === 1 && (s[0] === 'openapi.json' || s[0] === 'openapi'), handler: openapi },
 ];
 
 // ─── Entrypoint ──────────────────────────────────────────────────────
@@ -432,6 +664,7 @@ function describeRoute(r: Route): string {
   if (src.includes("=== 'tracking'"))   return 'tracking/:token';
   if (src.includes("=== 'rates'"))      return 'rates?origin=..&destination=..&mode=..&weight_kg=..&volume_m3=..';
   if (src.includes("=== 'usage'"))      return 'usage/summary?business_id=..&range=24h|7d|30d';
+  if (src.includes("=== 'openapi.json'")) return 'openapi.json';
   if (src.includes("=== 'health'"))     return 'health';
   if (src.includes("=== 'me'"))         return 'me';
   return '(unknown)';
