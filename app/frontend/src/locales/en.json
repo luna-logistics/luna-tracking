@@ -207,6 +207,37 @@
     "api_keys": "API keys",
     "webhooks": "Webhooks"
   },
+  "business_addresses": {
+    "meta_title": "Addresses — Luna Tracking Logistics",
+    "title": "Addresses",
+    "intro": "Every address stored in your customer book, in one index. Add / edit happens on the customer detail page.",
+    "search_placeholder": "Customer, street, city, country…",
+    "filter_all": "All",
+    "filter_billing": "Default billing",
+    "filter_shipping": "Default shipping",
+    "empty": "No addresses stored yet.",
+    "col_customer": "Customer",
+    "col_label": "Label",
+    "col_address": "Address",
+    "col_flags": "Default",
+    "col_updated": "Updated",
+    "customer_archived": "archived",
+    "default_billing": "billing",
+    "default_shipping": "shipping"
+  },
+  "business_documents": {
+    "meta_title": "Documents — Luna Tracking Logistics",
+    "title": "Documents",
+    "intro": "Every file attached to your business shipments, in one place. Upload and delete happen on each shipment.",
+    "search_placeholder": "Filename, label, shipment ref…",
+    "kind_all": "All types",
+    "empty": "No documents yet.",
+    "col_file": "File",
+    "col_kind": "Type",
+    "col_shipment": "Shipment",
+    "col_size": "Size",
+    "col_uploaded": "Uploaded"
+  },
   "business_webhooks": {
     "meta_title": "Webhooks — Luna Tracking Logistics",
     "title": "Webhooks",

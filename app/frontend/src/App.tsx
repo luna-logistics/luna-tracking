@@ -18,7 +18,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { AdminGate } from '@/components/AdminGate';
 import { OnboardingGate, AccountTypeGate } from '@/components/AccountTypeGate';
 import { setVisitLanguage } from '@/i18n';
-import { Receipt, Wallet, BarChart3, Files, MapPin } from 'lucide-react';
+import { Receipt, Wallet, BarChart3 } from 'lucide-react';
 
 // Eager: homepage + login (critical paths).
 import Index from '@/pages/Index';
@@ -56,6 +56,8 @@ const BusinessShipmentDetail = lazy(() => import('@/pages/BusinessShipmentDetail
 const BusinessApiKeys = lazy(() => import('@/pages/BusinessApiKeys'));
 const BusinessApiUsage = lazy(() => import('@/pages/BusinessApiUsage'));
 const BusinessWebhooks = lazy(() => import('@/pages/BusinessWebhooks'));
+const BusinessAddresses = lazy(() => import('@/pages/BusinessAddresses'));
+const BusinessDocuments = lazy(() => import('@/pages/BusinessDocuments'));
 const BusinessQuotes = lazy(() => import('@/pages/BusinessQuotes'));
 const BusinessQuoteForm = lazy(() => import('@/pages/BusinessQuoteForm'));
 const BusinessQuoteDetail = lazy(() => import('@/pages/BusinessQuoteDetail'));
@@ -66,8 +68,6 @@ const BusinessPlaceholder = lazy(() => import('@/pages/BusinessPlaceholder').the
 const BusinessPlaceholderInvoicing = () => <BusinessPlaceholder icon={Receipt}   titleKey="business_nav.invoicing"  bodyKey="business_placeholder.invoicing_body" />;
 const BusinessPlaceholderExpenses  = () => <BusinessPlaceholder icon={Wallet}    titleKey="business_nav.expenses"   bodyKey="business_placeholder.expenses_body" />;
 const BusinessPlaceholderReports   = () => <BusinessPlaceholder icon={BarChart3} titleKey="business_nav.reports"    bodyKey="business_placeholder.reports_body" />;
-const BusinessPlaceholderDocuments = () => <BusinessPlaceholder icon={Files}     titleKey="business_nav.documents"  bodyKey="business_placeholder.documents_body" />;
-const BusinessPlaceholderAddresses = () => <BusinessPlaceholder icon={MapPin}    titleKey="business_nav.addresses"  bodyKey="business_placeholder.addresses_body" />;
 const AdminShell = lazy(() => import('@/components/AdminShell').then((m) => ({ default: m.AdminShell })));
 const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'));
 const AdminCities = lazy(() => import('@/pages/AdminCities'));
@@ -223,8 +223,8 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
             <Route path={t('/entreprise/facturation',  '/business/invoicing')}    element={<BusinessPlaceholderInvoicing />} />
             <Route path={t('/entreprise/depenses',     '/business/expenses')}     element={<BusinessPlaceholderExpenses />} />
             <Route path={t('/entreprise/rapports',     '/business/reports')}      element={<BusinessPlaceholderReports />} />
-            <Route path={t('/entreprise/documents',    '/business/documents')}    element={<BusinessPlaceholderDocuments />} />
-            <Route path={t('/entreprise/adresses',     '/business/addresses')}    element={<BusinessPlaceholderAddresses />} />
+            <Route path={t('/entreprise/documents',    '/business/documents')}    element={<BusinessDocuments />} />
+            <Route path={t('/entreprise/adresses',     '/business/addresses')}    element={<BusinessAddresses />} />
             <Route path={t('/entreprise/equipe',       '/business/team')}         element={<BusinessTeam />} />
             <Route path={t('/entreprise/parametres',   '/business/settings')}     element={<BusinessSettings />} />
             <Route path={t('/entreprise/cles-api',     '/business/api-keys')}     element={<BusinessApiKeys />} />

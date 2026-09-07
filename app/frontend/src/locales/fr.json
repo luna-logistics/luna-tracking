@@ -207,6 +207,37 @@
     "api_keys": "Clés API",
     "webhooks": "Webhooks"
   },
+  "business_addresses": {
+    "meta_title": "Adresses — Luna Tracking Logistics",
+    "title": "Adresses",
+    "intro": "Toutes les adresses enregistrées dans le carnet clients de votre entreprise, tous statuts confondus. Ajout / modification se font depuis la fiche client.",
+    "search_placeholder": "Client, rue, ville, pays…",
+    "filter_all": "Toutes",
+    "filter_billing": "Facturation par défaut",
+    "filter_shipping": "Livraison par défaut",
+    "empty": "Aucune adresse enregistrée pour l'instant.",
+    "col_customer": "Client",
+    "col_label": "Libellé",
+    "col_address": "Adresse",
+    "col_flags": "Par défaut",
+    "col_updated": "Mise à jour",
+    "customer_archived": "archivé",
+    "default_billing": "facturation",
+    "default_shipping": "livraison"
+  },
+  "business_documents": {
+    "meta_title": "Documents — Luna Tracking Logistics",
+    "title": "Documents",
+    "intro": "Tous les fichiers attachés aux expéditions de votre entreprise, dans un seul index. Upload et suppression se font depuis la fiche d'expédition.",
+    "search_placeholder": "Nom de fichier, libellé, réf. d'expédition…",
+    "kind_all": "Tous les types",
+    "empty": "Aucun document pour l'instant.",
+    "col_file": "Fichier",
+    "col_kind": "Type",
+    "col_shipment": "Expédition",
+    "col_size": "Taille",
+    "col_uploaded": "Ajouté le"
+  },
   "business_webhooks": {
     "meta_title": "Webhooks — Luna Tracking Logistics",
     "title": "Webhooks",
