@@ -38,6 +38,7 @@ export const ROUTES = {
   businessSettings:  { indexable: false, bilingual: true, fr: '/entreprise/parametres',      en: '/business/settings' },
   businessApiKeys:   { indexable: false, bilingual: true, fr: '/entreprise/cles-api',         en: '/business/api-keys' },
   businessApiUsage:  { indexable: false, bilingual: true, fr: '/entreprise/cles-api/usage',   en: '/business/api-keys/usage' },
+  businessWebhooks:  { indexable: false, bilingual: true, fr: '/entreprise/webhooks',         en: '/business/webhooks' },
   admin:           { indexable: false, bilingual: false, fr: '/admin',              en: '/admin' },
   adminCities:     { indexable: false, bilingual: false, fr: '/admin/destinations', en: '/admin/destinations' },
   adminProducts:   { indexable: false, bilingual: false, fr: '/admin/produits',     en: '/admin/produits' },
