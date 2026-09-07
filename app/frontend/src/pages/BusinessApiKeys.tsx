@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Key, Plus, Trash2, Copy, Check, Loader2, ShieldAlert, Info } from 'lucide-react';
+import { Key, Plus, Trash2, Copy, Check, Loader2, ShieldAlert, Info, Activity } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +12,7 @@ import {
   fetchApiKeys, createApiKey, revokeApiKey,
   API_KEY_SCOPES, type ApiKey, type ApiKeyScope,
 } from '@/lib/api-keys';
+import { urlFor } from '@/lib/url/routes';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 
@@ -21,8 +23,9 @@ import { cn } from '@/lib/utils';
  * without depending on Supabase JWTs.
  */
 export default function BusinessApiKeys() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { current, role } = useBusiness();
+  const lang = i18n.language.startsWith('en') ? 'en' : 'fr';
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -51,6 +54,12 @@ export default function BusinessApiKeys() {
           </h1>
           <p className="mt-2 text-slate-600 max-w-2xl">{t('business_api_keys.intro')}</p>
         </div>
+        <Button asChild variant="outline" size="sm">
+          <Link to={urlFor('businessApiUsage', lang)}>
+            <Activity className="h-4 w-4" />
+            {t('business_api_keys.view_usage')}
+          </Link>
+        </Button>
       </div>
 
       <div className="mt-4 rounded-2xl border border-luna-blue/20 bg-luna-blue/5 p-4 flex items-start gap-3">

@@ -283,6 +283,7 @@ print(payload['data'])   # list of shipments` },
             <EndpointRow method="GET" path="/shipments/:id" auth="JWT / ApiKey" body={t('api_docs.ep_ship_get')} />
             <EndpointRow method="GET" path="/customers?business_id=.." auth="JWT / ApiKey" body={t('api_docs.ep_cust_list')} />
             <EndpointRow method="GET" path="/customers/:id" auth="JWT / ApiKey" body={t('api_docs.ep_cust_get')} />
+            <EndpointRow method="GET" path="/usage/summary?business_id=..&range=24h|7d|30d" auth="JWT / ApiKey" body={t('api_docs.ep_usage')} />
           </EndpointGroup>
 
           <Callout kind="info" title={t('api_docs.ep_perms_title')}>

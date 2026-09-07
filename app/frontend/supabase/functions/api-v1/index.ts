@@ -292,6 +292,34 @@ const rates: Handler = async (ctx) => {
   return ok(data ?? [], { count: (data ?? []).length });
 };
 
+/** Usage summary — authenticated only. Returns totals + timeline +
+ *  per-endpoint + per-key breakdown for the given range. Same shape
+ *  the /entreprise/cles-api/usage page uses (dogfooding). */
+const usageSummary: Handler = async (ctx) => {
+  if (!ctx.auth || !ctx.supabase) return fail('unauthorized', 'authentication required', 401);
+  const url = new URL(ctx.req.url);
+  const scoped = resolveBusinessId(ctx, url.searchParams.get('business_id'));
+  if ('response' in scoped) return scoped.response;
+  const businessId = scoped.businessId;
+
+  const range = url.searchParams.get('range') ?? '7d';
+  const now = new Date();
+  const since = new Date(now);
+  let bucket: 'hour' | 'day' = 'day';
+  if (range === '24h') { since.setHours(since.getHours() - 24); bucket = 'hour'; }
+  else if (range === '30d') { since.setDate(since.getDate() - 30); bucket = 'day'; }
+  else { since.setDate(since.getDate() - 7); bucket = 'day'; }
+
+  const { data, error } = await ctx.supabase.rpc('get_api_usage', {
+    p_business: businessId,
+    p_since: since.toISOString(),
+    p_until: now.toISOString(),
+    p_bucket: bucket,
+  });
+  if (error) return fail('db_error', error.message, 500);
+  return ok(data);
+};
+
 /** Public tracking — no auth. Token grants read; RPC enforces
  *  tracking_enabled and returns null otherwise (mapped to 404 here). */
 const publicTracking: Handler = async (ctx) => {
@@ -320,6 +348,7 @@ const routes: Route[] = [
   { method: 'GET', match: (s) => s.length === 2 && s[0] === 'customers' && isUuid(s[1]), handler: getCustomer },
   { method: 'GET', match: (s) => s.length === 2 && s[0] === 'tracking' && isUuid(s[1]),  handler: publicTracking },
   { method: 'GET', match: (s) => s.length === 1 && s[0] === 'rates',                     handler: rates },
+  { method: 'GET', match: (s) => s.length === 2 && s[0] === 'usage' && s[1] === 'summary', handler: usageSummary },
 ];
 
 // ─── Entrypoint ──────────────────────────────────────────────────────
@@ -402,6 +431,7 @@ function describeRoute(r: Route): string {
   if (src.includes("=== 'customers'"))  return src.includes('length === 2') ? 'customers/:id' : 'customers';
   if (src.includes("=== 'tracking'"))   return 'tracking/:token';
   if (src.includes("=== 'rates'"))      return 'rates?origin=..&destination=..&mode=..&weight_kg=..&volume_m3=..';
+  if (src.includes("=== 'usage'"))      return 'usage/summary?business_id=..&range=24h|7d|30d';
   if (src.includes("=== 'health'"))     return 'health';
   if (src.includes("=== 'me'"))         return 'me';
   return '(unknown)';
