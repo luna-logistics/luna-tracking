@@ -26,6 +26,7 @@ import Login from '@/pages/Login';
 
 // Lazy: everything else.
 const Tracking = lazy(() => import('@/pages/Tracking'));
+const PublicTracking = lazy(() => import('@/pages/PublicTracking'));
 const Pricing = lazy(() => import('@/pages/Pricing'));
 const Contact = lazy(() => import('@/pages/Contact'));
 const ShopAndShip = lazy(() => import('@/pages/ShopAndShip'));
@@ -132,6 +133,7 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
           {/* Public — inside PublicLayout (Navbar + Footer) */}
           <Route path="/" element={<PublicLayout><Index /></PublicLayout>} />
           <Route path={t('/suivi', '/tracking')} element={<PublicLayout><Tracking /></PublicLayout>} />
+          <Route path={t('/suivi/lien/:token', '/tracking/link/:token')} element={<PublicLayout><PublicTracking /></PublicLayout>} />
           <Route path={t('/tarifs', '/pricing')} element={<PublicLayout><Pricing /></PublicLayout>} />
           <Route path={t('/contact', '/contact')} element={<PublicLayout><Contact /></PublicLayout>} />
           <Route path={t('/achat-envoi', '/shop-and-ship')} element={<PublicLayout><ShopAndShip /></PublicLayout>} />

@@ -36,6 +36,8 @@ export type Shipment = {
   goods_value: number | null;
   currency: Currency;
   notes: string | null;
+  tracking_token: string;
+  tracking_enabled: boolean;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -88,7 +90,8 @@ export type ShipmentTemplate = {
 
 export type ShipmentInput = Omit<
   Shipment,
-  'id' | 'business_id' | 'reference' | 'created_by' | 'created_at' | 'updated_at'
+  'id' | 'business_id' | 'reference' | 'tracking_token' | 'tracking_enabled'
+    | 'created_by' | 'created_at' | 'updated_at'
 > & { id?: string };
 
 // ─── Shipments CRUD ───────────────────────────────────────────────────
@@ -139,6 +142,19 @@ export async function updateShipmentStatus(id: string, status: ShipmentStatus) {
 export async function deleteShipment(id: string) {
   const { error } = await supabase.from('shipments').delete().eq('id', id);
   if (error) throw error;
+}
+
+// ─── Public tracking link (opt-in per shipment) ───────────────────────
+
+export async function setTrackingEnabled(id: string, enabled: boolean) {
+  const { error } = await supabase.from('shipments').update({ tracking_enabled: enabled }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function rotateTrackingToken(id: string): Promise<string> {
+  const { data, error } = await supabase.rpc('rotate_shipment_tracking_token', { p_shipment: id });
+  if (error) throw error;
+  return data as string;
 }
 
 // ─── Packages ─────────────────────────────────────────────────────────

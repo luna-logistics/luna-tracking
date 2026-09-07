@@ -6,6 +6,7 @@ import {
   Plus, Trash2, Save, Loader2, MapPin, CheckCircle2, Circle,
   Files, Upload, Download, FileText, Image as ImageIcon,
   History, MessageSquarePlus, FilePlus, FileMinus, Sparkles,
+  Share2, Copy, RotateCcw, Check,
 } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ import {
   fetchShipment, fetchPackages, fetchCharges,
   upsertPackage, deletePackage, upsertCharge, deleteCharge,
   updateShipmentStatus, sumBillable,
+  setTrackingEnabled, rotateTrackingToken,
   type Shipment, type ShipmentPackage, type ShipmentCharge, type ChargeKind,
 } from '@/lib/shipments';
 import {
@@ -37,6 +39,7 @@ import {
 } from '@/lib/shipment-status';
 import { CURRENCIES, type Currency } from '@/lib/businesses';
 import { errorMessage } from '@/lib/errors';
+import { urlFor, type Lang } from '@/lib/url/routes';
 import { cn } from '@/lib/utils';
 
 type Tab = 'overview' | 'packages' | 'charges' | 'documents' | 'activity';
@@ -120,6 +123,8 @@ export default function BusinessShipmentDetail() {
       </div>
 
       <Pipeline status={shipment.status} />
+
+      <PublicTrackingCard shipment={shipment} canWrite={canWrite} onChanged={reload} />
 
       <div className="mt-6 border-b border-slate-200 flex flex-wrap gap-1">
         {(['overview','packages','charges','documents','activity'] as Tab[]).map((k) => (
@@ -991,6 +996,103 @@ function eventIconClass(kind: ShipmentEvent['kind']) {
     case 'document_removed': return 'bg-red-100 text-red-700';
     default:                 return 'bg-slate-100 text-slate-600';
   }
+}
+
+// ─── Public tracking link (opt-in) ────────────────────────────────────
+function PublicTrackingCard({
+  shipment, canWrite, onChanged,
+}: {
+  shipment: Shipment; canWrite: boolean; onChanged: () => Promise<void>;
+}) {
+  const { t, i18n } = useTranslation();
+  const lang = (i18n.language.startsWith('en') ? 'en' : 'fr') as Lang;
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const path = urlFor('publicTracking', lang).replace(':token', shipment.tracking_token);
+  const link = typeof window !== 'undefined' ? `${window.location.origin}${path}` : path;
+
+  const toggle = async (enabled: boolean) => {
+    setBusy(true);
+    try {
+      await setTrackingEnabled(shipment.id, enabled);
+      await onChanged();
+    } catch (err) {
+      toast.error(errorMessage(err, t('common.error_generic')));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const rotate = async () => {
+    if (!confirm(t('business_shipment_detail.tracking_rotate_confirm'))) return;
+    setBusy(true);
+    try {
+      await rotateTrackingToken(shipment.id);
+      await onChanged();
+      toast.success(t('business_shipment_detail.tracking_rotated'));
+    } catch (err) {
+      toast.error(errorMessage(err, t('common.error_generic')));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error(t('business_shipment_detail.tracking_copy_failed'));
+    }
+  };
+
+  if (!shipment.tracking_enabled) {
+    return (
+      <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 flex items-start gap-3">
+        <Share2 className="h-5 w-5 text-slate-500 shrink-0 mt-0.5" aria-hidden="true" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-luna-navy">{t('business_shipment_detail.tracking_off_title')}</p>
+          <p className="mt-1 text-xs text-slate-600">{t('business_shipment_detail.tracking_off_body')}</p>
+        </div>
+        {canWrite && (
+          <Button size="sm" variant="navy" onClick={() => toggle(true)} disabled={busy}>
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
+            {t('business_shipment_detail.tracking_enable')}
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4 rounded-2xl border-2 border-emerald-300 bg-emerald-50 p-4">
+      <div className="flex items-start gap-3">
+        <Share2 className="h-5 w-5 text-emerald-700 shrink-0 mt-0.5" aria-hidden="true" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-emerald-900">{t('business_shipment_detail.tracking_on_title')}</p>
+          <p className="mt-1 text-xs text-emerald-800">{t('business_shipment_detail.tracking_on_body')}</p>
+          <div className="mt-3 flex items-center gap-2 rounded-lg bg-white border border-emerald-200 px-3 py-2">
+            <span className="text-xs text-slate-700 font-mono truncate flex-1" title={link}>{link}</span>
+            <Button size="sm" variant="ghost" onClick={copy} className="h-7 px-2">
+              {copied ? <Check className="h-3.5 w-3.5 text-emerald-700" /> : <Copy className="h-3.5 w-3.5" />}
+            </Button>
+          </div>
+        </div>
+        {canWrite && (
+          <div className="flex flex-col gap-1 shrink-0">
+            <Button size="sm" variant="outline" onClick={rotate} disabled={busy} title={t('business_shipment_detail.tracking_rotate')}>
+              <RotateCcw className="h-3.5 w-3.5" />
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => toggle(false)} disabled={busy}>
+              {t('business_shipment_detail.tracking_disable')}
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function EmptyBlock({ text }: { text: string }) {
