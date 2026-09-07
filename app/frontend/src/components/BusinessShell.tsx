@@ -1,7 +1,7 @@
 import { Link, Outlet, useLocation, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  LayoutDashboard, Package, FileText, Users, Files, MapPin, Wallet, Receipt,
+  LayoutDashboard, Package, FileText, Users, Files, MapPin, Wallet, Receipt, BarChart3,
   UserCog, Settings, Key, Webhook,
   LogOut, ExternalLink, ChevronDown, Shield,
 } from 'lucide-react';
@@ -44,6 +44,7 @@ export function BusinessShell() {
     { to: urlFor('businessQuotes',    lang), label: t('business_nav.quotes'),     icon: FileText,        permission: 'quotes.read' },
     { to: urlFor('businessInvoicing', lang), label: t('business_nav.invoicing'),  icon: Receipt,         permission: 'invoices.read' },
     { to: urlFor('businessExpenses',  lang), label: t('business_nav.expenses'),   icon: Wallet,          permission: 'expenses.read' },
+    { to: urlFor('businessReports',   lang), label: t('business_nav.reports'),    icon: BarChart3,       permission: 'reports.read' },
     { to: urlFor('businessClients',   lang), label: t('business_nav.clients'),    icon: Users,           permission: 'clients.read' },
     { to: urlFor('businessAddresses', lang), label: t('business_nav.addresses'),  icon: MapPin,          permission: 'clients.read' },
     { to: urlFor('businessDocuments', lang), label: t('business_nav.documents'),  icon: Files,           permission: 'shipments.read' },

@@ -18,7 +18,6 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { AdminGate } from '@/components/AdminGate';
 import { OnboardingGate, AccountTypeGate } from '@/components/AccountTypeGate';
 import { setVisitLanguage } from '@/i18n';
-import { BarChart3 } from 'lucide-react';
 
 // Eager: homepage + login (critical paths).
 import Index from '@/pages/Index';
@@ -62,14 +61,10 @@ const BusinessExpenses = lazy(() => import('@/pages/BusinessExpenses'));
 const BusinessInvoices = lazy(() => import('@/pages/BusinessInvoices'));
 const BusinessInvoiceForm = lazy(() => import('@/pages/BusinessInvoiceForm'));
 const BusinessInvoiceDetail = lazy(() => import('@/pages/BusinessInvoiceDetail'));
+const BusinessReports = lazy(() => import('@/pages/BusinessReports'));
 const BusinessQuotes = lazy(() => import('@/pages/BusinessQuotes'));
 const BusinessQuoteForm = lazy(() => import('@/pages/BusinessQuoteForm'));
 const BusinessQuoteDetail = lazy(() => import('@/pages/BusinessQuoteDetail'));
-// URL fallbacks for modules not yet built — kept so bookmarks show
-// "coming soon" instead of a broken page. Removed from the sidebar
-// in BusinessShell so they don't advertise themselves as ready.
-const BusinessPlaceholder = lazy(() => import('@/pages/BusinessPlaceholder').then((m) => ({ default: m.BusinessPlaceholder })));
-const BusinessPlaceholderReports   = () => <BusinessPlaceholder icon={BarChart3} titleKey="business_nav.reports"    bodyKey="business_placeholder.reports_body" />;
 const AdminShell = lazy(() => import('@/components/AdminShell').then((m) => ({ default: m.AdminShell })));
 const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'));
 const AdminCities = lazy(() => import('@/pages/AdminCities'));
@@ -227,7 +222,7 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
             <Route path={t('/entreprise/facturation/:id/edit', '/business/invoicing/:id/edit')} element={<BusinessInvoiceForm />} />
             <Route path={t('/entreprise/facturation/:id', '/business/invoicing/:id')} element={<BusinessInvoiceDetail />} />
             <Route path={t('/entreprise/depenses',     '/business/expenses')}     element={<BusinessExpenses />} />
-            <Route path={t('/entreprise/rapports',     '/business/reports')}      element={<BusinessPlaceholderReports />} />
+            <Route path={t('/entreprise/rapports',     '/business/reports')}      element={<BusinessReports />} />
             <Route path={t('/entreprise/documents',    '/business/documents')}    element={<BusinessDocuments />} />
             <Route path={t('/entreprise/adresses',     '/business/addresses')}    element={<BusinessAddresses />} />
             <Route path={t('/entreprise/equipe',       '/business/team')}         element={<BusinessTeam />} />
