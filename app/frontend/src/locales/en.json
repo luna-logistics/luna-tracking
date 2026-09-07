@@ -309,7 +309,16 @@
     "col_errors": "Errors",
     "col_key": "Key",
     "col_last_call": "Last call",
-    "key_jwt_or_public": "JWT or public (no key)"
+    "key_jwt_or_public": "JWT or public (no key)",
+    "quota_plan_label": "Your plan",
+    "quota_used_label": "Used this month",
+    "quota_pct": "{{pct}}% used",
+    "quota_warn": "{{pct}}% used — nearing the limit",
+    "quota_over": "Monthly limit reached",
+    "quota_reset_in": "Resets in {{days}}d",
+    "plan_free_price": "free",
+    "plan_monthly_price": "{{price}} {{currency}} / month",
+    "quota_dormant_note": "No quota is enforced today — the platform is free with unlimited access. The counter runs so we can prepare a future paid tier, which will be announced at least 30 days in advance."
   },
   "business_create": {
     "meta_title": "Create your business — Luna Tracking Logistics",

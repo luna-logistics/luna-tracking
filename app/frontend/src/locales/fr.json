@@ -309,7 +309,16 @@
     "col_errors": "Erreurs",
     "col_key": "Clé",
     "col_last_call": "Dernier appel",
-    "key_jwt_or_public": "JWT ou public (pas de clé)"
+    "key_jwt_or_public": "JWT ou public (pas de clé)",
+    "quota_plan_label": "Votre plan",
+    "quota_used_label": "Utilisé ce mois",
+    "quota_pct": "{{pct}} % utilisé",
+    "quota_warn": "{{pct}} % utilisé — bientôt à la limite",
+    "quota_over": "Limite mensuelle atteinte",
+    "quota_reset_in": "Réinitialisation dans {{days}} j",
+    "plan_free_price": "gratuit",
+    "plan_monthly_price": "{{price}} {{currency}} / mois",
+    "quota_dormant_note": "Aucun quota n'est actuellement appliqué — la plateforme est en accès gratuit illimité. Les compteurs servent uniquement à préparer un futur passage payant, prévenu au moins 30 jours à l'avance."
   },
   "business_create": {
     "meta_title": "Créer votre entreprise — Luna Tracking Logistics",

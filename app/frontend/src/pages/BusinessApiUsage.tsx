@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Activity, ArrowLeft, Loader2, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
+import { Activity, ArrowLeft, Loader2, AlertTriangle, CheckCircle2, Clock, Sparkles, Infinity as InfinityIcon } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { fetchUsage, type UsageReport, type UsageRange } from '@/lib/api-usage';
+import { fetchQuota, type QuotaStatus } from '@/lib/api-plans';
 import { urlFor } from '@/lib/url/routes';
 import { cn } from '@/lib/utils';
 
@@ -19,13 +20,17 @@ export default function BusinessApiUsage() {
   const { current } = useBusiness();
   const [range, setRange] = useState<UsageRange>('7d');
   const [report, setReport] = useState<UsageReport | null>(null);
+  const [quota, setQuota] = useState<QuotaStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const lang = i18n.language.startsWith('en') ? 'en' : 'fr';
 
   useEffect(() => {
     if (!current) return;
     setLoading(true);
-    void fetchUsage(current.id, range).then((r) => { setReport(r); setLoading(false); });
+    void Promise.all([
+      fetchUsage(current.id, range),
+      fetchQuota(current.id),
+    ]).then(([r, q]) => { setReport(r); setQuota(q); setLoading(false); });
   }, [current?.id, range]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!current) return null;
@@ -59,6 +64,8 @@ export default function BusinessApiUsage() {
       </div>
       <p className="text-slate-600 mb-6 max-w-2xl">{t('business_api_usage.intro')}</p>
 
+      {quota && <QuotaBar quota={quota} />}
+
       {loading && (
         <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500">
           <Loader2 className="h-5 w-5 animate-spin mx-auto" />
@@ -91,6 +98,72 @@ export default function BusinessApiUsage() {
         </div>
       )}
     </>
+  );
+}
+
+/* ─── Quota bar (Phase 11 — dormant, no paywall) ───────────────── */
+
+function QuotaBar({ quota }: { quota: QuotaStatus }) {
+  const { t } = useTranslation();
+  const pct = quota.percent_used;
+  const warn = pct >= 80 && !quota.unlimited;
+  const over = pct >= 100 && !quota.unlimited;
+  const barColor = over ? 'bg-red-500' : warn ? 'bg-amber-500' : 'bg-luna-blue';
+
+  return (
+    <div className="mb-6 rounded-2xl border-2 border-slate-200 bg-white p-4">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <div className="text-xs uppercase tracking-wide text-slate-500 font-semibold">
+            {t('business_api_usage.quota_plan_label')}
+          </div>
+          <div className="mt-0.5 flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-luna-navy text-white px-2.5 py-0.5 text-xs font-semibold uppercase">
+              <Sparkles className="h-3 w-3" />
+              {quota.plan.name}
+            </span>
+            <span className="text-xs text-slate-500">
+              {quota.plan.monthly_price === null || quota.plan.monthly_price === 0
+                ? t('business_api_usage.plan_free_price')
+                : t('business_api_usage.plan_monthly_price', { price: Number(quota.plan.monthly_price), currency: quota.plan.currency })}
+            </span>
+          </div>
+        </div>
+        <div className="text-right">
+          <div className="text-xs uppercase tracking-wide text-slate-500 font-semibold">
+            {t('business_api_usage.quota_used_label')}
+          </div>
+          <div className="mt-0.5 text-luna-navy font-semibold">
+            {quota.unlimited
+              ? <span className="inline-flex items-center gap-1"><InfinityIcon className="h-4 w-4" /> {quota.used_this_month.toLocaleString()}</span>
+              : `${quota.used_this_month.toLocaleString()} / ${quota.plan.monthly_quota!.toLocaleString()}`
+            }
+          </div>
+        </div>
+      </div>
+
+      {!quota.unlimited && (
+        <div className="mt-3">
+          <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+            <div className={cn('h-full transition-all', barColor)} style={{ width: `${Math.min(100, pct)}%` }} />
+          </div>
+          <div className="mt-2 flex justify-between text-xs">
+            <span className={cn(over ? 'text-red-700 font-semibold' : warn ? 'text-amber-700 font-semibold' : 'text-slate-500')}>
+              {over ? t('business_api_usage.quota_over')
+                : warn ? t('business_api_usage.quota_warn', { pct })
+                : t('business_api_usage.quota_pct', { pct })}
+            </span>
+            <span className="text-slate-500">
+              {t('business_api_usage.quota_reset_in', { days: quota.period.reset_in_days })}
+            </span>
+          </div>
+        </div>
+      )}
+
+      <p className="mt-3 text-[11px] text-slate-500 italic">
+        {t('business_api_usage.quota_dormant_note')}
+      </p>
+    </div>
   );
 }
 
