@@ -18,7 +18,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { AdminGate } from '@/components/AdminGate';
 import { OnboardingGate, AccountTypeGate } from '@/components/AccountTypeGate';
 import { setVisitLanguage } from '@/i18n';
-import { Package, FileText, Users as UsersIcon, Receipt, Wallet, BarChart3, Files, MapPin } from 'lucide-react';
+import { Receipt, Wallet, BarChart3, Files, MapPin } from 'lucide-react';
 
 // Eager: homepage + login (critical paths).
 import Index from '@/pages/Index';
@@ -59,10 +59,10 @@ const BusinessWebhooks = lazy(() => import('@/pages/BusinessWebhooks'));
 const BusinessQuotes = lazy(() => import('@/pages/BusinessQuotes'));
 const BusinessQuoteForm = lazy(() => import('@/pages/BusinessQuoteForm'));
 const BusinessQuoteDetail = lazy(() => import('@/pages/BusinessQuoteDetail'));
-// Placeholder pages — shell + URL work today, real modules in phases 3–8.
+// URL fallbacks for modules not yet built — kept so bookmarks show
+// "coming soon" instead of a broken page. Removed from the sidebar
+// in BusinessShell so they don't advertise themselves as ready.
 const BusinessPlaceholder = lazy(() => import('@/pages/BusinessPlaceholder').then((m) => ({ default: m.BusinessPlaceholder })));
-const BusinessPlaceholderShipments = () => <BusinessPlaceholder icon={Package}   titleKey="business_nav.shipments"  bodyKey="business_placeholder.shipments_body" />;
-const BusinessPlaceholderClients   = () => <BusinessPlaceholder icon={UsersIcon} titleKey="business_nav.clients"    bodyKey="business_placeholder.clients_body" />;
 const BusinessPlaceholderInvoicing = () => <BusinessPlaceholder icon={Receipt}   titleKey="business_nav.invoicing"  bodyKey="business_placeholder.invoicing_body" />;
 const BusinessPlaceholderExpenses  = () => <BusinessPlaceholder icon={Wallet}    titleKey="business_nav.expenses"   bodyKey="business_placeholder.expenses_body" />;
 const BusinessPlaceholderReports   = () => <BusinessPlaceholder icon={BarChart3} titleKey="business_nav.reports"    bodyKey="business_placeholder.reports_body" />;

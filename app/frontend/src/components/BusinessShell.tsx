@@ -1,8 +1,8 @@
 import { Link, Outlet, useLocation, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  LayoutDashboard, Package, FileText, Users, Receipt,
-  Wallet, BarChart3, Files, MapPin, UserCog, Settings, Key, Webhook,
+  LayoutDashboard, Package, FileText, Users,
+  UserCog, Settings, Key, Webhook,
   LogOut, ExternalLink, ChevronDown, Shield,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -33,16 +33,16 @@ export function BusinessShell() {
     return <Navigate to={lang === 'en' ? '/business/new' : '/entreprise/nouvelle'} replace />;
   }
 
+  // Only real, shipped modules appear in the sidebar. Placeholder
+  // routes (invoicing, expenses, reports, documents, addresses) still
+  // exist as URL fallbacks so old bookmarks show "coming soon" instead
+  // of blowing up, but they don't clutter the menu until the modules
+  // are actually built.
   const items = ([
     { to: urlFor('businessDashboard', lang), label: t('business_nav.dashboard'),  icon: LayoutDashboard, permission: 'always' },
     { to: urlFor('businessShipments', lang), label: t('business_nav.shipments'),  icon: Package,         permission: 'shipments.read' },
     { to: urlFor('businessQuotes',    lang), label: t('business_nav.quotes'),     icon: FileText,        permission: 'quotes.read' },
     { to: urlFor('businessClients',   lang), label: t('business_nav.clients'),    icon: Users,           permission: 'clients.read' },
-    { to: urlFor('businessInvoicing', lang), label: t('business_nav.invoicing'),  icon: Receipt,         permission: 'invoices.read' },
-    { to: urlFor('businessExpenses',  lang), label: t('business_nav.expenses'),   icon: Wallet,          permission: 'expenses.read' },
-    { to: urlFor('businessReports',   lang), label: t('business_nav.reports'),    icon: BarChart3,       permission: 'reports.read' },
-    { to: urlFor('businessDocuments', lang), label: t('business_nav.documents'),  icon: Files,           permission: 'always' },
-    { to: urlFor('businessAddresses', lang), label: t('business_nav.addresses'),  icon: MapPin,          permission: 'always' },
     { to: urlFor('businessTeam',      lang), label: t('business_nav.team'),       icon: UserCog,         permission: 'members.read' },
     { to: urlFor('businessSettings',  lang), label: t('business_nav.settings'),   icon: Settings,        permission: 'business.update' },
     { to: urlFor('businessApiKeys',   lang), label: t('business_nav.api_keys'),   icon: Key,             permission: 'business.update' },
