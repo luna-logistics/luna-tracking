@@ -52,10 +52,12 @@ const BusinessClientDetail = lazy(() => import('@/pages/BusinessClientDetail'));
 const BusinessShipments = lazy(() => import('@/pages/BusinessShipments'));
 const BusinessShipmentForm = lazy(() => import('@/pages/BusinessShipmentForm'));
 const BusinessShipmentDetail = lazy(() => import('@/pages/BusinessShipmentDetail'));
+const BusinessQuotes = lazy(() => import('@/pages/BusinessQuotes'));
+const BusinessQuoteForm = lazy(() => import('@/pages/BusinessQuoteForm'));
+const BusinessQuoteDetail = lazy(() => import('@/pages/BusinessQuoteDetail'));
 // Placeholder pages — shell + URL work today, real modules in phases 3–8.
 const BusinessPlaceholder = lazy(() => import('@/pages/BusinessPlaceholder').then((m) => ({ default: m.BusinessPlaceholder })));
 const BusinessPlaceholderShipments = () => <BusinessPlaceholder icon={Package}   titleKey="business_nav.shipments"  bodyKey="business_placeholder.shipments_body" />;
-const BusinessPlaceholderQuotes    = () => <BusinessPlaceholder icon={FileText}  titleKey="business_nav.quotes"     bodyKey="business_placeholder.quotes_body" />;
 const BusinessPlaceholderClients   = () => <BusinessPlaceholder icon={UsersIcon} titleKey="business_nav.clients"    bodyKey="business_placeholder.clients_body" />;
 const BusinessPlaceholderInvoicing = () => <BusinessPlaceholder icon={Receipt}   titleKey="business_nav.invoicing"  bodyKey="business_placeholder.invoicing_body" />;
 const BusinessPlaceholderExpenses  = () => <BusinessPlaceholder icon={Wallet}    titleKey="business_nav.expenses"   bodyKey="business_placeholder.expenses_body" />;
@@ -205,7 +207,10 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
             <Route path={t('/entreprise/expeditions/new', '/business/shipments/new')} element={<BusinessShipmentForm />} />
             <Route path={t('/entreprise/expeditions/:id/edit', '/business/shipments/:id/edit')} element={<BusinessShipmentForm />} />
             <Route path={t('/entreprise/expeditions/:id', '/business/shipments/:id')} element={<BusinessShipmentDetail />} />
-            <Route path={t('/entreprise/devis',        '/business/quotes')}       element={<BusinessPlaceholderQuotes />} />
+            <Route path={t('/entreprise/devis',        '/business/quotes')}       element={<BusinessQuotes />} />
+            <Route path={t('/entreprise/devis/new',    '/business/quotes/new')}   element={<BusinessQuoteForm />} />
+            <Route path={t('/entreprise/devis/:id/edit', '/business/quotes/:id/edit')} element={<BusinessQuoteForm />} />
+            <Route path={t('/entreprise/devis/:id',    '/business/quotes/:id')}   element={<BusinessQuoteDetail />} />
             <Route path={t('/entreprise/clients',      '/business/clients')}      element={<BusinessClients />} />
             <Route path={t('/entreprise/clients/new',  '/business/clients/new')}  element={<BusinessClientForm />} />
             <Route path={t('/entreprise/clients/:id/edit', '/business/clients/:id/edit')} element={<BusinessClientForm />} />
