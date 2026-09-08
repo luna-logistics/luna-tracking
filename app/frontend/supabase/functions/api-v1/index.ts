@@ -242,6 +242,16 @@ const OPENAPI_SPEC = {
         '200': { description: 'OK', content: { 'application/json': { schema: { type: 'object', properties: {
           data: { $ref: '#/components/schemas/PublicTracking' } } } } } },
         '404': { $ref: '#/components/responses/NotFound' } } } },
+    '/legacy-tracking/{code}': { get: { tags: ['Tracking'], summary: 'Legacy tracking bridge (FileMaker Data API)',
+      description: 'Reads Luna\'s pre-platform tracking data from the legacy FileMaker Server and returns a normalized JSON payload (raw positions + parsed structured events). Public — no auth. The 12-character alphanum codes issued before Luna Tracking launched keep working here.',
+      security: [],
+      parameters: [{ name: 'code', in: 'path', required: true, schema: { type: 'string', pattern: '^[A-Za-z0-9]{4,32}$' } }],
+      responses: {
+        '200': { description: 'OK', content: { 'application/json': {} } },
+        '400': { $ref: '#/components/responses/BadRequest' },
+        '404': { $ref: '#/components/responses/NotFound' },
+        '502': { description: 'Upstream FileMaker error' },
+        '503': { description: 'Upstream session dropped — retry once' } } } },
     '/usage/summary': { get: { tags: ['Usage'], summary: 'Aggregated API usage',
       parameters: [
         { $ref: '#/components/parameters/BusinessId' },
@@ -551,6 +561,146 @@ const usageSummary: Handler = async (ctx) => {
   return ok(data);
 };
 
+/** Legacy tracking bridge — proxies to Luna's FileMaker Server so
+ *  the historical tracking codes (12-char alphanum like 2DDXCPG6PXP8)
+ *  keep working while new shipments migrate to the native Luna
+ *  tracking (UUID tokens via /tracking/:token). FileMaker credentials
+ *  live only in server env (FILEMAKER_PASSWORD); the browser never
+ *  sees them.
+ *
+ *  Session token is cached in Edge Function memory for ~14 min to
+ *  avoid a login round-trip per call. FileMaker Server times out
+ *  inactive sessions at 15 min so we refresh before that. */
+
+const FM_BASE = 'https://a0712525.fmphost.com/fmi/data/vLatest/databases/MPC_COLISAGE';
+const FM_USER = 'sensomedia';
+type FmSession = { token: string; expires_at: number };
+let fmSession: FmSession | null = null;
+
+async function fmOpenSession(): Promise<string> {
+  const now = Date.now();
+  if (fmSession && fmSession.expires_at > now + 30_000) return fmSession.token;
+  const password = Deno.env.get('FILEMAKER_PASSWORD');
+  if (!password) throw new Error('filemaker_password_not_configured');
+  const basic = btoa(`${FM_USER}:${password}`);
+  const res = await fetch(`${FM_BASE}/sessions`, {
+    method: 'POST',
+    headers: { 'Authorization': `Basic ${basic}`, 'Content-Type': 'application/json' },
+    body: '{}',
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(`filemaker_login_failed_${res.status}: ${detail.slice(0, 200)}`);
+  }
+  const data = await res.json() as { response?: { token?: string } };
+  const token = data.response?.token;
+  if (!token) throw new Error('filemaker_login_no_token');
+  fmSession = { token, expires_at: now + 14 * 60_000 };
+  return token;
+}
+
+/** Turn "Colis livré le 19-08-2026 à 22:56:43" into { kind, occurred_at,
+ *  city? } — best-effort parse, falls back to a note-kind event with
+ *  the raw string when the pattern is unknown. */
+function parseFmLibelle(libelle: string): {
+  kind: 'picked_up' | 'in_transit' | 'delivered' | 'note';
+  occurred_at: string | null;
+  origin_city?: string | null;
+  destination_city?: string | null;
+  raw: string;
+} {
+  const dateRe = /(\d{2})-(\d{2})-(\d{4})(?:\s+à\s+(\d{2}):(\d{2})(?::(\d{2}))?)?/;
+  const parseDate = (s: string): string | null => {
+    const m = s.match(dateRe);
+    if (!m) return null;
+    const [, dd, mm, yyyy, hh = '00', mi = '00', ss = '00'] = m;
+    return `${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}`;
+  };
+  const occurred_at = parseDate(libelle);
+
+  let m = libelle.match(/Remise du colis[^]*?de\s+([A-ZÀ-ɏ\s-]+?)\s+le/i);
+  if (m) {
+    return { kind: 'picked_up', occurred_at, origin_city: m[1].trim(), raw: libelle };
+  }
+  m = libelle.match(/Colis en Transit depuis\s+([A-ZÀ-ɏ\s-]+?)\s+vers\s+([A-ZÀ-ɏ\s-]+?)\s+le/i);
+  if (m) {
+    return { kind: 'in_transit', occurred_at, origin_city: m[1].trim(), destination_city: m[2].trim(), raw: libelle };
+  }
+  if (/Colis livr[eé]/i.test(libelle)) {
+    return { kind: 'delivered', occurred_at, raw: libelle };
+  }
+  return { kind: 'note', occurred_at, raw: libelle };
+}
+
+const legacyTracking: Handler = async (ctx) => {
+  const code = ctx.segments[1];
+  if (!code || !/^[A-Za-z0-9]{4,32}$/.test(code)) {
+    return fail('bad_code', 'invalid tracking code', 400);
+  }
+
+  let token: string;
+  try {
+    token = await fmOpenSession();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg === 'filemaker_password_not_configured') {
+      return fail('server_misconfigured', 'FILEMAKER_PASSWORD not set on the edge function', 500);
+    }
+    return fail('upstream_error', 'could not authenticate to legacy tracking system', 502, msg);
+  }
+
+  const findRes = await fetch(`${FM_BASE}/layouts/joomla/_find`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      query: [{ 'internet_tracking_mot_de_passe': `==${code.toUpperCase()}` }],
+    }),
+  });
+
+  // 401 → token was rotated / expired between fetches; drop cache and let the caller retry.
+  if (findRes.status === 401) {
+    fmSession = null;
+    return fail('upstream_auth_lost', 'legacy tracking session dropped — retry', 503);
+  }
+
+  // 404 from FileMaker means "no matching record" — that's a legit "not found" for us.
+  if (findRes.status === 404) {
+    return fail('not_found', 'tracking code not found', 404);
+  }
+
+  if (!findRes.ok) {
+    const detail = await findRes.text().catch(() => '');
+    return fail('upstream_error', `legacy tracking returned ${findRes.status}`, 502, detail.slice(0, 200));
+  }
+
+  const body = await findRes.json() as {
+    response?: { data?: Array<{ fieldData?: Record<string, unknown> }> };
+    messages?: Array<{ code?: string; message?: string }>;
+  };
+  const rows = body.response?.data ?? [];
+  if (rows.length === 0) return fail('not_found', 'tracking code not found', 404);
+
+  const positions = rows.map((r) => {
+    const fd = r.fieldData ?? {};
+    return {
+      numero_colis: String(fd.numero_colis ?? ''),
+      libelle: String(fd.libelle ?? ''),
+    };
+  });
+  const events = positions.map((p) => ({ ...parseFmLibelle(p.libelle), numero_colis: p.numero_colis }));
+
+  return ok({
+    tracking_code: code.toUpperCase(),
+    tracking_number: positions[0]?.numero_colis || null,
+    source: 'legacy',
+    positions,   // raw shape for the current /suivi page
+    events,      // structured shape for future SDKs and richer UIs
+  });
+};
+
 /** Public tracking — no auth. Token grants read; RPC enforces
  *  tracking_enabled and returns null otherwise (mapped to 404 here). */
 const publicTracking: Handler = async (ctx) => {
@@ -578,6 +728,7 @@ const routes: Route[] = [
   { method: 'GET', match: (s) => s.length === 1 && s[0] === 'customers',                handler: listCustomers },
   { method: 'GET', match: (s) => s.length === 2 && s[0] === 'customers' && isUuid(s[1]), handler: getCustomer },
   { method: 'GET', match: (s) => s.length === 2 && s[0] === 'tracking' && isUuid(s[1]),  handler: publicTracking },
+  { method: 'GET', match: (s) => s.length === 2 && s[0] === 'legacy-tracking' && /^[A-Za-z0-9]{4,32}$/.test(s[1]), handler: legacyTracking },
   { method: 'GET', match: (s) => s.length === 1 && s[0] === 'rates',                     handler: rates },
   { method: 'GET', match: (s) => s.length === 2 && s[0] === 'usage' && s[1] === 'summary', handler: usageSummary },
   { method: 'GET', match: (s) => s.length === 1 && (s[0] === 'openapi.json' || s[0] === 'openapi'), handler: openapi },
@@ -662,6 +813,7 @@ function describeRoute(r: Route): string {
   if (src.includes("=== 'shipments'"))  return src.includes('length === 2') ? 'shipments/:id' : 'shipments';
   if (src.includes("=== 'customers'"))  return src.includes('length === 2') ? 'customers/:id' : 'customers';
   if (src.includes("=== 'tracking'"))   return 'tracking/:token';
+  if (src.includes("=== 'legacy-tracking'")) return 'legacy-tracking/:code';
   if (src.includes("=== 'rates'"))      return 'rates?origin=..&destination=..&mode=..&weight_kg=..&volume_m3=..';
   if (src.includes("=== 'usage'"))      return 'usage/summary?business_id=..&range=24h|7d|30d';
   if (src.includes("=== 'openapi.json'")) return 'openapi.json';
