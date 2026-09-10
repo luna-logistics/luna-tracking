@@ -15,6 +15,7 @@ import { LangUrlProvider } from '@/contexts/LangUrlContext';
 import { HreflangTags } from '@/components/HreflangTags';
 import { PublicLayout } from '@/components/PublicLayout';
 import { SupportChatBubble } from '@/components/SupportChatBubble';
+import { SupportAdminNotifier } from '@/components/SupportAdminNotifier';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { AdminGate } from '@/components/AdminGate';
 import { OnboardingGate, AccountTypeGate } from '@/components/AccountTypeGate';
@@ -278,6 +279,7 @@ const AppRoutes = () => (
     <LanguageSync />
     <HreflangTags />
     <SupportChatBubble />
+    <SupportAdminNotifier />
     <Routes>
       <Route path="/en/*" element={<PageRoutes lang="en" />} />
       <Route path="/*" element={<PageRoutes lang="fr" />} />

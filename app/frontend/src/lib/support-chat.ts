@@ -221,3 +221,27 @@ export async function setAccessMode(mode: SupportAccessMode): Promise<void> {
   const { error } = await supabase.rpc('set_support_access_mode', { p_mode: mode });
   if (error) throw error;
 }
+
+// ─── Email notification config (admin only) ──────────────────────
+
+export type SupportNotifyConfig = {
+  recipient_email: string;
+  from_address: string;
+  enabled: boolean;
+};
+
+export async function fetchNotifyConfig(): Promise<SupportNotifyConfig> {
+  const { data, error } = await supabase.rpc('get_support_notification_config');
+  if (error) throw error;
+  const row = Array.isArray(data) && data.length > 0 ? data[0] : null;
+  return row ?? { recipient_email: '', from_address: '', enabled: true };
+}
+
+export async function saveNotifyConfig(cfg: SupportNotifyConfig): Promise<void> {
+  const { error } = await supabase.rpc('set_support_notification_config', {
+    p_recipient_email: cfg.recipient_email,
+    p_from_address:    cfg.from_address,
+    p_enabled:         cfg.enabled,
+  });
+  if (error) throw error;
+}

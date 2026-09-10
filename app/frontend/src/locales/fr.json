@@ -266,7 +266,18 @@
     "mode_individual": "Particuliers connectés",
     "mode_individual_help": "Réservé aux comptes de type particulier.",
     "mode_business": "Entreprises connectées",
-    "mode_business_help": "Réservé aux comptes professionnels."
+    "mode_business_help": "Réservé aux comptes professionnels.",
+    "notify_title": "Notifications par email",
+    "notify_intro": "Vous serez alerté par email dès qu'un client ou visiteur écrit dans la messagerie.",
+    "notify_recipient_label": "Adresse(s) de réception",
+    "notify_recipient_help": "Où vous recevrez les alertes. Plusieurs emails séparés par des virgules acceptés.",
+    "notify_from_label": "Expéditeur affiché",
+    "notify_from_help": "Ce que vos clients verront comme expéditeur. Le domaine doit être vérifié chez Resend.",
+    "notify_enabled_label": "Notifications activées",
+    "notify_save": "Enregistrer",
+    "notify_saved": "Réglages de notification enregistrés.",
+    "notify_toast_title": "Nouveau message support",
+    "notify_toast_action": "Répondre"
   },
   "business_reports": {
     "meta_title": "Rapports — Luna Tracking Logistics",

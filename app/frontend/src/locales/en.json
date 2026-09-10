@@ -266,7 +266,18 @@
     "mode_individual": "Signed-in individuals",
     "mode_individual_help": "Restricted to personal accounts.",
     "mode_business": "Signed-in businesses",
-    "mode_business_help": "Restricted to business accounts."
+    "mode_business_help": "Restricted to business accounts.",
+    "notify_title": "Email notifications",
+    "notify_intro": "You'll get an email as soon as a customer or visitor writes on chat.",
+    "notify_recipient_label": "Recipient email(s)",
+    "notify_recipient_help": "Where alerts land. Multiple addresses accepted, comma-separated.",
+    "notify_from_label": "Displayed sender",
+    "notify_from_help": "What customers see as the sender. The domain must be verified in Resend.",
+    "notify_enabled_label": "Notifications enabled",
+    "notify_save": "Save",
+    "notify_saved": "Notification settings saved.",
+    "notify_toast_title": "New support message",
+    "notify_toast_action": "Reply"
   },
   "business_reports": {
     "meta_title": "Reports — Luna Tracking Logistics",

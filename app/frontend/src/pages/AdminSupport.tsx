@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MessageSquare, ArrowLeft, XCircle, RotateCcw, Search, UserRound, Shield } from 'lucide-react';
+import { MessageSquare, ArrowLeft, XCircle, RotateCcw, Search, UserRound, Shield, Mail, Save } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/sonner';
 import { ChatMessageList } from '@/components/ChatMessageList';
 import { ChatMessageInput } from '@/components/ChatMessageInput';
@@ -12,8 +13,9 @@ import {
   fetchMessages, sendMessage, markConversationRead,
   subscribeToMessages, subscribeToConversations,
   fetchAccessMode, setAccessMode, SUPPORT_ACCESS_MODES,
+  fetchNotifyConfig, saveNotifyConfig,
   type ConversationSummary, type SupportMessage, type ConversationStatus,
-  type SupportAccessMode,
+  type SupportAccessMode, type SupportNotifyConfig,
 } from '@/lib/support-chat';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
@@ -34,9 +36,13 @@ export default function AdminSupport() {
   const [onlyUnread, setOnlyUnread] = useState(false);
   const [mode, setMode] = useState<SupportAccessMode | null>(null);
   const [modeSaving, setModeSaving] = useState(false);
+  const [notify, setNotify] = useState<SupportNotifyConfig | null>(null);
+  const [notifyDirty, setNotifyDirty] = useState(false);
+  const [notifySaving, setNotifySaving] = useState(false);
   const lang = i18n.language;
 
   useEffect(() => { void fetchAccessMode().then(setMode); }, []);
+  useEffect(() => { void fetchNotifyConfig().then(setNotify); }, []);
 
   const changeMode = async (next: SupportAccessMode) => {
     setModeSaving(true);
@@ -46,6 +52,22 @@ export default function AdminSupport() {
       toast.success(t('admin_support.mode_saved'));
     } catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
     finally { setModeSaving(false); }
+  };
+
+  const patchNotify = (patch: Partial<SupportNotifyConfig>) => {
+    setNotify((prev) => prev ? { ...prev, ...patch } : prev);
+    setNotifyDirty(true);
+  };
+
+  const saveNotify = async () => {
+    if (!notify) return;
+    setNotifySaving(true);
+    try {
+      await saveNotifyConfig(notify);
+      setNotifyDirty(false);
+      toast.success(t('admin_support.notify_saved'));
+    } catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
+    finally { setNotifySaving(false); }
   };
 
   const reload = async () => {
@@ -107,6 +129,50 @@ export default function AdminSupport() {
   return (
     <>
       <SEO title={t('admin_support.meta_title')} noindex />
+      {notify && (
+        <section className="mb-4 rounded-2xl border-2 border-amber-500 bg-amber-50 p-4">
+          <header className="flex items-center gap-2 mb-2">
+            <Mail className="h-4 w-4 text-amber-700" aria-hidden="true" />
+            <h2 className="font-semibold text-luna-navy text-sm">{t('admin_support.notify_title')}</h2>
+          </header>
+          <p className="text-xs text-slate-600 mb-3">{t('admin_support.notify_intro')}</p>
+          <div className="grid gap-3 lg:grid-cols-2">
+            <div>
+              <Label className="text-xs">{t('admin_support.notify_recipient_label')}</Label>
+              <Input
+                value={notify.recipient_email}
+                onChange={(e) => patchNotify({ recipient_email: e.target.value })}
+                placeholder="ex: contact@lunatrackinglogistics.com, admin@..."
+                className="mt-1 h-9 text-sm bg-white"
+              />
+              <p className="text-[11px] text-slate-500 mt-1">{t('admin_support.notify_recipient_help')}</p>
+            </div>
+            <div>
+              <Label className="text-xs">{t('admin_support.notify_from_label')}</Label>
+              <Input
+                value={notify.from_address}
+                onChange={(e) => patchNotify({ from_address: e.target.value })}
+                placeholder="Luna Support <support@lunatrackinglogistics.com>"
+                className="mt-1 h-9 text-sm bg-white"
+              />
+              <p className="text-[11px] text-slate-500 mt-1">{t('admin_support.notify_from_help')}</p>
+            </div>
+          </div>
+          <div className="mt-3 flex items-center justify-between gap-3 flex-wrap">
+            <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
+              <input type="checkbox" checked={notify.enabled}
+                onChange={(e) => patchNotify({ enabled: e.target.checked })}
+                className="rounded border-slate-300 text-luna-navy focus:ring-luna-navy/20" />
+              {t('admin_support.notify_enabled_label')}
+            </label>
+            <Button size="sm" variant="navy" onClick={() => void saveNotify()}
+              disabled={notifySaving || !notifyDirty}>
+              <Save className="h-3.5 w-3.5" />
+              {t('admin_support.notify_save')}
+            </Button>
+          </div>
+        </section>
+      )}
       <section className="mb-4 rounded-2xl border-2 border-amber-500 bg-amber-50 p-4">
         <header className="flex items-center gap-2 mb-2">
           <Shield className="h-4 w-4 text-amber-700" aria-hidden="true" />
