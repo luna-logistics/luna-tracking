@@ -33,6 +33,9 @@ export type RouteKey =
   | 'account'
   | 'accountOrders'
   | 'accountInvoices'
+  | 'accountSupport'
+  | 'businessSupport'
+  | 'adminSupport'
   | 'businessDashboard'
   | 'businessCreate'
   | 'businessShipments'
@@ -85,6 +88,9 @@ export const ROUTES: Record<RouteKey, RouteDef> = {
   account:         { indexable: false, bilingual: true,  fr: '/compte',             en: '/account' },
   accountOrders:   { indexable: false, bilingual: true,  fr: '/compte/commandes',   en: '/account/orders' },
   accountInvoices: { indexable: false, bilingual: true,  fr: '/compte/factures',    en: '/account/invoices' },
+  accountSupport:  { indexable: false, bilingual: true,  fr: '/compte/support',     en: '/account/support' },
+  businessSupport: { indexable: false, bilingual: true,  fr: '/entreprise/support', en: '/business/support' },
+  adminSupport:    { indexable: false, bilingual: false, fr: '/admin/support',      en: '/admin/support' },
   businessDashboard: { indexable: false, bilingual: true, fr: '/entreprise',                 en: '/business' },
   businessCreate:    { indexable: false, bilingual: true, fr: '/entreprise/nouvelle',        en: '/business/new' },
   businessShipments: { indexable: false, bilingual: true, fr: '/entreprise/expeditions',     en: '/business/shipments' },

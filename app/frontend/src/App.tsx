@@ -62,6 +62,8 @@ const BusinessInvoices = lazy(() => import('@/pages/BusinessInvoices'));
 const BusinessInvoiceForm = lazy(() => import('@/pages/BusinessInvoiceForm'));
 const BusinessInvoiceDetail = lazy(() => import('@/pages/BusinessInvoiceDetail'));
 const BusinessReports = lazy(() => import('@/pages/BusinessReports'));
+const SupportChat = lazy(() => import('@/pages/SupportChat'));
+const AdminSupport = lazy(() => import('@/pages/AdminSupport'));
 const BusinessQuotes = lazy(() => import('@/pages/BusinessQuotes'));
 const BusinessQuoteForm = lazy(() => import('@/pages/BusinessQuoteForm'));
 const BusinessQuoteDetail = lazy(() => import('@/pages/BusinessQuoteDetail'));
@@ -175,6 +177,7 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
             <Route path={t('/compte', '/account')} element={<Account />} />
             <Route path={t('/compte/commandes', '/account/orders')} element={<AccountOrders />} />
             <Route path={t('/compte/factures', '/account/invoices')} element={<AccountInvoices />} />
+            <Route path={t('/compte/support', '/account/support')} element={<SupportChat />} />
           </Route>
 
           {/* Business area — protected + gated by account_type='business'.
@@ -230,6 +233,7 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
             <Route path={t('/entreprise/cles-api',     '/business/api-keys')}     element={<BusinessApiKeys />} />
             <Route path={t('/entreprise/cles-api/usage', '/business/api-keys/usage')} element={<BusinessApiUsage />} />
             <Route path={t('/entreprise/webhooks',     '/business/webhooks')}     element={<BusinessWebhooks />} />
+            <Route path={t('/entreprise/support',      '/business/support')}      element={<SupportChat />} />
           </Route>
 
           {/* Admin — FR-only convention. AdminGate wraps ProtectedRoute so a
@@ -248,6 +252,7 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
             <Route path="/admin/blog/nouveau" element={<AdminBlogForm />} />
             <Route path="/admin/blog/:id" element={<AdminBlogForm />} />
             <Route path="/admin/collaborateurs" element={<AdminCollaborators />} />
+            <Route path="/admin/support" element={<AdminSupport />} />
             <Route path="/admin/pages" element={<AdminCustomPages />} />
             <Route path="/admin/pages/nouvelle" element={<AdminCustomPageForm />} />
             <Route path="/admin/pages/:id" element={<AdminCustomPageForm />} />

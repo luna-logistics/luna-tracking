@@ -148,6 +148,7 @@
     "sidebar_shipments": "Mes envois",
     "sidebar_orders": "Historique",
     "sidebar_invoices": "Factures",
+    "sidebar_support": "Support",
     "sidebar_profile": "Profil"
   },
   "onboarding": {
@@ -205,7 +206,45 @@
     "team": "Équipe",
     "settings": "Paramètres",
     "api_keys": "Clés API",
-    "webhooks": "Webhooks"
+    "webhooks": "Webhooks",
+    "support": "Support"
+  },
+  "support_chat": {
+    "page_title": "Support — Luna Tracking Logistics",
+    "title": "Support",
+    "new": "Nouveau",
+    "empty_list": "Aucune conversation. Cliquez sur « Nouveau » pour contacter le support.",
+    "empty_messages": "Aucun message pour l'instant.",
+    "no_subject": "(sans sujet)",
+    "role_admin": "Support",
+    "read": "lu",
+    "status_open": "Ouverte",
+    "status_closed": "Fermée",
+    "close": "Fermer",
+    "reopen": "Rouvrir",
+    "closed_hint": "Cette conversation est fermée. Rouvrez-la pour continuer à écrire.",
+    "pick_or_create": "Sélectionnez une conversation ou créez-en une nouvelle.",
+    "new_conv_title": "Nouvelle conversation",
+    "new_conv_intro": "Décrivez brièvement votre demande. Le support Luna vous répondra dans les meilleurs délais.",
+    "subject_label": "Sujet (facultatif)",
+    "subject_placeholder": "Ex. Question sur mon envoi BRU2026...",
+    "first_message_label": "Votre message",
+    "first_message_placeholder": "Bonjour, j'ai une question concernant...",
+    "create_and_send": "Envoyer",
+    "cancel": "Annuler",
+    "input_placeholder": "Écrivez votre message…",
+    "send": "Envoyer",
+    "enter_hint": "Entrée pour envoyer · Maj+Entrée pour retour à la ligne"
+  },
+  "admin_support": {
+    "meta_title": "Messagerie — Administration",
+    "title": "Messagerie",
+    "search_placeholder": "Client, sujet, message…",
+    "only_unread": "Uniquement non lues",
+    "empty": "Aucune conversation.",
+    "unknown_user": "Utilisateur inconnu",
+    "pick_conversation": "Sélectionnez une conversation dans la liste.",
+    "reply_placeholder": "Répondre au client…"
   },
   "business_reports": {
     "meta_title": "Rapports — Luna Tracking Logistics",
@@ -1139,6 +1178,7 @@
     "sidebar_content": "Contenus des pages",
     "sidebar_blog": "Blog",
     "sidebar_pages": "Pages",
+    "sidebar_support": "Messagerie",
     "sidebar_collaborators": "Collaborateurs",
     "back_to_site": "Retour au site",
     "back_to_site_short": "Site",

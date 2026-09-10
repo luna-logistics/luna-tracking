@@ -3,12 +3,14 @@ import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, MapPin, Package, ShoppingCart, Boxes,
   KeyRound, FileText, Newspaper, UserCog, LogOut, ExternalLink, FilePlus,
+  MessageSquare,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { urlFor } from '@/lib/url/routes';
 import { useAdminCan } from '@/lib/admin-permissions';
 import type { AdminPermission } from '@/lib/admin-permissions';
+import { useSupportUnread } from '@/hooks/useSupportUnread';
 import { cn } from '@/lib/utils';
 
 /**
@@ -23,6 +25,7 @@ export function AdminShell() {
   const location = useLocation();
   const can = useAdminCan();
   const lang = i18n.language === 'en' ? 'en' : 'fr';
+  const supportUnread = useSupportUnread();
 
   const items: Array<{ to: string; label: string; icon: typeof LayoutDashboard; permission: AdminPermission | 'always' }> = ([
     { to: '/admin',                        label: t('admin.sidebar_dashboard'),       icon: LayoutDashboard, permission: 'always' },
@@ -34,6 +37,7 @@ export function AdminShell() {
     { to: '/admin/contenus',               label: t('admin.sidebar_content'),         icon: FileText,        permission: 'content' },
     { to: '/admin/blog',                   label: t('admin.sidebar_blog'),            icon: Newspaper,       permission: 'blog' },
     { to: '/admin/pages',                  label: t('admin.sidebar_pages'),           icon: FilePlus,        permission: 'pages' },
+    { to: '/admin/support',                label: t('admin.sidebar_support'),         icon: MessageSquare,   permission: 'support' },
     { to: '/admin/collaborateurs',         label: t('admin.sidebar_collaborators'),   icon: UserCog,         permission: 'admins' },
   ] as const).filter((it) => it.permission === 'always' || can(it.permission as AdminPermission)) as Array<{ to: string; label: string; icon: typeof LayoutDashboard; permission: AdminPermission | 'always' }>;
 
@@ -64,7 +68,12 @@ export function AdminShell() {
                   )}
                 >
                   <Icon className="h-4 w-4" />
-                  {it.label}
+                  <span className="flex-1">{it.label}</span>
+                  {it.to === '/admin/support' && supportUnread > 0 && (
+                    <span className="rounded-full bg-red-500 text-white text-[10px] font-bold px-1.5 min-w-[1.25rem] text-center">
+                      {supportUnread > 9 ? '9+' : supportUnread}
+                    </span>
+                  )}
                 </Link>
               );
             })}

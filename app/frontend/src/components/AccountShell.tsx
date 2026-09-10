@@ -1,10 +1,11 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Package, FileText, Clock, LogOut } from 'lucide-react';
+import { Package, FileText, Clock, LogOut, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { urlFor } from '@/lib/url/routes';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
+import { useSupportUnread } from '@/hooks/useSupportUnread';
 import { cn } from '@/lib/utils';
 
 /**
@@ -18,10 +19,12 @@ export function AccountShell() {
   const location = useLocation();
   const lang = i18n.language === 'en' ? 'en' : 'fr';
 
+  const supportUnread = useSupportUnread();
   const items = [
     { to: urlFor('account', lang), label: t('account.sidebar_shipments'), icon: Package },
     { to: urlFor('accountOrders', lang), label: t('account.sidebar_orders'), icon: Clock },
     { to: urlFor('accountInvoices', lang), label: t('account.sidebar_invoices'), icon: FileText },
+    { to: urlFor('accountSupport', lang), label: t('account.sidebar_support'), icon: MessageSquare },
   ];
 
   return (
@@ -45,6 +48,11 @@ export function AccountShell() {
               >
                 <Icon className="h-4 w-4" />
                 {it.label}
+                {it.to === urlFor('accountSupport', lang) && supportUnread > 0 && (
+                  <span className="ml-1 rounded-full bg-red-500 text-white text-[10px] font-bold px-1.5 min-w-[1.25rem] text-center">
+                    {supportUnread > 9 ? '9+' : supportUnread}
+                  </span>
+                )}
               </Link>
             );
           })}

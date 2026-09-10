@@ -148,6 +148,7 @@
     "sidebar_shipments": "My shipments",
     "sidebar_orders": "History",
     "sidebar_invoices": "Invoices",
+    "sidebar_support": "Support",
     "sidebar_profile": "Profile"
   },
   "onboarding": {
@@ -205,7 +206,45 @@
     "team": "Team",
     "settings": "Settings",
     "api_keys": "API keys",
-    "webhooks": "Webhooks"
+    "webhooks": "Webhooks",
+    "support": "Support"
+  },
+  "support_chat": {
+    "page_title": "Support — Luna Tracking Logistics",
+    "title": "Support",
+    "new": "New",
+    "empty_list": "No conversations yet. Click \"New\" to reach out to support.",
+    "empty_messages": "No messages yet.",
+    "no_subject": "(no subject)",
+    "role_admin": "Support",
+    "read": "read",
+    "status_open": "Open",
+    "status_closed": "Closed",
+    "close": "Close",
+    "reopen": "Reopen",
+    "closed_hint": "This conversation is closed. Reopen it to continue writing.",
+    "pick_or_create": "Pick a conversation or start a new one.",
+    "new_conv_title": "New conversation",
+    "new_conv_intro": "Describe your request briefly. Luna support will get back to you shortly.",
+    "subject_label": "Subject (optional)",
+    "subject_placeholder": "e.g. Question about my BRU2026 shipment...",
+    "first_message_label": "Your message",
+    "first_message_placeholder": "Hi, I have a question about...",
+    "create_and_send": "Send",
+    "cancel": "Cancel",
+    "input_placeholder": "Write your message…",
+    "send": "Send",
+    "enter_hint": "Enter to send · Shift+Enter for a new line"
+  },
+  "admin_support": {
+    "meta_title": "Messaging — Admin",
+    "title": "Messaging",
+    "search_placeholder": "Customer, subject, message…",
+    "only_unread": "Unread only",
+    "empty": "No conversations.",
+    "unknown_user": "Unknown user",
+    "pick_conversation": "Pick a conversation from the list.",
+    "reply_placeholder": "Reply to the customer…"
   },
   "business_reports": {
     "meta_title": "Reports — Luna Tracking Logistics",
@@ -1139,6 +1178,7 @@
     "sidebar_content": "Page content",
     "sidebar_blog": "Blog",
     "sidebar_pages": "Pages",
+    "sidebar_support": "Messaging",
     "sidebar_collaborators": "Collaborators",
     "back_to_site": "Back to site",
     "back_to_site_short": "Site",

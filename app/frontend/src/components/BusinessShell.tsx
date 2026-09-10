@@ -2,9 +2,10 @@ import { Link, Outlet, useLocation, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, Package, FileText, Users, Files, MapPin, Wallet, Receipt, BarChart3,
-  UserCog, Settings, Key, Webhook,
+  UserCog, Settings, Key, Webhook, MessageSquare,
   LogOut, ExternalLink, ChevronDown, Shield,
 } from 'lucide-react';
+import { useSupportUnread } from '@/hooks/useSupportUnread';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
@@ -25,6 +26,7 @@ import type { BusinessAction } from '@/lib/business-permissions';
 export function BusinessShell() {
   const { t, i18n } = useTranslation();
   const { signOut, user, isAdmin } = useAuth();
+  const supportUnread = useSupportUnread();
   const location = useLocation();
   const { current, businesses, loading, can } = useBusiness();
   const lang = i18n.language === 'en' ? 'en' : 'fr';
@@ -48,6 +50,7 @@ export function BusinessShell() {
     { to: urlFor('businessClients',   lang), label: t('business_nav.clients'),    icon: Users,           permission: 'clients.read' },
     { to: urlFor('businessAddresses', lang), label: t('business_nav.addresses'),  icon: MapPin,          permission: 'clients.read' },
     { to: urlFor('businessDocuments', lang), label: t('business_nav.documents'),  icon: Files,           permission: 'shipments.read' },
+    { to: urlFor('businessSupport',   lang), label: t('business_nav.support'),    icon: MessageSquare,   permission: 'always' },
     { to: urlFor('businessTeam',      lang), label: t('business_nav.team'),       icon: UserCog,         permission: 'members.read' },
     { to: urlFor('businessSettings',  lang), label: t('business_nav.settings'),   icon: Settings,        permission: 'business.update' },
     { to: urlFor('businessApiKeys',   lang), label: t('business_nav.api_keys'),   icon: Key,             permission: 'business.update' },
@@ -82,7 +85,12 @@ export function BusinessShell() {
                   )}
                 >
                   <Icon className="h-4 w-4" />
-                  {it.label}
+                  <span className="flex-1">{it.label}</span>
+                  {it.to === urlFor('businessSupport', lang) && supportUnread > 0 && (
+                    <span className="rounded-full bg-red-500 text-white text-[10px] font-bold px-1.5 min-w-[1.25rem] text-center">
+                      {supportUnread > 9 ? '9+' : supportUnread}
+                    </span>
+                  )}
                 </Link>
               );
             })}
