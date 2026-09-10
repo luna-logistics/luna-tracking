@@ -126,20 +126,35 @@ export function SupportChatBubble() {
         </div>
       )}
 
-      {/* Floating button (also the "restore" affordance when minimized) */}
+      {/* Floating pill launcher — bar with "Chattez avec nous" + online dot,
+          collapses to an icon-only circle on very narrow screens. */}
       <button
         type="button"
         onClick={() => { setOpen((v) => !v || minimized); setMinimized(false); }}
         aria-label={t('support_chat.bubble_open_aria')}
         className={cn(
-          'fixed z-[71] bottom-4 right-4 sm:bottom-6 sm:right-6 rounded-full shadow-xl',
-          'bg-luna-navy text-white hover:bg-luna-navy/90 transition',
-          'h-14 w-14 flex items-center justify-center focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-luna-cyan/40',
+          'fixed z-[71] bottom-4 right-4 sm:bottom-6 sm:right-6 shadow-xl transition-all',
+          'bg-luna-navy text-white hover:bg-luna-navy/90 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-luna-cyan/40',
+          open && !minimized
+            ? 'h-12 w-12 rounded-full flex items-center justify-center'
+            : 'rounded-full pl-3 pr-5 py-2.5 sm:py-3 flex items-center gap-2.5',
         )}
       >
-        {open && !minimized ? <X className="h-6 w-6" /> : <MessageSquare className="h-6 w-6" />}
-        {unread > 0 && (
-          <span className="absolute -top-1 -right-1 rounded-full bg-red-500 text-white text-[10px] font-bold px-1.5 min-w-[1.25rem] text-center border-2 border-white">
+        {open && !minimized ? (
+          <X className="h-5 w-5" />
+        ) : (
+          <>
+            <span className="relative flex h-8 w-8 items-center justify-center rounded-full bg-white/10">
+              <MessageSquare className="h-4 w-4" aria-hidden="true" />
+              <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 border-2 border-luna-navy" title={t('support_chat.bubble_online')} />
+            </span>
+            <span className="text-sm font-medium whitespace-nowrap">
+              {t('support_chat.bubble_launcher_label')}
+            </span>
+          </>
+        )}
+        {unread > 0 && !(open && !minimized) && (
+          <span className="ml-1 rounded-full bg-red-500 text-white text-[10px] font-bold px-1.5 min-w-[1.25rem] text-center">
             {unread > 9 ? '9+' : unread}
           </span>
         )}

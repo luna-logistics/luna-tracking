@@ -236,6 +236,8 @@
     "send": "Envoyer",
     "enter_hint": "Entrée pour envoyer · Maj+Entrée pour retour à la ligne",
     "bubble_title": "Support Luna",
+    "bubble_launcher_label": "Discutez avec nous",
+    "bubble_online": "En ligne",
     "bubble_open_aria": "Ouvrir la messagerie support",
     "bubble_start_hint": "Écrivez votre premier message pour démarrer la conversation.",
     "bubble_guest_intro": "Pas besoin de créer un compte. Laissez-nous votre email pour qu'on puisse vous recontacter.",

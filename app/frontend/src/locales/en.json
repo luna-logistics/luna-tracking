@@ -236,6 +236,8 @@
     "send": "Send",
     "enter_hint": "Enter to send · Shift+Enter for a new line",
     "bubble_title": "Luna support",
+    "bubble_launcher_label": "Chat with us",
+    "bubble_online": "Online",
     "bubble_open_aria": "Open support chat",
     "bubble_start_hint": "Type your first message to start the conversation.",
     "bubble_guest_intro": "No account needed. Leave us your email so we can get back to you.",
