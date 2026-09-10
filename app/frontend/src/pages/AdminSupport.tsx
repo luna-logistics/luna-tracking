@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MessageSquare, ArrowLeft, XCircle, RotateCcw, Search } from 'lucide-react';
+import { MessageSquare, ArrowLeft, XCircle, RotateCcw, Search, UserRound, Shield } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +11,9 @@ import {
   fetchConversations, setConversationStatus,
   fetchMessages, sendMessage, markConversationRead,
   subscribeToMessages, subscribeToConversations,
+  fetchAccessMode, setAccessMode, SUPPORT_ACCESS_MODES,
   type ConversationSummary, type SupportMessage, type ConversationStatus,
+  type SupportAccessMode,
 } from '@/lib/support-chat';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
@@ -30,7 +32,21 @@ export default function AdminSupport() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
   const [onlyUnread, setOnlyUnread] = useState(false);
+  const [mode, setMode] = useState<SupportAccessMode | null>(null);
+  const [modeSaving, setModeSaving] = useState(false);
   const lang = i18n.language;
+
+  useEffect(() => { void fetchAccessMode().then(setMode); }, []);
+
+  const changeMode = async (next: SupportAccessMode) => {
+    setModeSaving(true);
+    try {
+      await setAccessMode(next);
+      setMode(next);
+      toast.success(t('admin_support.mode_saved'));
+    } catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
+    finally { setModeSaving(false); }
+  };
 
   const reload = async () => {
     setLoading(true);
@@ -91,7 +107,31 @@ export default function AdminSupport() {
   return (
     <>
       <SEO title={t('admin_support.meta_title')} noindex />
-      <div className="grid gap-0 lg:grid-cols-[380px_1fr] h-[calc(100vh-9rem)] min-h-[560px] rounded-2xl border border-slate-200 bg-white overflow-hidden">
+      <section className="mb-4 rounded-2xl border-2 border-amber-500 bg-amber-50 p-4">
+        <header className="flex items-center gap-2 mb-2">
+          <Shield className="h-4 w-4 text-amber-700" aria-hidden="true" />
+          <h2 className="font-semibold text-luna-navy text-sm">{t('admin_support.mode_title')}</h2>
+        </header>
+        <p className="text-xs text-slate-600 mb-3">{t('admin_support.mode_intro')}</p>
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          {SUPPORT_ACCESS_MODES.map((m) => (
+            <label key={m} className={cn(
+              'flex items-start gap-2 rounded-lg border p-2 cursor-pointer text-xs transition',
+              mode === m ? 'border-luna-navy bg-white shadow-sm' : 'border-slate-200 bg-white/60 hover:bg-white',
+              modeSaving && 'opacity-60 pointer-events-none',
+            )}>
+              <input type="radio" name="access-mode" value={m} checked={mode === m}
+                onChange={() => void changeMode(m)}
+                className="mt-0.5 text-luna-navy focus:ring-luna-navy/20" />
+              <span className="min-w-0">
+                <span className="block font-semibold text-luna-navy">{t(`admin_support.mode_${m}`)}</span>
+                <span className="block text-slate-600 mt-0.5">{t(`admin_support.mode_${m}_help`)}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </section>
+      <div className="grid gap-0 lg:grid-cols-[380px_1fr] h-[calc(100vh-14rem)] min-h-[500px] rounded-2xl border border-slate-200 bg-white overflow-hidden">
         {/* List */}
         <aside className={cn('border-r border-slate-200 flex flex-col', selectedId && 'hidden lg:flex')}>
           <header className="px-4 py-3 border-b border-slate-200 space-y-2">
@@ -123,8 +163,13 @@ export default function AdminSupport() {
                 )}>
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-luna-navy truncate">
-                      {r.user_display_name || r.user_email || t('admin_support.unknown_user')}
+                    <p className="font-medium text-luna-navy truncate flex items-center gap-1.5">
+                      {r.is_guest && (
+                        <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 text-amber-800 text-[9px] font-semibold px-1.5 py-0.5 uppercase tracking-wide" title={t('admin_support.guest_label')}>
+                          <UserRound className="h-2.5 w-2.5" />{t('admin_support.guest_short')}
+                        </span>
+                      )}
+                      <span className="truncate">{r.user_display_name || r.user_email || t('admin_support.unknown_user')}</span>
                     </p>
                     <p className="text-xs text-slate-500 truncate">{r.subject || t('support_chat.no_subject')}</p>
                   </div>

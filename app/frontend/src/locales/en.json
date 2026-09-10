@@ -234,7 +234,16 @@
     "cancel": "Cancel",
     "input_placeholder": "Write your message…",
     "send": "Send",
-    "enter_hint": "Enter to send · Shift+Enter for a new line"
+    "enter_hint": "Enter to send · Shift+Enter for a new line",
+    "bubble_title": "Luna support",
+    "bubble_open_aria": "Open support chat",
+    "bubble_start_hint": "Type your first message to start the conversation.",
+    "bubble_guest_intro": "No account needed. Leave us your email so we can get back to you.",
+    "bubble_first_message_label": "Your message",
+    "bubble_first_message_placeholder": "Hi, I have a question about…",
+    "bubble_send_first": "Send",
+    "bubble_closed": "Conversation closed.",
+    "minimize": "Minimise"
   },
   "admin_support": {
     "meta_title": "Messaging — Admin",
@@ -244,7 +253,20 @@
     "empty": "No conversations.",
     "unknown_user": "Unknown user",
     "pick_conversation": "Pick a conversation from the list.",
-    "reply_placeholder": "Reply to the customer…"
+    "reply_placeholder": "Reply to the customer…",
+    "guest_label": "Guest visitor (no account)",
+    "guest_short": "Guest",
+    "mode_title": "Who can message you?",
+    "mode_intro": "Choose who has access to support chat. The change is immediate.",
+    "mode_saved": "Access mode updated.",
+    "mode_everyone": "Everyone",
+    "mode_everyone_help": "Guest visitors included. Best for capturing leads.",
+    "mode_authenticated": "Signed-in only",
+    "mode_authenticated_help": "Requires a Luna account (individual or business).",
+    "mode_individual": "Signed-in individuals",
+    "mode_individual_help": "Restricted to personal accounts.",
+    "mode_business": "Signed-in businesses",
+    "mode_business_help": "Restricted to business accounts."
   },
   "business_reports": {
     "meta_title": "Reports — Luna Tracking Logistics",

@@ -234,7 +234,16 @@
     "cancel": "Annuler",
     "input_placeholder": "Écrivez votre message…",
     "send": "Envoyer",
-    "enter_hint": "Entrée pour envoyer · Maj+Entrée pour retour à la ligne"
+    "enter_hint": "Entrée pour envoyer · Maj+Entrée pour retour à la ligne",
+    "bubble_title": "Support Luna",
+    "bubble_open_aria": "Ouvrir la messagerie support",
+    "bubble_start_hint": "Écrivez votre premier message pour démarrer la conversation.",
+    "bubble_guest_intro": "Pas besoin de créer un compte. Laissez-nous votre email pour qu'on puisse vous recontacter.",
+    "bubble_first_message_label": "Votre message",
+    "bubble_first_message_placeholder": "Bonjour, j'ai une question sur…",
+    "bubble_send_first": "Envoyer",
+    "bubble_closed": "Conversation clôturée.",
+    "minimize": "Réduire"
   },
   "admin_support": {
     "meta_title": "Messagerie — Administration",
@@ -244,7 +253,20 @@
     "empty": "Aucune conversation.",
     "unknown_user": "Utilisateur inconnu",
     "pick_conversation": "Sélectionnez une conversation dans la liste.",
-    "reply_placeholder": "Répondre au client…"
+    "reply_placeholder": "Répondre au client…",
+    "guest_label": "Visiteur non connecté",
+    "guest_short": "Invité",
+    "mode_title": "Qui peut vous écrire ?",
+    "mode_intro": "Choisissez qui a accès à la messagerie support. Le changement est immédiat.",
+    "mode_saved": "Mode d'accès mis à jour.",
+    "mode_everyone": "Tout le monde",
+    "mode_everyone_help": "Visiteurs sans compte inclus. Idéal pour capter les prospects.",
+    "mode_authenticated": "Connectés uniquement",
+    "mode_authenticated_help": "Il faut un compte pour vous écrire (particulier ou entreprise).",
+    "mode_individual": "Particuliers connectés",
+    "mode_individual_help": "Réservé aux comptes de type particulier.",
+    "mode_business": "Entreprises connectées",
+    "mode_business_help": "Réservé aux comptes professionnels."
   },
   "business_reports": {
     "meta_title": "Rapports — Luna Tracking Logistics",

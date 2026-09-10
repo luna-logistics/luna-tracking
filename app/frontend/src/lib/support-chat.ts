@@ -26,7 +26,11 @@ export type ConversationSummary = SupportConversation & {
   unread_count: number;
   user_email: string | null;
   user_display_name: string | null;
+  is_guest: boolean;
 };
+
+export const SUPPORT_ACCESS_MODES = ['everyone','authenticated','individual','business'] as const;
+export type SupportAccessMode = (typeof SUPPORT_ACCESS_MODES)[number];
 
 export type SupportMessage = {
   id: string;
@@ -151,4 +155,69 @@ export function subscribeToConversations(
       () => onChange())
     .subscribe();
   return () => { void supabase.removeChannel(channel); };
+}
+
+// ─── Guest flow (no account) ─────────────────────────────────────
+
+export type GuestConversationView = {
+  id: string;
+  subject: string | null;
+  status: ConversationStatus;
+  created_at: string;
+  email: string;
+  name: string | null;
+  messages: Array<Pick<SupportMessage, 'id' | 'sender_role' | 'body' | 'created_at' | 'read_at'>>;
+};
+
+const GUEST_KEY = 'luna.support.guest_token';
+export function readGuestToken(): string | null {
+  try { return localStorage.getItem(GUEST_KEY); } catch { return null; }
+}
+export function writeGuestToken(token: string | null): void {
+  try {
+    if (token) localStorage.setItem(GUEST_KEY, token);
+    else localStorage.removeItem(GUEST_KEY);
+  } catch { /* private-mode / no storage: silently ignore */ }
+}
+
+export async function guestCreateConversation(input: {
+  email: string; name: string; subject: string; body: string;
+}): Promise<{ conversation_id: string; guest_token: string }> {
+  const { data, error } = await supabase.rpc('guest_create_support_conversation', {
+    p_email: input.email,
+    p_name: input.name,
+    p_subject: input.subject,
+    p_body: input.body,
+  });
+  if (error) throw error;
+  const row = Array.isArray(data) && data.length > 0 ? data[0] : null;
+  if (!row) throw new Error('empty_response');
+  return { conversation_id: row.conversation_id as string, guest_token: row.guest_token as string };
+}
+
+export async function guestSendMessage(token: string, body: string): Promise<void> {
+  const { error } = await supabase.rpc('guest_send_support_message', { p_token: token, p_body: body });
+  if (error) throw error;
+}
+
+export async function guestFetchConversation(token: string): Promise<GuestConversationView | null> {
+  const { data, error } = await supabase.rpc('guest_fetch_support_conversation', { p_token: token });
+  if (error) { console.warn('[support] guest fetch failed:', error.message); return null; }
+  return (data as GuestConversationView) ?? null;
+}
+
+// ─── Access mode (admin setting) ─────────────────────────────────
+
+export async function fetchAccessMode(): Promise<SupportAccessMode> {
+  const { data, error } = await supabase.from('platform_settings')
+    .select('value').eq('key', 'support_access_mode').maybeSingle();
+  if (error) { console.warn('[support] access mode fetch failed:', error.message); return 'everyone'; }
+  const raw = data?.value;
+  const mode = typeof raw === 'string' ? raw : 'everyone';
+  return (SUPPORT_ACCESS_MODES.includes(mode as SupportAccessMode) ? mode : 'everyone') as SupportAccessMode;
+}
+
+export async function setAccessMode(mode: SupportAccessMode): Promise<void> {
+  const { error } = await supabase.rpc('set_support_access_mode', { p_mode: mode });
+  if (error) throw error;
 }

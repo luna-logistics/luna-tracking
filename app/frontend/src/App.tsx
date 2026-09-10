@@ -14,6 +14,7 @@ import { EditModeProvider } from '@/contexts/EditModeContext';
 import { LangUrlProvider } from '@/contexts/LangUrlContext';
 import { HreflangTags } from '@/components/HreflangTags';
 import { PublicLayout } from '@/components/PublicLayout';
+import { SupportChatBubble } from '@/components/SupportChatBubble';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { AdminGate } from '@/components/AdminGate';
 import { OnboardingGate, AccountTypeGate } from '@/components/AccountTypeGate';
@@ -276,6 +277,7 @@ const AppRoutes = () => (
   <>
     <LanguageSync />
     <HreflangTags />
+    <SupportChatBubble />
     <Routes>
       <Route path="/en/*" element={<PageRoutes lang="en" />} />
       <Route path="/*" element={<PageRoutes lang="fr" />} />
