@@ -43,3 +43,25 @@
   X-Robots-Tag: noindex
 /auth/*
   X-Robots-Tag: noindex
+
+# ─── Long-lived caches for build output ─────────────────────────────
+# Vite content-hashes everything under /assets/ (e.g. index-DRWrBeNO.js);
+# the filename changes on any content change, so a year of `immutable`
+# caching is safe and cuts the conditional-GET revalidation Cloudflare
+# was doing on every visit (max-age=0, must-revalidate is the CF Pages
+# default when no rule is set, and it dominates ~300 ms on repeat loads
+# across the eager chunks). HTML is deliberately NOT covered here — it
+# inherits the default so a new deploy is picked up immediately.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# ─── Longer caches for stable public media ──────────────────────────
+# Not content-hashed but rarely edited. 30 days fresh + 7 days
+# stale-while-revalidate: the browser serves the cached copy instantly
+# on a repeat visit, then refetches in the background. On an edit we
+# still see the new file within a week without needing a rename.
+/images/*
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=604800
+
+/brand/*
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=604800
