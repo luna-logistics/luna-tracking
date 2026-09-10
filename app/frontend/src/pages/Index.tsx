@@ -25,10 +25,10 @@ export default function Index() {
   const ogImage         = useSiteImage('home_og', '') || undefined;
 
   const pillars = [
-    { key: 'air',      icon: Plane,         title: useContent('home', 'pillar_air_title',      t('home.pillar_air_title')),      body: useContent('home', 'pillar_air_body',      t('home.pillar_air_body')) },
-    { key: 'sea',      icon: Ship,          title: useContent('home', 'pillar_sea_title',      t('home.pillar_sea_title')),      body: useContent('home', 'pillar_sea_body',      t('home.pillar_sea_body')) },
-    { key: 'ground',   icon: Truck,         title: useContent('home', 'pillar_ground_title',   t('home.pillar_ground_title')),   body: useContent('home', 'pillar_ground_body',   t('home.pillar_ground_body')) },
-    { key: 'tracking', icon: PackageSearch, title: useContent('home', 'pillar_tracking_title', t('home.pillar_tracking_title')), body: useContent('home', 'pillar_tracking_body', t('home.pillar_tracking_body')) },
+    { key: 'air',      icon: Plane,         image: '/images/services/service-air-freight.webp',       alt: t('home.pillar_air_alt'),      title: useContent('home', 'pillar_air_title',      t('home.pillar_air_title')),      body: useContent('home', 'pillar_air_body',      t('home.pillar_air_body')) },
+    { key: 'sea',      icon: Ship,          image: '/images/services/service-sea-freight.webp',       alt: t('home.pillar_sea_alt'),      title: useContent('home', 'pillar_sea_title',      t('home.pillar_sea_title')),      body: useContent('home', 'pillar_sea_body',      t('home.pillar_sea_body')) },
+    { key: 'ground',   icon: Truck,         image: '/images/services/service-ground-transport.webp', alt: t('home.pillar_ground_alt'),   title: useContent('home', 'pillar_ground_title',   t('home.pillar_ground_title')),   body: useContent('home', 'pillar_ground_body',   t('home.pillar_ground_body')) },
+    { key: 'tracking', icon: PackageSearch, image: '/images/services/service-online-tracking.webp',  alt: t('home.pillar_tracking_alt'), title: useContent('home', 'pillar_tracking_title', t('home.pillar_tracking_title')), body: useContent('home', 'pillar_tracking_body', t('home.pillar_tracking_body')) },
   ];
 
   const pillarsTitle    = useContent('home', 'pillars_title',    t('home.pillars_title'));
@@ -111,11 +111,23 @@ export default function Index() {
               {pillars.map((p) => (
                 <div
                   key={p.key}
-                  className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm hover:shadow-md hover:border-luna-blue/40 transition-shadow"
+                  className="rounded-2xl border border-slate-200 bg-white overflow-hidden text-center shadow-sm hover:shadow-md hover:border-luna-blue/40 transition-shadow flex flex-col"
                 >
-                  <IconCircle icon={p.icon} variant="onLight" label={p.title} />
-                  <Ed page="home" field={`pillar_${p.key}_title`} as="h3" className="mt-4 text-lg font-semibold text-luna-navy block">{p.title}</Ed>
-                  <Ed page="home" field={`pillar_${p.key}_body`}  as="p"  multiline className="mt-2 text-sm text-slate-600 leading-relaxed block">{p.body}</Ed>
+                  <div className="aspect-square w-full overflow-hidden bg-slate-100">
+                    <img
+                      src={p.image}
+                      alt={p.alt}
+                      width={800}
+                      height={800}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="p-6 flex-1 flex flex-col">
+                    <Ed page="home" field={`pillar_${p.key}_title`} as="h3" className="text-lg font-semibold text-luna-navy block">{p.title}</Ed>
+                    <Ed page="home" field={`pillar_${p.key}_body`}  as="p"  multiline className="mt-2 text-[15px] font-medium text-slate-700 leading-relaxed block">{p.body}</Ed>
+                  </div>
                 </div>
               ))}
             </div>
