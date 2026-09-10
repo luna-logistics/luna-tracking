@@ -19,7 +19,7 @@ import { SupportAdminNotifier } from '@/components/SupportAdminNotifier';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { AdminGate } from '@/components/AdminGate';
 import { OnboardingGate, AccountTypeGate } from '@/components/AccountTypeGate';
-import { setVisitLanguage } from '@/i18n';
+import { setVisitLanguage, ensureLanguageLoaded } from '@/i18n';
 
 // Eager: homepage + login (critical paths).
 import Index from '@/pages/Index';
@@ -116,7 +116,12 @@ function LanguageSync() {
     const isEn = /^\/en(\/|$)/.test(location.pathname);
     if (isEn) {
       setVisitLanguage('en');
-      if (i18n.language !== 'en') i18n.changeLanguage('en');
+      if (i18n.language !== 'en') {
+        // Load the EN bundle before switching — otherwise a same-session
+        // FR→/en navigation would flash the FR fallback (EN is no longer
+        // eagerly imported, per the split-locales change).
+        void ensureLanguageLoaded('en').then(() => i18n.changeLanguage('en'));
+      }
     } else if (i18n.language !== 'fr') {
       // Only align back to FR when the URL is FR — respect an explicit EN
       // preference in localStorage on paths that happen to be language-neutral.

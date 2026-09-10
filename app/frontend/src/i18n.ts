@@ -2,7 +2,10 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
 import fr from './locales/fr.json';
-import en from './locales/en.json';
+// EN is loaded on demand via dynamic import — see ensureLanguageLoaded()
+// below. Keeping both bundles eagerly imported would ship ~85 KB of JSON
+// (parse-as-JS on V8, slow on mobile) for a visitor who will only ever
+// see one of them this session.
 
 export const SUPPORTED_LANGS = ['fr', 'en'] as const;
 export type SupportedLang = (typeof SUPPORTED_LANGS)[number];
@@ -27,14 +30,43 @@ const isLang = (v: unknown): v is SupportedLang =>
 function ls(): Storage | null { try { return window.localStorage; } catch { return null; } }
 function ss(): Storage | null { try { return window.sessionStorage; } catch { return null; } }
 
+/**
+ * Cache of language bundles that have been registered with i18next.
+ * FR ships in the eager bundle (imported at module top); everything
+ * else arrives via `ensureLanguageLoaded()` before we call
+ * `i18n.changeLanguage()` — otherwise a `/en/*` visitor would flash
+ * the FR fallback while EN parses.
+ */
+const loadedLanguages = new Set<SupportedLang>(['fr']);
+
+/**
+ * Load a language bundle on demand, register it with i18next, and
+ * resolve. Idempotent: repeat calls for a loaded language return
+ * synchronously (through the resolved Promise), so callers can await
+ * this before every changeLanguage without penalty.
+ *
+ * Vite emits a separate chunk for each dynamic import target — the EN
+ * JSON becomes its own asset that only /en visitors ever download.
+ */
+export async function ensureLanguageLoaded(lang: SupportedLang): Promise<void> {
+  if (loadedLanguages.has(lang)) return;
+  if (lang === 'en') {
+    const mod = await import('./locales/en.json');
+    if (loadedLanguages.has('en')) return;  // race: another caller won
+    i18n.addResourceBundle('en', 'translation', mod.default, true, true);
+    loadedLanguages.add('en');
+  }
+}
+
 /** Persist an EXPLICIT language choice (switcher). Applies it immediately. */
-export function setLanguagePreference(lang: SupportedLang): void {
+export async function setLanguagePreference(lang: SupportedLang): Promise<void> {
   try {
     ls()?.setItem(PREF_KEY, lang);
     ls()?.setItem(EXPLICIT_KEY, '1');
     ss()?.setItem(VISIT_KEY, lang);
   } catch { /* storage unavailable — non-fatal */ }
-  void i18n.changeLanguage(lang);
+  await ensureLanguageLoaded(lang);
+  await i18n.changeLanguage(lang);
 }
 
 /** Set the visit language (from a URL prefix) WITHOUT persisting a preference. */
@@ -65,12 +97,25 @@ i18n
   .init({
     resources: {
       fr: { translation: fr },
-      en: { translation: en },
+      // EN registered later by ensureLanguageLoaded() when needed.
     },
-    lng: getInitialLanguage(),
+    lng: 'fr',
     fallbackLng: 'fr',
     supportedLngs: ['fr', 'en'],
     interpolation: { escapeValue: false },
   });
+
+/**
+ * Ensure the URL-derived initial language is fully loaded and active.
+ * main.tsx awaits this before mount so `/en/*` visitors don't see a
+ * one-frame flash of FR content before the EN bundle registers.
+ * FR visitors (the majority) resolve on the next microtask — no delay.
+ */
+export async function bootI18n(): Promise<void> {
+  const initial = getInitialLanguage();
+  if (initial === 'fr') return;
+  await ensureLanguageLoaded(initial);
+  await i18n.changeLanguage(initial);
+}
 
 export default i18n;

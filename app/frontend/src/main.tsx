@@ -1,6 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import App from './App';
-import './i18n';
+import { bootI18n } from './i18n';
 import './index.css';
 import { allIndexableUrls } from '@/lib/url/routes';
 
@@ -40,4 +40,10 @@ if (!isPrerenderedUrl(window.location.pathname)) {
   stripFallbackSeoTags();
 }
 
-createRoot(document.getElementById('root')!).render(<App />);
+// Boot i18n before mount. For FR visitors this resolves synchronously
+// on the next microtask; for `/en/*` visitors we wait for the ~30-80 ms
+// dynamic EN bundle download so React never renders the FR fallback
+// where the prerendered HTML already shows EN content.
+bootI18n().finally(() => {
+  createRoot(document.getElementById('root')!).render(<App />);
+});
