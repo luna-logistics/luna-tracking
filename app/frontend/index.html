@@ -4,18 +4,22 @@
   <meta charset="UTF-8" />
 
   <!-- Favicons — generated from public/brand/logo-luna-250.png by
-       scripts/generate-favicons.py. Two colour variants: the blue phoenix
-       on transparent bg for light tab bars, a near-white recolour for
-       dark. `media="(prefers-color-scheme: ...)"` lets the browser pick
-       the one visible on the user's tab strip. The .ico fallback stays
-       the light variant so legacy tools that ignore `media` still show
-       something legible. -->
+       scripts/generate-favicons.py. Two independent declaration groups:
+       (1) Google/Bing crawlers want an unconditional, large (≥48px)
+       square icon at a stable URL — they IGNORE (or misread) any <link>
+       carrying a `media` attribute, so the 192x192 line and .ico stay
+       naked. (2) Browsers get the dark-mode-aware 16/32 variants for
+       the tab strip via `prefers-color-scheme`. Order matters: put the
+       unconditional Google-friendly declarations first, so if a parser
+       stops early it still picks a compliant icon. -->
   <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png"      media="(prefers-color-scheme: light)" />
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png"      media="(prefers-color-scheme: light)" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32-dark.png" media="(prefers-color-scheme: dark)" />
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16-dark.png" media="(prefers-color-scheme: dark)" />
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
 
   <meta name="theme-color" content="#002F67" />
