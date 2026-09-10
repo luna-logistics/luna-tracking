@@ -22,6 +22,18 @@
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16-dark.png" media="(prefers-color-scheme: dark)" />
   <link rel="manifest" href="/site.webmanifest" />
 
+  <!-- Warm the TLS + DNS handshake to Supabase before any JS runs.
+       Both Auth (getSession on mount) and SiteContentContext fire
+       queries against this origin in the first-paint window; without
+       this hint the browser only opens the connection after the JS
+       parser hits the fetch call, costing ~1 RTT (~150 ms on 4G,
+       ~300 ms on 3G). The URL is hard-coded — same project we already
+       reference from src/lib/supabase.ts at runtime — because Vite
+       can't template index.html. dns-prefetch stays as a fallback for
+       browsers that ignore preconnect. -->
+  <link rel="preconnect" href="https://zlpzajjfzezjildvchoz.supabase.co" crossorigin />
+  <link rel="dns-prefetch" href="https://zlpzajjfzezjildvchoz.supabase.co" />
+
   <meta name="theme-color" content="#002F67" />
   <meta name="msapplication-TileColor" content="#002F67" />
 
