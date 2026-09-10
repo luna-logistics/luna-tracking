@@ -48,20 +48,49 @@
        each prerendered index.html by src/prerender.tsx and swapped at runtime
        by react-helmet-async on SPA navigation — no defaults belong here. -->
 
-  <!-- Critical first-paint style. Two goals, one tiny inline block that
-       never blocks another request:
-         1. Paint the app's off-white ground immediately, so the ~100 ms
-            between HTML arrival and React mount doesn't flash the raw
-            white body background.
-         2. Hide the SEO body skeleton (H1 + H2s injected by
-            scripts/prerender-metas.mjs) from human eyes during that same
-            gap — it stays in the DOM for crawlers (Bing, Google's first
-            non-JS pass, social preview bots), but visibility:hidden keeps
-            it off the paint. React clears #root on mount, so this rule
-            has no runtime cost after hydration. -->
+  <!-- Critical first-paint style. Styles the prerendered SEO skeleton
+       (H1 + H2s that scripts/prerender-metas.mjs injects inside #root)
+       so it paints as real, meaningful content on the very first HTML
+       frame — the H1 becomes the LCP candidate and FCP fires without
+       waiting for the eager JS to arrive.
+
+       This replaces the earlier `visibility: hidden` fix: hiding those
+       headings did stop the raw-serif flash but disqualified the H1
+       for FCP/LCP, so both metrics had to wait for React to mount and
+       re-render the real hero (~1.2 s cost on mobile). Now the skeleton
+       IS the first paint; when React mounts, createRoot().render()
+       wholesale-replaces #root's children (element replacement, not a
+       layout shift — CLS stays 0), and the `#root > h1` / `#root > h2`
+       selectors no longer match anything, so these rules have zero
+       runtime cost after hydration.
+
+       Colors match Luna's palette (luna-navy #002F67). Neutral centered
+       layout works on every page (each prerendered subpage gets its own
+       page_title H1, e.g. "Demander un devis" on /tarifs). The real
+       homepage hero paints white-on-navy over a gradient right after
+       React mounts — the swap reads as a stylistic upgrade, not a
+       broken layout. -->
   <style>
     html, body { background: #fafafa; margin: 0; }
-    #root > h1, #root > h2 { visibility: hidden; }
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+    #root > h1 {
+      margin: 0;
+      padding: 5rem 1.5rem 1rem;
+      font-size: clamp(2rem, 6vw, 3.5rem);
+      font-weight: 700;
+      line-height: 1.15;
+      color: #002F67;
+      text-align: center;
+    }
+    #root > h2 {
+      margin: 0;
+      padding: 0.5rem 1.5rem;
+      font-size: clamp(1.125rem, 2.5vw, 1.5rem);
+      font-weight: 600;
+      line-height: 1.3;
+      color: #334155;
+      text-align: center;
+    }
   </style>
 </head>
 
