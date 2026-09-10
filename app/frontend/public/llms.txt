@@ -1,0 +1,38 @@
+# Luna Tracking Logistics
+
+> Partenaire fret entre la Belgique et la République Démocratique du Congo. Transport aérien, maritime et terrestre, suivi transparent à chaque étape, et achat-envoi de produits belges vers la RDC.
+
+Luna Tracking Logistics est une entreprise de logistique basée à Bruxelles (Ixelles), spécialisée dans le fret Belgique ↔ Congo. L'offre couvre quatre services complémentaires — fret aérien, fret maritime, transport terrestre, suivi en ligne — plus une boutique Shop & Ship qui permet aux particuliers d'expédier des produits belges à leur famille au Congo sans quitter leur pays d'origine, et un module de réexpédition internationale.
+
+Le site est bilingue français / anglais : chaque page dispose d'un équivalent sous le préfixe `/en/`.
+
+## Pages principales
+
+- [Accueil](https://lunatrackinglogistics.com/): présentation des quatre services et points d'entrée du site.
+- [Suivi de colis](https://lunatrackinglogistics.com/suivi): recherche par numéro de tracking ou par lien partageable, avec statut en temps réel.
+- [Calculateur de tarif](https://lunatrackinglogistics.com/calculateur): estimation instantanée du coût d'un envoi selon le mode, le poids et la destination.
+- [Tarifs](https://lunatrackinglogistics.com/tarifs): grille de prix par service et par corridor.
+- [Contact](https://lunatrackinglogistics.com/contact): formulaire, adresse à Ixelles, horaires d'ouverture.
+
+## Services
+
+- [Achat-envoi (Shop & Ship)](https://lunatrackinglogistics.com/achat-envoi): boutique de produits belges livrés directement à une adresse au Congo — riz, huile, farine, savon de Marseille, dentifrice, shampoing, etc.
+- [Réexpédition internationale](https://lunatrackinglogistics.com/reexpedition): consolidation de colis via une adresse belge que Luna transfère ensuite au Congo.
+
+## Ressources
+
+- [Blog Luna Tracking](https://lunatrackinglogistics.com/blog): guides pratiques et actualités du fret Belgique-Congo.
+- [Documentation API](https://lunatrackinglogistics.com/docs/api): référence OpenAPI 3.1 pour intégrer Luna Tracking à un système externe (tracking, quotes, calculateur de tarif, webhooks).
+- [Sitemap XML](https://lunatrackinglogistics.com/sitemap.xml): liste complète des URLs indexables (français et anglais).
+
+## English pages
+
+- [Home](https://lunatrackinglogistics.com/en)
+- [Tracking](https://lunatrackinglogistics.com/en/tracking)
+- [Rate calculator](https://lunatrackinglogistics.com/en/calculator)
+- [Pricing](https://lunatrackinglogistics.com/en/pricing)
+- [Shop & Ship](https://lunatrackinglogistics.com/en/shop-and-ship)
+- [International forwarding](https://lunatrackinglogistics.com/en/international-forwarding)
+- [Blog](https://lunatrackinglogistics.com/en/blog)
+- [Contact](https://lunatrackinglogistics.com/en/contact)
+- [API documentation](https://lunatrackinglogistics.com/en/docs/api)
