@@ -35,6 +35,22 @@
   <!-- SEO tags (title, description, canonical, hreflang, og:*) are baked into
        each prerendered index.html by src/prerender.tsx and swapped at runtime
        by react-helmet-async on SPA navigation — no defaults belong here. -->
+
+  <!-- Critical first-paint style. Two goals, one tiny inline block that
+       never blocks another request:
+         1. Paint the app's off-white ground immediately, so the ~100 ms
+            between HTML arrival and React mount doesn't flash the raw
+            white body background.
+         2. Hide the SEO body skeleton (H1 + H2s injected by
+            scripts/prerender-metas.mjs) from human eyes during that same
+            gap — it stays in the DOM for crawlers (Bing, Google's first
+            non-JS pass, social preview bots), but visibility:hidden keeps
+            it off the paint. React clears #root on mount, so this rule
+            has no runtime cost after hydration. -->
+  <style>
+    html, body { background: #fafafa; margin: 0; }
+    #root > h1, #root > h2 { visibility: hidden; }
+  </style>
 </head>
 
 <body>
