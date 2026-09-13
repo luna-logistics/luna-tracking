@@ -95,3 +95,17 @@ export async function deleteEndpoint(id: string): Promise<void> {
   const { error } = await supabase.from('webhook_endpoints').delete().eq('id', id);
   if (error) throw error;
 }
+
+/** Enqueue a test 'ping' delivery to one endpoint. The background worker
+ *  sends it within ~1 minute with the same signature as a real event. */
+export async function sendTestWebhook(endpointId: string): Promise<string> {
+  const { data, error } = await supabase.rpc('send_test_webhook', { p_endpoint: endpointId });
+  if (error) throw error;
+  return data as string;
+}
+
+/** Re-queue a delivery that failed so the worker attempts it again. */
+export async function replayDelivery(deliveryId: string): Promise<void> {
+  const { error } = await supabase.rpc('replay_webhook_delivery', { p_delivery: deliveryId });
+  if (error) throw error;
+}

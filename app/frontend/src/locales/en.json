@@ -549,7 +549,14 @@
     "d_attempts": "Attempts",
     "d_next_retry": "Next retry",
     "no_deliveries": "No deliveries yet.",
-    "retry_hint": "Automatic retries with exponential backoff (1, 2, 4, 8, 16, 32 min), up to 6 attempts. After that, the event is marked as failed."
+    "retry_hint": "Automatic retries with exponential backoff (1, 2, 4, 8, 16, 32 min), up to 6 attempts. After that, the event is marked as failed.",
+    "d_actions": "Actions",
+    "send_test": "Send a test",
+    "send_test_title": "Send a test notification to this endpoint",
+    "test_sent": "Test queued — it will be sent within a minute.",
+    "replay": "Retry",
+    "replay_title": "Retry this delivery now",
+    "replayed": "Delivery re-queued — a new attempt is imminent."
   },
   "business_api_keys": {
     "meta_title": "API keys — Luna Tracking Logistics",

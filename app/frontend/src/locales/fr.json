@@ -549,7 +549,14 @@
     "d_attempts": "Tentatives",
     "d_next_retry": "Prochain essai",
     "no_deliveries": "Aucune livraison pour l'instant.",
-    "retry_hint": "Réessais automatiques avec backoff exponentiel (1, 2, 4, 8, 16, 32 min) jusqu'à 6 tentatives. Passé ce cap, l'événement est marqué comme échoué."
+    "retry_hint": "Réessais automatiques avec backoff exponentiel (1, 2, 4, 8, 16, 32 min) jusqu'à 6 tentatives. Passé ce cap, l'événement est marqué comme échoué.",
+    "d_actions": "Actions",
+    "send_test": "Envoyer un test",
+    "send_test_title": "Envoyer une notification de test à cet endpoint",
+    "test_sent": "Test en file d'attente — il partira dans moins d'une minute.",
+    "replay": "Relancer",
+    "replay_title": "Réessayer cette livraison maintenant",
+    "replayed": "Livraison relancée — nouvel essai imminent."
   },
   "business_api_keys": {
     "meta_title": "Clés API — Luna Tracking Logistics",

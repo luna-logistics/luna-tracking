@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
   Webhook, Plus, Trash2, Copy, Check, Loader2, ShieldAlert, Info,
   RotateCcw, ToggleLeft, ToggleRight, CheckCircle2, AlertTriangle, Clock,
+  Send, RefreshCw,
 } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,7 @@ import { toast } from '@/components/ui/sonner';
 import { useBusiness } from '@/contexts/BusinessContext';
 import {
   fetchEndpoints, fetchRecentDeliveries, createEndpoint, rotateSecret,
-  setEndpointActive, deleteEndpoint,
+  setEndpointActive, deleteEndpoint, sendTestWebhook, replayDelivery,
   WEBHOOK_EVENTS, type WebhookEndpoint, type WebhookDelivery, type WebhookEvent,
 } from '@/lib/webhooks';
 import { errorMessage } from '@/lib/errors';
@@ -115,14 +116,15 @@ X-Webhook-Attempt:   1`}
                 <th className="text-left px-4 py-2 font-semibold">{t('business_webhooks.d_status')}</th>
                 <th className="text-right px-4 py-2 font-semibold">{t('business_webhooks.d_attempts')}</th>
                 <th className="text-left px-4 py-2 font-semibold">{t('business_webhooks.d_next_retry')}</th>
+                {canManage && <th className="text-right px-4 py-2 font-semibold">{t('business_webhooks.d_actions')}</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {loading && <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-500">{t('common.loading')}</td></tr>}
+              {loading && <tr><td colSpan={canManage ? 6 : 5} className="px-4 py-8 text-center text-slate-500">{t('common.loading')}</td></tr>}
               {!loading && deliveries.length === 0 && (
-                <tr><td colSpan={5} className="px-4 py-10 text-center text-slate-500">{t('business_webhooks.no_deliveries')}</td></tr>
+                <tr><td colSpan={canManage ? 6 : 5} className="px-4 py-10 text-center text-slate-500">{t('business_webhooks.no_deliveries')}</td></tr>
               )}
-              {deliveries.map((d) => <DeliveryRow key={d.id} d={d} lang={i18n.language} />)}
+              {deliveries.map((d) => <DeliveryRow key={d.id} d={d} lang={i18n.language} canManage={canManage} onChanged={reload} />)}
             </tbody>
           </table>
         </div>
@@ -266,6 +268,13 @@ function EndpointRow({
     finally { setBusy(false); }
   };
 
+  const test = async () => {
+    setBusy(true);
+    try { await sendTestWebhook(e.id); toast.success(t('business_webhooks.test_sent')); await onChanged(); }
+    catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
+    finally { setBusy(false); }
+  };
+
   const remove = async () => {
     if (!confirm(t('business_webhooks.delete_confirm'))) return;
     setBusy(true);
@@ -298,6 +307,11 @@ function EndpointRow({
       </td>
       {canManage && (
         <td className="px-4 py-3 text-right whitespace-nowrap space-x-1">
+          {e.is_active && (
+            <Button size="sm" variant="outline" onClick={test} disabled={busy} title={t('business_webhooks.send_test_title')}>
+              <Send className="h-3.5 w-3.5" />{t('business_webhooks.send_test')}
+            </Button>
+          )}
           <Button size="sm" variant="outline" onClick={toggle} disabled={busy} title={e.is_active ? t('business_webhooks.pause') : t('business_webhooks.resume')}>
             {e.is_active ? <ToggleRight className="h-3.5 w-3.5" /> : <ToggleLeft className="h-3.5 w-3.5" />}
           </Button>
@@ -313,10 +327,19 @@ function EndpointRow({
   );
 }
 
-function DeliveryRow({ d, lang }: { d: WebhookDelivery; lang: string }) {
+function DeliveryRow({
+  d, lang, canManage, onChanged,
+}: {
+  d: WebhookDelivery; lang: string; canManage: boolean; onChanged: () => Promise<void>;
+}) {
+  const { t } = useTranslation();
+  const [busy, setBusy] = useState(false);
   const delivered = d.delivered_at != null;
   const failed = !delivered && d.attempts >= 6;
   const pending = !delivered && !failed;
+  // Re-queue is offered for anything that has been tried at least once but
+  // never got through — a hard failure, or a delivery mid-backoff you want now.
+  const canReplay = canManage && !delivered && d.attempts > 0;
   const Icon = delivered ? CheckCircle2 : failed ? AlertTriangle : Clock;
   const badge = delivered
     ? 'bg-emerald-100 text-emerald-800'
@@ -325,6 +348,14 @@ function DeliveryRow({ d, lang }: { d: WebhookDelivery; lang: string }) {
     ? `${d.last_status_code ?? 200}`
     : failed ? `failed · ${d.last_status_code ?? d.last_error ?? ''}`
              : `pending · ${d.last_error ?? d.last_status_code ?? '…'}`;
+
+  const replay = async () => {
+    setBusy(true);
+    try { await replayDelivery(d.id); toast.success(t('business_webhooks.replayed')); await onChanged(); }
+    catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
+    finally { setBusy(false); }
+  };
+
   return (
     <tr>
       <td className="px-4 py-2 text-xs text-slate-500 whitespace-nowrap">{new Date(d.created_at).toLocaleString(lang)}</td>
@@ -339,6 +370,16 @@ function DeliveryRow({ d, lang }: { d: WebhookDelivery; lang: string }) {
       <td className="px-4 py-2 text-xs text-slate-500 whitespace-nowrap">
         {pending && d.next_retry_at ? new Date(d.next_retry_at).toLocaleString(lang) : '—'}
       </td>
+      {canManage && (
+        <td className="px-4 py-2 text-right whitespace-nowrap">
+          {canReplay && (
+            <Button size="sm" variant="outline" onClick={replay} disabled={busy} title={t('business_webhooks.replay_title')}>
+              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+              {t('business_webhooks.replay')}
+            </Button>
+          )}
+        </td>
+      )}
     </tr>
   );
 }
