@@ -8,7 +8,7 @@ import { toast } from '@/components/ui/sonner';
 import { useBusiness } from '@/contexts/BusinessContext';
 import {
   fetchInvoice, fetchInvoiceLines, issueInvoice, deleteInvoice, updateInvoiceStatus,
-  INVOICE_STATUS_STYLES, type Invoice, type InvoiceLine, type Party,
+  isInvoiceOverdue, INVOICE_STATUS_STYLES, type Invoice, type InvoiceLine, type Party,
 } from '@/lib/invoices';
 import { fetchCustomer, type BusinessCustomer } from '@/lib/customers';
 import { errorMessage } from '@/lib/errors';
@@ -102,6 +102,11 @@ export default function BusinessInvoiceDetail() {
         <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-semibold', INVOICE_STATUS_STYLES[invoice.status])}>
           {t(`invoice_status.${invoice.status}`)}
         </span>
+        {isInvoiceOverdue(invoice) && (
+          <span className="rounded-full bg-red-100 text-red-800 px-2 py-0.5 text-[11px] font-semibold">
+            {t('business_invoices.overdue_badge')}
+          </span>
+        )}
         {canWrite && (
           <div className="ml-auto flex flex-wrap gap-2">
             {invoice.status === 'draft' && (

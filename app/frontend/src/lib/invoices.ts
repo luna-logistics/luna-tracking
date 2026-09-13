@@ -68,6 +68,17 @@ export type InvoiceLine = {
 export type InvoiceInput = Omit<Invoice, 'id' | 'business_id' | 'number' | 'subtotal' | 'vat_total' | 'total' | 'created_by' | 'created_at' | 'updated_at'> & { id?: string };
 export type InvoiceLineInput = Omit<InvoiceLine, 'id' | 'invoice_id' | 'created_at' | 'updated_at'> & { id?: string };
 
+/** An invoice is "overdue" when it has been issued (not paid/cancelled)
+ *  and its due date is in the past. Computed on read — we never mutate a
+ *  stored issued invoice, so the persisted status stays 'issued' and the
+ *  document remains immutable; only the UI marks it late. Returns false
+ *  when there is no due date (nothing reliable to compare against). */
+export function isInvoiceOverdue(inv: Pick<Invoice, 'status' | 'due_on'>, today = new Date()): boolean {
+  if (inv.status !== 'issued' || !inv.due_on) return false;
+  const due = new Date(inv.due_on + 'T23:59:59');
+  return due.getTime() < today.getTime();
+}
+
 // ─── CRUD ──────────────────────────────────────────────────────────
 
 export async function fetchInvoices(businessId: string): Promise<Invoice[]> {

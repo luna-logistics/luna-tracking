@@ -6,6 +6,7 @@ import { SEO } from '@/components/SEO';
 import { InfoHint } from '@/components/InfoHint';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { supabase } from '@/lib/supabase';
+import { isInvoiceOverdue } from '@/lib/invoices';
 import { fetchReport } from '@/lib/reports';
 import { urlFor } from '@/lib/url/routes';
 import type { BusinessAction } from '@/lib/business-permissions';
@@ -22,6 +23,7 @@ type Kpis = {
   shipmentsInProgress: number | null;
   quotesPending: number | null;
   invoicesUnpaid: number | null;
+  invoicesOverdue: number | null;
   profitYtd: number | null;
   currency: string;
 };
@@ -52,19 +54,23 @@ export default function BusinessDashboard() {
               .eq('business_id', bizId).in('status', ['draft', 'sent'])
           : Promise.resolve({ count: null }),
         can('invoices.read')
-          ? supabase.from('invoices').select('id', { count: 'exact', head: true })
+          ? supabase.from('invoices').select('status, due_on')
               .eq('business_id', bizId).in('status', ['issued', 'overdue'])
-          : Promise.resolve({ count: null }),
+          : Promise.resolve({ data: null }),
         can('reports.read') ? fetchReport(bizId, 'ytd') : Promise.resolve(null),
       ]);
       if (cancelled) return;
       const profit = report
         ? Number(report.totals.invoices_revenue_ex_vat) - Number(report.totals.expenses_total)
         : null;
+      const invRows = ('data' in inv ? inv.data : null) as { status: string; due_on: string | null }[] | null;
+      const unpaid = invRows ? invRows.length : null;
+      const overdue = invRows ? invRows.filter((r) => isInvoiceOverdue({ status: r.status as never, due_on: r.due_on })).length : null;
       setKpis({
-        shipmentsInProgress: ship.count ?? null,
-        quotesPending: quote.count ?? null,
-        invoicesUnpaid: inv.count ?? null,
+        shipmentsInProgress: ('count' in ship ? ship.count : null) ?? null,
+        quotesPending: ('count' in quote ? quote.count : null) ?? null,
+        invoicesUnpaid: unpaid,
+        invoicesOverdue: overdue,
         profitYtd: profit,
         currency: report?.currency ?? current?.currency ?? 'EUR',
       });
@@ -79,10 +85,12 @@ export default function BusinessDashboard() {
   const fmtMoney = (n: number) =>
     `${n.toLocaleString(lang === 'en' ? 'en' : 'fr-BE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ${kpis?.currency ?? current.currency}`;
 
-  const cards: { key: BusinessAction; label: string; value: number | null; money?: boolean; hint?: string }[] = [
+  const overdue = kpis?.invoicesOverdue ?? 0;
+  const cards: { key: BusinessAction; label: string; value: number | null; money?: boolean; hint?: string; alert?: string }[] = [
     { key: 'shipments.read', label: t('business_dashboard.kpi_shipments_in_progress'), value: kpis?.shipmentsInProgress ?? null },
     { key: 'quotes.read',    label: t('business_dashboard.kpi_quotes_pending'),        value: kpis?.quotesPending ?? null },
-    { key: 'invoices.read',  label: t('business_dashboard.kpi_invoices_unpaid'),       value: kpis?.invoicesUnpaid ?? null },
+    { key: 'invoices.read',  label: t('business_dashboard.kpi_invoices_unpaid'),       value: kpis?.invoicesUnpaid ?? null,
+      alert: overdue > 0 ? t('business_dashboard.kpi_invoices_overdue', { count: overdue }) : undefined },
     { key: 'reports.read',   label: t('business_dashboard.kpi_estimated_profit'),      value: kpis?.profitYtd ?? null, money: true, hint: t('business_dashboard.kpi_estimated_profit_hint') },
   ];
   const visibleCards = cards.filter((c) => can(c.key));
@@ -126,6 +134,9 @@ export default function BusinessDashboard() {
                   ? <span className="text-slate-300">…</span>
                   : c.money ? fmtMoney(c.value) : c.value.toLocaleString()}
               </div>
+              {!loading && c.alert && (
+                <div className="mt-1 text-[11px] font-semibold text-red-700">{c.alert}</div>
+              )}
             </div>
           ))}
         </div>

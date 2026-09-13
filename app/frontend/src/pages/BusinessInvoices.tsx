@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useBusiness } from '@/contexts/BusinessContext';
-import { fetchInvoices, INVOICE_STATUSES, INVOICE_STATUS_STYLES, type Invoice, type InvoiceStatus } from '@/lib/invoices';
+import { fetchInvoices, isInvoiceOverdue, INVOICE_STATUSES, INVOICE_STATUS_STYLES, type Invoice, type InvoiceStatus } from '@/lib/invoices';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 
@@ -121,6 +121,11 @@ export default function BusinessInvoices() {
                   <span className={cn('inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold', INVOICE_STATUS_STYLES[r.status])}>
                     {t(`invoice_status.${r.status}`)}
                   </span>
+                  {isInvoiceOverdue(r) && (
+                    <span className="ml-1 inline-block rounded-full bg-red-100 text-red-800 px-2 py-0.5 text-[11px] font-semibold">
+                      {t('business_invoices.overdue_badge')}
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">
                   {r.issued_on ? new Date(r.issued_on).toLocaleDateString(lang) : '—'}
