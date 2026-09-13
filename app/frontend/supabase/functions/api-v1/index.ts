@@ -40,7 +40,7 @@ const OPENAPI_SPEC = {
     title: 'Luna Tracking API',
     version: '1.0.0',
     summary: 'Freight logistics API for Luna Tracking Logistics.',
-    description: 'Read-only public API today (shipments, quotes, rates, tracking, usage). Write endpoints, webhooks setup via API, and paid tiers are on the roadmap. Documentation: https://lunatrackinglogistics.com/docs/api',
+    description: 'Read-only public API today (shipments, quotes, rates, tracking, usage). Every scoped endpoint is enforced server-side: an ApiKey may only reach the endpoints its scopes cover, and only its own business data. Write endpoints, webhooks setup via API, and paid tiers are on the roadmap. Documentation: https://lunatrackinglogistics.com/docs/api',
     contact: { name: 'Luna Tracking Logistics', email: 'info@lunatrackinglogistics.com', url: 'https://lunatrackinglogistics.com/contact' },
     license: { name: 'Proprietary', url: 'https://lunatrackinglogistics.com/mentions-legales' },
   },
@@ -51,8 +51,8 @@ const OPENAPI_SPEC = {
   tags: [
     { name: 'System', description: 'Health & discovery.' },
     { name: 'Account', description: 'Caller identity.' },
-    { name: 'Shipments', description: 'Shipment records (business-scoped).' },
-    { name: 'Customers', description: 'B2B customer address book (business-scoped).' },
+    { name: 'Shipments', description: 'Shipment records (business-scoped). Requires the shipments.read scope for ApiKey callers.' },
+    { name: 'Customers', description: 'B2B customer address book (business-scoped). Requires the customers.read scope for ApiKey callers.' },
     { name: 'Rates', description: 'Public rate calculator.' },
     { name: 'Tracking', description: 'Public shipment tracking by opt-in token.' },
     { name: 'Usage', description: 'API call telemetry (business-scoped).' },
@@ -75,7 +75,7 @@ const OPENAPI_SPEC = {
     responses: {
       Unauthorized: { description: 'Missing or invalid credentials.',
         content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
-      Forbidden: { description: 'Credentials valid but insufficient scope.',
+      Forbidden: { description: 'Credentials valid but insufficient scope, or scoped to another business.',
         content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
       NotFound: { description: 'Resource does not exist or is not visible.',
         content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
@@ -201,13 +201,15 @@ const OPENAPI_SPEC = {
           meta: { type: 'object', properties: { count: { type: 'integer' }, limit: { type: 'integer' } } },
         } } } } },
         '400': { $ref: '#/components/responses/BadRequest' },
-        '401': { $ref: '#/components/responses/Unauthorized' } } } },
+        '401': { $ref: '#/components/responses/Unauthorized' },
+        '403': { $ref: '#/components/responses/Forbidden' } } } },
     '/shipments/{id}': { get: { tags: ['Shipments'], summary: 'Get a shipment by id',
       parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
       responses: {
         '200': { description: 'OK', content: { 'application/json': {} } },
         '400': { $ref: '#/components/responses/BadRequest' },
         '401': { $ref: '#/components/responses/Unauthorized' },
+        '403': { $ref: '#/components/responses/Forbidden' },
         '404': { $ref: '#/components/responses/NotFound' } } } },
     '/customers': { get: { tags: ['Customers'], summary: 'List customers',
       parameters: [
@@ -218,11 +220,14 @@ const OPENAPI_SPEC = {
       responses: { '200': { description: 'OK', content: { 'application/json': { schema: { type: 'object', properties: {
         data: { type: 'array', items: { $ref: '#/components/schemas/Customer' } },
         meta: { type: 'object' },
-      } } } } } } } },
+      } } } } },
+        '401': { $ref: '#/components/responses/Unauthorized' },
+        '403': { $ref: '#/components/responses/Forbidden' } } } },
     '/customers/{id}': { get: { tags: ['Customers'], summary: 'Get a customer by id',
       parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
       responses: {
         '200': { description: 'OK', content: { 'application/json': {} } },
+        '403': { $ref: '#/components/responses/Forbidden' },
         '404': { $ref: '#/components/responses/NotFound' } } } },
     '/rates': { get: { tags: ['Rates'], summary: 'Freight rate calculator', security: [],
       parameters: [
@@ -356,9 +361,14 @@ async function extractAuth(req: Request): Promise<{ auth: Auth | null; supabase:
 }
 
 /** Fire-and-forget log entry. Never throws so a slow logger can't
- *  make the API request itself fail. */
+ *  make the API request itself fail. `businessId` is resolved by the
+ *  caller: for an ApiKey it is the key's business; for a JWT it is the
+ *  validated `business_id` query param, so a business owner testing the
+ *  API from their own session now sees those calls attributed to their
+ *  business instead of vanishing under a NULL. */
 function logCall(
   auth: Auth | null,
+  businessId: string | null,
   method: string,
   path: string,
   status: number,
@@ -371,13 +381,24 @@ function logCall(
     );
     void anon.rpc('log_api_call', {
       p_api_key_id: auth?.kind === 'api_key' ? auth.api_key_id : null,
-      p_business_id: auth?.kind === 'api_key' ? auth.business_id : null,
+      p_business_id: businessId,
       p_method: method,
       p_path: path,
       p_status: status,
       p_response_ms: elapsedMs,
     }).then(() => {}, () => {});
   } catch { /* ignore */ }
+}
+
+/** Scope gate for ApiKey callers. JWT callers are interactive users
+ *  whose access is already bounded by RLS membership, so they are not
+ *  scope-limited. An ApiKey may only reach an endpoint whose scope it
+ *  was granted — e.g. a `tracking.read` key cannot list shipments. */
+function requireScope(ctx: Ctx, scope: string): Response | null {
+  if (ctx.auth?.kind === 'api_key' && !ctx.auth.permissions.includes(scope)) {
+    return fail('forbidden', `this API key does not have the "${scope}" permission`, 403);
+  }
+  return null;
 }
 
 // ─── Response helpers ────────────────────────────────────────────────
@@ -436,6 +457,7 @@ const me: Handler = async (ctx) => {
 
 const listShipments: Handler = async (ctx) => {
   if (!ctx.auth || !ctx.supabase) return fail('unauthorized', 'authentication required', 401);
+  const scopeErr = requireScope(ctx, 'shipments.read'); if (scopeErr) return scopeErr;
   const url = new URL(ctx.req.url);
   const scoped = resolveBusinessId(ctx, url.searchParams.get('business_id'));
   if ('response' in scoped) return scoped.response;
@@ -456,6 +478,7 @@ const listShipments: Handler = async (ctx) => {
 
 const getShipment: Handler = async (ctx) => {
   if (!ctx.auth || !ctx.supabase) return fail('unauthorized', 'authentication required', 401);
+  const scopeErr = requireScope(ctx, 'shipments.read'); if (scopeErr) return scopeErr;
   const id = ctx.segments[1];
   if (!isUuid(id)) return fail('bad_id', 'invalid shipment id', 400);
   let q = ctx.supabase.from('shipments').select('*').eq('id', id);
@@ -470,6 +493,7 @@ const getShipment: Handler = async (ctx) => {
 
 const listCustomers: Handler = async (ctx) => {
   if (!ctx.auth || !ctx.supabase) return fail('unauthorized', 'authentication required', 401);
+  const scopeErr = requireScope(ctx, 'customers.read'); if (scopeErr) return scopeErr;
   const url = new URL(ctx.req.url);
   const scoped = resolveBusinessId(ctx, url.searchParams.get('business_id'));
   if ('response' in scoped) return scoped.response;
@@ -490,6 +514,7 @@ const listCustomers: Handler = async (ctx) => {
 
 const getCustomer: Handler = async (ctx) => {
   if (!ctx.auth || !ctx.supabase) return fail('unauthorized', 'authentication required', 401);
+  const scopeErr = requireScope(ctx, 'customers.read'); if (scopeErr) return scopeErr;
   const id = ctx.segments[1];
   if (!isUuid(id)) return fail('bad_id', 'invalid customer id', 400);
   let q = ctx.supabase.from('business_customers').select('*').eq('id', id);
@@ -746,7 +771,16 @@ serve(async (req) => {
   const method = req.method.toUpperCase() as Method;
 
   const finish = (auth: Auth | null, res: Response): Response => {
-    logCall(auth, method, path, res.status, Date.now() - started);
+    // Attribute the call to a business: the key's own for ApiKey, the
+    // validated business_id query param for a JWT session (so an owner's
+    // own API tests show up in their usage), else null.
+    let businessId: string | null = null;
+    if (auth?.kind === 'api_key') businessId = auth.business_id;
+    else if (auth?.kind === 'jwt') {
+      const qp = url.searchParams.get('business_id');
+      if (qp && isUuid(qp)) businessId = qp;
+    }
+    logCall(auth, businessId, method, path, res.status, Date.now() - started);
     return res;
   };
 
