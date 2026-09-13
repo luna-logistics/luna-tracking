@@ -126,15 +126,17 @@
     "page_title": "Contact us",
     "page_intro": "A question about a shipment, a quote in progress, a tracking issue? We reply fast.",
     "email_title": "Email",
-    "address_title": "Address",
+    "address_title": "Our office",
     "instagram_title": "Instagram",
     "hours_title": "Opening hours",
     "hours_body": "Monday to Friday, 9am to 6pm. Email reply within one business day.",
-    "phone_title": "Phone / WhatsApp",
-    "phone": "",
+    "phone_title": "Phone",
+    "phone": "+32 2 241 96 72",
     "phone_call_cta": "Call",
     "phone_whatsapp_cta": "Message on WhatsApp",
-    "address_maps_cta": "Open in Google Maps"
+    "address_maps_cta": "Open in Google Maps",
+    "whatsapp": "",
+    "address_note": "Parcel reception and handling."
   },
   "auth": {
     "login_title": "Sign in",
@@ -1739,7 +1741,7 @@
     "last_updated": "Last updated: {{date}}",
     "missing_hint": "Not filled in yet — complete it in Admin → Content → Legal information.",
     "registered_office": "Registered office",
-    "agency": "Agency"
+    "agency": "Office (parcel handling)"
   },
   "legal_notice": {
     "meta_title": "Legal notice — Luna Tracking Logistics",

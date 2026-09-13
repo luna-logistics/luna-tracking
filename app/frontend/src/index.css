@@ -4,10 +4,11 @@
 
 @layer base {
   :root {
-    /* System-font stack for now — flag as future chantier if brand fonts land.
-       Kept as CSS variables so a future theme swap doesn't touch component code. */
-    --font-heading: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    /* Brand font per the 12.09.2026 moodboard: Poppins everywhere.
+       Self-hosted (@fontsource/poppins, imported in main.tsx) — no
+       third-party request, latin subset only. */
+    --font-heading: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --font-body: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 
     /* Neutral off-white page ground — pure white makes brand navy bands lose
        their edge; a very soft slate warms it back up. */
@@ -32,7 +33,7 @@
     --muted: 210 30% 94%;
     --muted-foreground: 215 16% 47%;
 
-    --accent: 187 96% 51%;
+    --accent: 183 92% 53%;
     --accent-foreground: 213 100% 15%;
 
     --destructive: 0 72% 51%;

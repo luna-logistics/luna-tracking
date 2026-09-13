@@ -51,17 +51,40 @@ export default {
         },
         // Luna brand — kept as hex tokens so hero gradients / accent blocks can
         // pull the exact brand colour without going through HSL conversion.
+        // Palette from the 12.09.2026 LTL moodboard (8 swatches, sampled).
         luna: {
-          navy: '#002F67',
-          'navy-deep': '#272C56',
-          blue: '#2A79BB',
-          cyan: '#0EEEF8',
-          'cyan-light': '#5DDDEA',
+          navy: '#002F67',        // #012E66 on the board — flyer hex kept
+          'navy-deep': '#041C64',
+          steel: '#3C6697',
+          blue: '#2077C3',
+          teal: '#20AFDA',
+          cyan: '#1AEBF5',
+          'cyan-light': '#5DDDEA', // readable accent text on navy (not on the board)
+          slate: '#41536F',
         },
       },
       backgroundImage: {
-        'luna-gradient': 'linear-gradient(135deg, #002F67 0%, #2A79BB 55%, #0EEEF8 100%)',
-        'luna-gradient-soft': 'linear-gradient(135deg, #272C56 0%, #2A79BB 60%, #5DDDEA 100%)',
+        'luna-gradient': 'linear-gradient(135deg, #002F67 0%, #2077C3 55%, #1AEBF5 100%)',
+        'luna-gradient-soft': 'linear-gradient(135deg, #041C64 0%, #2077C3 60%, #20AFDA 100%)',
+        // Wordmark gradient (LUNA in the logo): blue → cyan, left to right.
+        'luna-wordmark': 'linear-gradient(90deg, #2077C3 0%, #1AEBF5 100%)',
+      },
+      // Moodboard type scale: titles 32, subtitles 20, text 13-15. Mapped
+      // onto Tailwind's steps so existing class names keep working.
+      fontSize: {
+        xs:   ['0.75rem',   { lineHeight: '1.4' }],
+        sm:   ['0.8125rem', { lineHeight: '1.5' }],
+        base: ['0.9375rem', { lineHeight: '1.6' }],
+        lg:   ['1.0625rem', { lineHeight: '1.5' }],
+        xl:   ['1.125rem',  { lineHeight: '1.45' }],
+        '2xl': ['1.25rem',  { lineHeight: '1.4' }],
+        '3xl': ['1.5rem',   { lineHeight: '1.3' }],
+        '4xl': ['2rem',     { lineHeight: '1.2' }],
+        '5xl': ['2rem',     { lineHeight: '1.2' }],
+      },
+      fontFamily: {
+        heading: ['var(--font-heading)'],
+        body: ['var(--font-body)'],
       },
       borderRadius: {
         lg: 'var(--radius)',

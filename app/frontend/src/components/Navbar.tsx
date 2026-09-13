@@ -35,19 +35,27 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/95 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
-        <Link to={urlFor('home', lang)} className="shrink-0 flex items-center gap-2" aria-label={t('brand.name')}>
-          {/* Horizontal 1600×400 (4:1) — phoenix + wordmark on one line. At
-              h-10 (40px) the width is 160px and the wordmark stays crisp.
-              `shrink-0` + explicit intrinsic size keeps the logo from being
-              squeezed when the nav row gets crowded. */}
+      <div className="mx-auto flex h-16 sm:h-[72px] max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
+        <Link to={urlFor('home', lang)} className="shrink-0 flex items-center gap-2.5" aria-label={t('brand.name')}>
+          {/* Phoenix mark + wordmark composed in HTML (Poppins, brand
+              gradient) so both scale cleanly and sit side by side — the
+              stacked PNG variant is never used in the header. */}
           <img
-            src="/brand/logo-luna-navbar2.png"
-            alt={t('brand.name')}
-            className="h-10 w-40 object-contain"
-            width={160}
-            height={40}
+            src="/brand/logo-luna-mark.png"
+            alt=""
+            aria-hidden="true"
+            className="h-12 w-12 sm:h-14 sm:w-14 object-contain"
+            width={56}
+            height={56}
           />
+          <span className="flex flex-col leading-none">
+            <span className="font-heading font-bold text-[26px] sm:text-[30px] tracking-wide bg-luna-wordmark bg-clip-text text-transparent">
+              LUNA
+            </span>
+            <span className="font-heading font-semibold text-[11px] sm:text-[12.5px] text-luna-blue mt-0.5">
+              Tracking Logistics
+            </span>
+          </span>
         </Link>
 
         <nav className="hidden lg:flex items-center gap-0.5 min-w-0" aria-label={t('nav.home')}>

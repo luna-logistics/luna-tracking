@@ -126,15 +126,17 @@
     "page_title": "Contactez-nous",
     "page_intro": "Une question sur un envoi, un devis en cours, un problème de suivi ? Nous répondons vite.",
     "email_title": "E-mail",
-    "address_title": "Adresse",
+    "address_title": "Notre bureau",
     "instagram_title": "Instagram",
     "hours_title": "Nos horaires",
     "hours_body": "Lundi au vendredi, de 9h à 18h. Réponse par e-mail sous 24h ouvrées.",
-    "phone_title": "Téléphone / WhatsApp",
-    "phone": "",
+    "phone_title": "Téléphone",
+    "phone": "+32 2 241 96 72",
     "phone_call_cta": "Appeler",
     "phone_whatsapp_cta": "Écrire sur WhatsApp",
-    "address_maps_cta": "Voir sur Google Maps"
+    "address_maps_cta": "Voir sur Google Maps",
+    "whatsapp": "",
+    "address_note": "Réception et traitement des colis."
   },
   "auth": {
     "login_title": "Se connecter",
@@ -1739,7 +1741,7 @@
     "last_updated": "Dernière mise à jour : {{date}}",
     "missing_hint": "Champ non renseigné — à compléter dans Administration → Contenus → Informations légales.",
     "registered_office": "Siège social",
-    "agency": "Agence"
+    "agency": "Bureau (traitement des colis)"
   },
   "legal_notice": {
     "meta_title": "Mentions légales — Luna Tracking Logistics",

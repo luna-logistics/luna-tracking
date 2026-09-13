@@ -21,6 +21,8 @@ export default function Contact() {
   const phoneTitle      = useContent('contact', 'phone_title',      t('contact.phone_title'));
   // Admin fills the number in /admin/contenus → Contact. Empty = card hidden.
   const phone           = useContent('contact', 'phone',            t('contact.phone')).trim();
+  const whatsapp        = useContent('contact', 'whatsapp',         t('contact.whatsapp')).trim();
+  const addressNote     = useContent('contact', 'address_note',     t('contact.address_note'));
   const email           = t('footer.email');
   const address         = t('footer.address');
 
@@ -30,11 +32,13 @@ export default function Contact() {
       body: (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <a href={telUrl(phone)} className="text-luna-blue hover:underline font-medium">{phone}</a>
-          <a href={whatsappUrl(phone)} target="_blank" rel="noopener noreferrer"
-             className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 text-white px-3 py-1 text-xs font-semibold hover:bg-emerald-700">
-            <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
-            {t('contact.phone_whatsapp_cta')}
-          </a>
+          {whatsapp && (
+            <a href={whatsappUrl(whatsapp)} target="_blank" rel="noopener noreferrer"
+               className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 text-white px-3 py-1 text-xs font-semibold hover:bg-emerald-700">
+              <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
+              {t('contact.phone_whatsapp_cta')}
+            </a>
+          )}
         </div>
       ),
     }] : []),
@@ -48,6 +52,7 @@ export default function Contact() {
       body: (
         <div>
           <span>{address}</span>
+          {addressNote && <Ed page="contact" field="address_note" as="p" className="text-xs text-slate-500 mt-0.5 block">{addressNote}</Ed>}
           <a href={mapsUrl(address)} target="_blank" rel="noopener noreferrer"
              className="mt-1 inline-flex items-center gap-1 text-luna-blue hover:underline text-xs font-medium">
             {t('contact.address_maps_cta')}
