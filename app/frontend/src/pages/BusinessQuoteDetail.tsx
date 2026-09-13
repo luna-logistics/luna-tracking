@@ -6,6 +6,7 @@ import {
   Plus, Save, ArrowRight, Package, MapPin, Link2,
 } from 'lucide-react';
 import { SEO } from '@/components/SEO';
+import { InfoHint } from '@/components/InfoHint';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -122,6 +123,7 @@ export default function BusinessQuoteDetail() {
               <Button size="sm" variant="navy" onClick={convert} disabled={busy}>
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
                 {t('business_quote_detail.convert')}
+                <InfoHint text={t('business_quote_detail.convert_hint')} />
               </Button>
             )}
             <Button asChild variant="outline" size="sm">

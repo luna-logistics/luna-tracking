@@ -67,6 +67,7 @@ export default function BusinessApiKeys() {
         <div className="text-sm text-luna-navy">
           <p className="font-semibold">{t('business_api_keys.usage_title')}</p>
           <p className="mt-1">{t('business_api_keys.usage_body')}</p>
+          <p className="mt-2 text-luna-navy/80">{t('business_api_keys.api_readonly_note')}</p>
           <pre className="mt-2 overflow-x-auto rounded-lg bg-white border border-slate-200 p-3 text-[11px] font-mono text-slate-700">
 {`curl https://zlpzajjfzezjildvchoz.functions.supabase.co/api-v1/shipments?business_id=${current.id} \\
   -H "Authorization: ApiKey lk_live_xxxxxxxx.<secret>"`}

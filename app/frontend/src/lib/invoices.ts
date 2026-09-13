@@ -84,6 +84,15 @@ export async function fetchInvoice(id: string): Promise<Invoice | null> {
   return (data as Invoice) ?? null;
 }
 
+export async function fetchClientInvoices(customerId: string): Promise<Invoice[]> {
+  const { data, error } = await supabase
+    .from('invoices').select('*')
+    .eq('customer_id', customerId)
+    .order('created_at', { ascending: false });
+  if (error) { console.warn('[invoices] fetchByClient failed:', error.message); return []; }
+  return (data ?? []) as Invoice[];
+}
+
 export async function upsertInvoice(businessId: string, input: InvoiceInput): Promise<Invoice> {
   const { data: { user } } = await supabase.auth.getUser();
   const payload = { ...input, business_id: businessId, created_by: input.id ? undefined : user?.id ?? null };

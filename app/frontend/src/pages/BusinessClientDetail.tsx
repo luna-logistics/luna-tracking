@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft, Pencil, MapPin, User, Building2, Mail, Phone,
-  Plus, Trash2, Save, Loader2, Truck, Receipt, FileText, Sparkles,
+  Plus, Trash2, Save, Loader2, Truck, Receipt, FileText,
 } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,8 @@ import {
   type BusinessCustomer, type CustomerAddress,
 } from '@/lib/customers';
 import { fetchClientShipments, type Shipment } from '@/lib/shipments';
+import { fetchClientQuotes, QUOTE_STATUS_STYLES, type Quote } from '@/lib/quotes';
+import { fetchClientInvoices, INVOICE_STATUS_STYLES, type Invoice } from '@/lib/invoices';
 import { ShipmentStatusBadge } from '@/components/ShipmentStatusBadge';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
@@ -37,18 +39,22 @@ export default function BusinessClientDetail() {
   const [customer, setCustomer] = useState<BusinessCustomer | null>(null);
   const [addresses, setAddresses] = useState<CustomerAddress[]>([]);
   const [shipments, setShipments] = useState<Shipment[]>([]);
+  const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [tab, setTab] = useState<Tab>('info');
   const [loading, setLoading] = useState(true);
 
   const reload = async () => {
     if (!id) return;
     setLoading(true);
-    const [c, a, s] = await Promise.all([
+    const [c, a, s, q, inv] = await Promise.all([
       fetchCustomer(id),
       fetchCustomerAddresses(id),
       fetchClientShipments(id),
+      fetchClientQuotes(id),
+      fetchClientInvoices(id),
     ]);
-    setCustomer(c); setAddresses(a); setShipments(s);
+    setCustomer(c); setAddresses(a); setShipments(s); setQuotes(q); setInvoices(inv);
     setLoading(false);
   };
   useEffect(() => { void reload(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [id]);
@@ -104,7 +110,7 @@ export default function BusinessClientDetail() {
       <div className="mt-6">
         {tab === 'info'      && <InfoTab customer={customer} />}
         {tab === 'addresses' && <AddressesTab customerId={customer.id} addresses={addresses} canWrite={canWrite} onChanged={reload} />}
-        {tab === 'history'   && <HistoryTab shipments={shipments} />}
+        {tab === 'history'   && <HistoryTab shipments={shipments} quotes={quotes} invoices={invoices} />}
       </div>
     </>
   );
@@ -167,7 +173,7 @@ function AddressesTab({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-2">
         <h2 className="text-lg font-semibold text-luna-navy flex items-center gap-2">
           <MapPin className="h-5 w-5" />
           {t('business_client_detail.addresses_title')}
@@ -179,6 +185,7 @@ function AddressesTab({
           </Button>
         )}
       </div>
+      <p className="text-sm text-slate-500 mb-4">{t('business_client_detail.addresses_help')}</p>
 
       {editing && (
         <AddressForm
@@ -331,22 +338,31 @@ function AddressForm({
   );
 }
 
-function HistoryTab({ shipments }: { shipments: Shipment[] }) {
-  const { t } = useTranslation();
+function HistoryTab({ shipments, quotes, invoices }: { shipments: Shipment[]; quotes: Quote[]; invoices: Invoice[] }) {
+  const { t, i18n } = useTranslation();
+  const fmtDate = (v: string | null) => v ? new Date(v).toLocaleDateString(i18n.language) : '—';
+  const empty = shipments.length === 0 && quotes.length === 0 && invoices.length === 0;
+
   return (
     <div className="space-y-6">
+      <p className="text-sm text-slate-600">{t('business_client_detail.history_intro')}</p>
+
+      {empty && (
+        <div className="rounded-2xl border-2 border-dashed border-slate-300 bg-white p-6 text-center text-slate-500 text-sm">
+          {t('business_client_detail.history_empty')}
+        </div>
+      )}
+
+      {/* Shipments */}
       <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold text-luna-navy flex items-center gap-2">
-            <Truck className="h-5 w-5" />
-            {t('business_nav.shipments')}
+            <Truck className="h-5 w-5" />{t('business_nav.shipments')}
           </h2>
           <span className="text-xs text-slate-500">{shipments.length}</span>
         </div>
         {shipments.length === 0 ? (
-          <div className="rounded-2xl border-2 border-dashed border-slate-300 bg-white p-6 text-center text-slate-500 text-sm">
-            {t('business_client_detail.no_shipments')}
-          </div>
+          <p className="text-sm text-slate-500">{t('business_client_detail.no_shipments')}</p>
         ) : (
           <div className="rounded-2xl border border-slate-200 bg-white overflow-x-auto">
             <table className="w-full text-sm">
@@ -379,23 +395,90 @@ function HistoryTab({ shipments }: { shipments: Shipment[] }) {
         )}
       </section>
 
+      {/* Quotes */}
       <section>
-        <div className="grid gap-4 md:grid-cols-2">
-          {[
-            { icon: FileText, key: 'quotes' },
-            { icon: Receipt,  key: 'invoices' },
-          ].map(({ icon: Icon, key }) => (
-            <div key={key} className="rounded-2xl border-2 border-dashed border-luna-blue/30 bg-white p-6 text-center">
-              <Icon className="h-6 w-6 mx-auto text-luna-blue" aria-hidden="true" />
-              <div className="mt-3 font-semibold text-luna-navy">{t(`business_nav.${key}`)}</div>
-              <p className="mt-1 text-xs text-slate-500">{t('business_client_detail.history_placeholder')}</p>
-            </div>
-          ))}
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold text-luna-navy flex items-center gap-2">
+            <FileText className="h-5 w-5" />{t('business_nav.quotes')}
+          </h2>
+          <span className="text-xs text-slate-500">{quotes.length}</span>
         </div>
-        <div className="mt-3 rounded-2xl bg-luna-navy/[0.03] border border-luna-blue/20 p-4 text-xs text-slate-600 flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-luna-blue" aria-hidden="true" />
-          {t('business_client_detail.history_note')}
+        {quotes.length === 0 ? (
+          <p className="text-sm text-slate-500">{t('business_client_detail.no_quotes')}</p>
+        ) : (
+          <div className="rounded-2xl border border-slate-200 bg-white overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-luna-navy">
+                <tr>
+                  <th className="text-left px-4 py-2 font-semibold">{t('business_quotes.col_ref')}</th>
+                  <th className="text-left px-4 py-2 font-semibold">{t('business_client_detail.col_date')}</th>
+                  <th className="text-right px-4 py-2 font-semibold">{t('business_client_detail.col_amount')}</th>
+                  <th className="text-left px-4 py-2 font-semibold">{t('business_shipments.col_status')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {quotes.map((q) => (
+                  <tr key={q.id}>
+                    <td className="px-4 py-2 font-mono">
+                      <Link to={`../../devis/${q.id}`} className="text-luna-blue hover:underline">{q.reference}</Link>
+                    </td>
+                    <td className="px-4 py-2 text-slate-600 text-xs">{fmtDate(q.created_at)}</td>
+                    <td className="px-4 py-2 text-right text-slate-700">{Number(q.customer_price).toLocaleString()} {q.currency}</td>
+                    <td className="px-4 py-2">
+                      <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-semibold', QUOTE_STATUS_STYLES[q.status])}>
+                        {t(`quote_status.${q.status}`)}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      {/* Invoices */}
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold text-luna-navy flex items-center gap-2">
+            <Receipt className="h-5 w-5" />{t('business_nav.invoicing')}
+          </h2>
+          <span className="text-xs text-slate-500">{invoices.length}</span>
         </div>
+        {invoices.length === 0 ? (
+          <p className="text-sm text-slate-500">{t('business_client_detail.no_invoices')}</p>
+        ) : (
+          <div className="rounded-2xl border border-slate-200 bg-white overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-luna-navy">
+                <tr>
+                  <th className="text-left px-4 py-2 font-semibold">{t('business_invoices.col_number')}</th>
+                  <th className="text-left px-4 py-2 font-semibold">{t('business_client_detail.col_date')}</th>
+                  <th className="text-right px-4 py-2 font-semibold">{t('business_client_detail.col_amount')}</th>
+                  <th className="text-left px-4 py-2 font-semibold">{t('business_shipments.col_status')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {invoices.map((inv) => (
+                  <tr key={inv.id}>
+                    <td className="px-4 py-2 font-mono">
+                      <Link to={`../../facturation/${inv.id}`} className="text-luna-blue hover:underline">
+                        {inv.number ?? t('business_invoices.no_number')}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-2 text-slate-600 text-xs">{fmtDate(inv.issued_on ?? inv.created_at)}</td>
+                    <td className="px-4 py-2 text-right text-slate-700">{Number(inv.total).toLocaleString()} {inv.currency}</td>
+                    <td className="px-4 py-2">
+                      <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-semibold', INVOICE_STATUS_STYLES[inv.status])}>
+                        {t(`invoice_status.${inv.status}`)}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
     </div>
   );

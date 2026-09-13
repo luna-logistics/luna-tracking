@@ -93,6 +93,7 @@ export default function BusinessReports() {
           ))}
         </div>
       </div>
+      <p className="text-sm text-slate-600 max-w-3xl mb-4">{t('business_reports.intro')}</p>
       {rep && (
         <p className="text-xs text-slate-500 mb-6 inline-flex items-center gap-1.5">
           <Calendar className="h-3 w-3" />

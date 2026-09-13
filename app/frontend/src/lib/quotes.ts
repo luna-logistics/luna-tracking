@@ -92,6 +92,15 @@ export async function fetchQuote(id: string): Promise<Quote | null> {
   return (data as Quote) ?? null;
 }
 
+export async function fetchClientQuotes(customerId: string): Promise<Quote[]> {
+  const { data, error } = await supabase
+    .from('quotes').select('*')
+    .eq('customer_id', customerId)
+    .order('created_at', { ascending: false });
+  if (error) { console.warn('[quotes] fetchByClient failed:', error.message); return []; }
+  return (data ?? []) as Quote[];
+}
+
 export async function upsertQuote(businessId: string, input: QuoteInput): Promise<Quote> {
   const { data: { user } } = await supabase.auth.getUser();
   const payload = {

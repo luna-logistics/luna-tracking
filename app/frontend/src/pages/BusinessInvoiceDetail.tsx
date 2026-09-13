@@ -14,9 +14,11 @@ import { fetchCustomer, type BusinessCustomer } from '@/lib/customers';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 
-/** Print CSS lives inline (@media print in a <style>) so a single
- *  window.print() call yields an accounting-grade PDF via the OS
- *  dialog. Everything outside .invoice-print is hidden. */
+/** Print CSS lives inline (@media print in a <style>) so window.print()
+ *  gives the user a clean printable / save-as-PDF view via the browser
+ *  dialog. This is NOT a server-rendered archived PDF — there is no PDF
+ *  library and no stored document. Everything outside .invoice-print is
+ *  hidden while printing. */
 export default function BusinessInvoiceDetail() {
   const { t, i18n } = useTranslation();
   const { can } = useBusiness();
@@ -62,6 +64,7 @@ export default function BusinessInvoiceDetail() {
     finally { setBusy(false); }
   };
   const markPaid = async () => {
+    if (!confirm(t('business_invoices.mark_paid_confirm'))) return;
     setBusy(true);
     try { await updateInvoiceStatus(invoice.id, 'paid', { paid_on: new Date().toISOString().slice(0, 10) }); await reload(); }
     catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
