@@ -44,15 +44,14 @@ export async function revokeApiKey(id: string): Promise<void> {
   if (error) throw error;
 }
 
-/** Available permission scopes callers can attach to a key. Kept in sync
- *  with the endpoints exposed by api-v1. */
+/** Available permission scopes callers can attach to a key. Only scopes
+ *  that map to a REAL endpoint in api-v1 are listed — the API is read-only
+ *  today, so write scopes (shipments.write, customers.write) and the
+ *  not-yet-served quotes.* scopes were removed rather than shown as
+ *  no-op checkboxes. Add a scope back here only when its endpoint ships. */
 export const API_KEY_SCOPES = [
   'shipments.read',
-  'shipments.write',
   'customers.read',
-  'customers.write',
-  'quotes.read',
-  'quotes.write',
   'rates.read',
   'tracking.read',
 ] as const;

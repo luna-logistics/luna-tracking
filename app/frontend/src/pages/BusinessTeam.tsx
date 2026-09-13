@@ -10,10 +10,12 @@ import { toast } from '@/components/ui/sonner';
 import { useBusiness } from '@/contexts/BusinessContext';
 import {
   fetchBusinessMembers, fetchInvitations, inviteMember, cancelInvitation,
-  updateMemberRole, removeMember,
+  updateMemberRole, removeMember, fetchMemberIdentities,
   INVITABLE_ROLES, BUSINESS_ROLES,
   type BusinessMember, type BusinessInvitation, type BusinessRole, type InvitableRole,
+  type MemberIdentity,
 } from '@/lib/businesses';
+import { InfoHint } from '@/components/InfoHint';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 
@@ -28,13 +30,18 @@ export default function BusinessTeam() {
   const { current, role, can, refresh: refreshBiz } = useBusiness();
   const [members, setMembers] = useState<BusinessMember[]>([]);
   const [invites, setInvites] = useState<BusinessInvitation[]>([]);
+  const [identities, setIdentities] = useState<Record<string, MemberIdentity>>({});
   const [loading, setLoading] = useState(true);
 
   const reload = async () => {
     if (!current) return;
     setLoading(true);
-    const [m, i] = await Promise.all([fetchBusinessMembers(current.id), fetchInvitations(current.id)]);
-    setMembers(m); setInvites(i);
+    const [m, i, ids] = await Promise.all([
+      fetchBusinessMembers(current.id),
+      fetchInvitations(current.id),
+      fetchMemberIdentities(current.id),
+    ]);
+    setMembers(m); setInvites(i); setIdentities(ids);
     setLoading(false);
   };
   useEffect(() => { void reload(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [current?.id]);
@@ -72,6 +79,7 @@ export default function BusinessTeam() {
               {!loading && members.map((m) => (
                 <MemberRow key={m.id}
                   member={m}
+                  identity={identities[m.user_id] ?? null}
                   currentRole={role}
                   canManage={canManage && m.role !== 'owner'}
                   canRemove={canRemove && m.role !== 'owner'}
@@ -157,12 +165,15 @@ function InviteForm({ businessId, onInvited }: { businessId: string; onInvited: 
       <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto_auto]">
         <Input type="email" required placeholder="collaborateur@exemple.com"
           value={email} onChange={(e) => setEmail(e.target.value)} />
-        <Select value={role} onValueChange={(v) => setRole(v as InvitableRole)}>
-          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {INVITABLE_ROLES.map((r) => <SelectItem key={r} value={r}>{t(`business_team.role_${r}`)}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-1">
+          <Select value={role} onValueChange={(v) => setRole(v as InvitableRole)}>
+            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {INVITABLE_ROLES.map((r) => <SelectItem key={r} value={r}>{t(`business_team.role_${r}`)}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <InfoHint text={t(`business_team.role_desc_${role}`)} label={t('business_team.role_help_label')} />
+        </div>
         <Button type="submit" variant="navy" disabled={busy || !email.trim()}>
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
           {t('business_team.invite_submit')}
@@ -173,9 +184,10 @@ function InviteForm({ businessId, onInvited }: { businessId: string; onInvited: 
 }
 
 function MemberRow({
-  member, currentRole, canManage, canRemove, onChanged, onBusinessChanged,
+  member, identity, currentRole, canManage, canRemove, onChanged, onBusinessChanged,
 }: {
   member: BusinessMember;
+  identity: MemberIdentity | null;
   currentRole: BusinessRole | null;
   canManage: boolean;
   canRemove: boolean;
@@ -184,10 +196,21 @@ function MemberRow({
 }) {
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
+  const name = identity?.full_name?.trim() || null;
+  const email = identity?.email?.trim() || null;
 
   return (
     <tr>
-      <td className="px-4 py-3 font-mono text-xs text-slate-600">{member.user_id.slice(0, 8)}…</td>
+      <td className="px-4 py-3">
+        {name || email ? (
+          <div className="min-w-0">
+            <div className="font-medium text-luna-navy truncate">{name || email}</div>
+            {name && email && <div className="text-xs text-slate-500 truncate">{email}</div>}
+          </div>
+        ) : (
+          <span className="font-mono text-xs text-slate-400" title={member.user_id}>{t('business_team.member_unknown')}</span>
+        )}
+      </td>
       <td className="px-4 py-3">
         {canManage ? (
           <Select value={member.role} onValueChange={async (v) => {

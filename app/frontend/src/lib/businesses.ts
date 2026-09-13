@@ -115,6 +115,20 @@ export async function fetchBusinessMembers(businessId: string): Promise<Business
   return (data ?? []) as BusinessMember[];
 }
 
+export type MemberIdentity = { user_id: string; full_name: string | null; email: string | null };
+
+/** Resolve display name + email for every member of a business the
+ *  current user belongs to (via a SECURITY DEFINER RPC — profiles and
+ *  auth.users are not directly readable from the client). Returns a
+ *  user_id → identity map; missing users simply won't be in the map. */
+export async function fetchMemberIdentities(businessId: string): Promise<Record<string, MemberIdentity>> {
+  const { data, error } = await supabase.rpc('get_business_member_identities', { p_business: businessId });
+  if (error) { console.warn('[members] identities failed:', error.message); return {}; }
+  const map: Record<string, MemberIdentity> = {};
+  for (const r of (data ?? []) as MemberIdentity[]) map[r.user_id] = r;
+  return map;
+}
+
 export async function updateMemberRole(memberId: string, role: BusinessRole) {
   const { error } = await supabase.from('business_members').update({ role }).eq('id', memberId);
   if (error) throw error;

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft, Pencil, Package, Receipt, ArrowRight,
@@ -34,6 +34,8 @@ import {
   type ShipmentEvent,
 } from '@/lib/shipment-events';
 import { fetchCustomer, type BusinessCustomer } from '@/lib/customers';
+import { draftInvoiceFromShipment } from '@/lib/invoices';
+import { InfoHint } from '@/components/InfoHint';
 import { fetchShipmentMargin, type Margin } from '@/lib/expenses';
 import { supabase } from '@/lib/supabase';
 import {
@@ -566,13 +568,38 @@ function ChargesTab({
   shipmentId: string; charges: ShipmentCharge[]; defaultCurrency: Currency;
   canWrite: boolean; onChanged: () => Promise<void>;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = (i18n.language === 'en' ? 'en' : 'fr') as Lang;
+  const navigate = useNavigate();
+  const { can } = useBusiness();
   const [editing, setEditing] = useState<ShipmentCharge | 'new' | null>(null);
+  const [invoicing, setInvoicing] = useState(false);
   const total = sumBillable(defaultCurrency, charges);
+  // Only charges that are billable AND in the shipment currency end up on
+  // the generated invoice (the RPC filters on currency = shipment currency).
+  const billableCount = charges.filter((c) => c.is_billable && c.currency === defaultCurrency).length;
+  const canInvoice = can('invoices.write');
+
+  const createInvoice = async () => {
+    if (billableCount === 0) {
+      toast.error(t('business_shipment_detail.invoice_no_billable'));
+      return;
+    }
+    setInvoicing(true);
+    try {
+      const invoiceId = await draftInvoiceFromShipment(shipmentId);
+      toast.success(t('business_shipment_detail.invoice_created'));
+      navigate(`${urlFor('businessInvoicing', lang)}/${invoiceId}`);
+    } catch (err) {
+      toast.error(errorMessage(err, t('common.error_generic')));
+    } finally {
+      setInvoicing(false);
+    }
+  };
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
         <div>
           <h2 className="text-lg font-semibold text-luna-navy flex items-center gap-2">
             <Receipt className="h-5 w-5" />
@@ -583,10 +610,19 @@ function ChargesTab({
           </p>
         </div>
         {canWrite && !editing && (
-          <Button size="sm" variant="navy" onClick={() => setEditing('new')}>
-            <Plus className="h-4 w-4" />
-            {t('business_shipment_detail.charge_add')}
-          </Button>
+          <div className="flex items-center gap-2">
+            {canInvoice && (
+              <Button size="sm" variant="outline" onClick={() => void createInvoice()} disabled={invoicing}>
+                {invoicing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Receipt className="h-4 w-4" />}
+                {t('business_shipment_detail.create_invoice')}
+                <InfoHint text={t('business_shipment_detail.create_invoice_hint')} />
+              </Button>
+            )}
+            <Button size="sm" variant="navy" onClick={() => setEditing('new')}>
+              <Plus className="h-4 w-4" />
+              {t('business_shipment_detail.charge_add')}
+            </Button>
+          </div>
         )}
       </div>
 
