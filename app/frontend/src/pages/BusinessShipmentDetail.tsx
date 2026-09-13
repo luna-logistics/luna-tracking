@@ -547,7 +547,7 @@ function PackageForm({
             <SelectContent>{CURRENCIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
           </Select>
         </Field>
-        <Field label={t('business_shipment_detail.pkg_hs')}><Input value={f.hs_code} onChange={(e) => setF((p) => ({ ...p, hs_code: e.target.value }))} className="font-mono" /></Field>
+        <Field label={t('business_shipment_detail.pkg_hs')} hint={t('business_shipment_detail.pkg_hs_hint')}><Input value={f.hs_code} onChange={(e) => setF((p) => ({ ...p, hs_code: e.target.value }))} className="font-mono" /></Field>
       </div>
       <Field label={t('business_shipment_detail.pkg_marks')}><Input value={f.marks_and_numbers} onChange={(e) => setF((p) => ({ ...p, marks_and_numbers: e.target.value }))} /></Field>
       <div className="flex justify-end gap-2 pt-2">
@@ -1231,10 +1231,13 @@ function EmptyBlock({ text }: { text: string }) {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div>
-      <Label className="text-luna-navy text-xs uppercase tracking-wide">{label}</Label>
+      <Label className="text-luna-navy text-xs uppercase tracking-wide inline-flex items-center gap-1">
+        {label}
+        {hint && <InfoHint text={hint} />}
+      </Label>
       <div className="mt-1.5">{children}</div>
     </div>
   );

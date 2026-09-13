@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Save, Loader2, BookmarkPlus, Package, ArrowRight } from 'lucide-react';
 import { SEO } from '@/components/SEO';
+import { InfoHint } from '@/components/InfoHint';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -200,7 +201,7 @@ export default function BusinessShipmentForm() {
                 </SelectContent>
               </Select>
             </Field>
-            <Field label={t('business_shipment_form.field_incoterm')}>
+            <Field label={t('business_shipment_form.field_incoterm')} hint={t('business_shipment_form.field_incoterm_hint')}>
               <Input value={f.incoterm ?? ''} onChange={(e) => setStr('incoterm')(e.target.value.toUpperCase().slice(0, 5))}
                 className="uppercase font-mono" placeholder="DAP" disabled={!canWrite} />
             </Field>
@@ -338,10 +339,13 @@ function Card({ title, hint, children }: { title: React.ReactNode; hint?: string
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div>
-      <Label className="text-luna-navy text-xs uppercase tracking-wide">{label}</Label>
+      <Label className="text-luna-navy text-xs uppercase tracking-wide inline-flex items-center gap-1">
+        {label}
+        {hint && <InfoHint text={hint} />}
+      </Label>
       <div className="mt-1.5">{children}</div>
     </div>
   );

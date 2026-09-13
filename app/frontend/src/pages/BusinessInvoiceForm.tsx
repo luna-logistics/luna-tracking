@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Save, Loader2, Plus, Trash2 } from 'lucide-react';
 import { SEO } from '@/components/SEO';
+import { InfoHint } from '@/components/InfoHint';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -121,11 +122,11 @@ export default function BusinessInvoiceForm() {
                 <Input value={f.payment_terms ?? ''} onChange={(e) => setF((p) => ({ ...p, payment_terms: e.target.value || null }))}
                   placeholder="30 jours net" />
               </Field>
-              <Field label={t('business_invoices.f_payment_reference')}>
+              <Field label={t('business_invoices.f_payment_reference')} hint={t('business_invoices.f_payment_reference_hint')}>
                 <Input value={f.payment_reference ?? ''} onChange={(e) => setF((p) => ({ ...p, payment_reference: e.target.value || null }))}
                   placeholder="+++123/4567/89012+++" />
               </Field>
-              <Field label={t('business_invoices.f_endpoint_scheme')}>
+              <Field label={t('business_invoices.f_endpoint_scheme')} hint={t('business_invoices.help_peppol')}>
                 <Input value={f.endpoint_scheme ?? ''} onChange={(e) => setF((p) => ({ ...p, endpoint_scheme: e.target.value || null }))}
                   placeholder="9925 (BE VAT)" />
               </Field>
@@ -365,10 +366,13 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div>
-      <Label className="text-luna-navy text-xs uppercase tracking-wide">{label}</Label>
+      <Label className="text-luna-navy text-xs uppercase tracking-wide inline-flex items-center gap-1">
+        {label}
+        {hint && <InfoHint text={hint} />}
+      </Label>
       <div className="mt-1.5">{children}</div>
     </div>
   );
