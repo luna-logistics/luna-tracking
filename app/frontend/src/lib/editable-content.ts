@@ -261,7 +261,7 @@ export const EDITABLE_PAGES: EditablePage[] = [
     images: [],
   },
   {
-    key: 'legal_terms', labelFr: 'Conditions générales', labelEn: 'Terms & conditions',
+    key: 'legal_terms', labelFr: 'Conditions générales de transport', labelEn: 'General terms of transport',
     fields: [
       { key: 'page_title', kind: 'text',     i18nKey: 'legal_terms.page_title', labelFr: 'Titre de la page',     labelEn: 'Page title' },
       { key: 'page_intro', kind: 'textarea', i18nKey: 'legal_terms.page_intro', labelFr: 'Texte d\'introduction', labelEn: 'Intro text' },
@@ -281,10 +281,6 @@ export const EDITABLE_PAGES: EditablePage[] = [
       { key: 's7_body',  kind: 'textarea', i18nKey: 'legal_terms.s7_body',  labelFr: 'Section 7 (texte)', labelEn: 'Section 7 (body)' },
       { key: 's8_title', kind: 'text',     i18nKey: 'legal_terms.s8_title', labelFr: 'Section 8 (titre)', labelEn: 'Section 8 (title)' },
       { key: 's8_body',  kind: 'textarea', i18nKey: 'legal_terms.s8_body',  labelFr: 'Section 8 (texte)', labelEn: 'Section 8 (body)' },
-      { key: 's9_title', kind: 'text',     i18nKey: 'legal_terms.s9_title', labelFr: 'Section 9 (titre)', labelEn: 'Section 9 (title)' },
-      { key: 's9_body',  kind: 'textarea', i18nKey: 'legal_terms.s9_body',  labelFr: 'Section 9 (texte)', labelEn: 'Section 9 (body)' },
-      { key: 's10_title', kind: 'text',     i18nKey: 'legal_terms.s10_title', labelFr: 'Section 10 (titre)', labelEn: 'Section 10 (title)' },
-      { key: 's10_body',  kind: 'textarea', i18nKey: 'legal_terms.s10_body',  labelFr: 'Section 10 (texte)', labelEn: 'Section 10 (body)' },
       metaTitle('legal_terms.meta_title'),
       metaDescription('legal_terms.meta_description'),
     ],
@@ -311,8 +307,6 @@ export const EDITABLE_PAGES: EditablePage[] = [
       { key: 's7_body',  kind: 'textarea', i18nKey: 'legal_privacy.s7_body',  labelFr: 'Section 7 (texte)', labelEn: 'Section 7 (body)' },
       { key: 's8_title', kind: 'text',     i18nKey: 'legal_privacy.s8_title', labelFr: 'Section 8 (titre)', labelEn: 'Section 8 (title)' },
       { key: 's8_body',  kind: 'textarea', i18nKey: 'legal_privacy.s8_body',  labelFr: 'Section 8 (texte)', labelEn: 'Section 8 (body)' },
-      { key: 's9_title', kind: 'text',     i18nKey: 'legal_privacy.s9_title', labelFr: 'Section 9 (titre)', labelEn: 'Section 9 (title)' },
-      { key: 's9_body',  kind: 'textarea', i18nKey: 'legal_privacy.s9_body',  labelFr: 'Section 9 (texte)', labelEn: 'Section 9 (body)' },
       metaTitle('legal_privacy.meta_title'),
       metaDescription('legal_privacy.meta_description'),
     ],
