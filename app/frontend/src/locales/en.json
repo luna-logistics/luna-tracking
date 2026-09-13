@@ -217,19 +217,24 @@
     "admin_console": "Admin console"
   },
   "business_nav": {
+    "group_commerce": "Commerce",
+    "group_finance": "Finances",
+    "group_team": "Team & company",
+    "group_integrations": "Integrations",
     "dashboard": "Dashboard",
     "shipments": "Shipments",
     "quotes": "Quotes",
     "clients": "Clients",
     "invoicing": "Invoicing",
     "expenses": "Expenses",
-    "reports": "Reports",
+    "reports": "Accounts & reports",
     "documents": "Documents",
     "addresses": "Addresses",
     "team": "Team",
     "settings": "Settings",
-    "api_keys": "API keys",
-    "webhooks": "Webhooks",
+    "api_keys": "Access keys",
+    "api_usage": "Usage",
+    "webhooks": "Automatic notifications",
     "support": "Support"
   },
   "support_chat": {

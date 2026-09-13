@@ -1,9 +1,9 @@
 import { Link, Outlet, useLocation, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  LayoutDashboard, Package, FileText, Users, Files, MapPin, Wallet, Receipt, BarChart3,
-  UserCog, Settings, Key, Webhook, MessageSquare,
-  LogOut, ExternalLink, ChevronDown, Shield,
+  LayoutDashboard, Package, FileText, Users, Wallet, Receipt, BarChart3,
+  UserCog, Settings, Key, Webhook, MessageSquare, Activity,
+  LogOut, ExternalLink, Shield,
 } from 'lucide-react';
 import { useSupportUnread } from '@/hooks/useSupportUnread';
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,27 +35,52 @@ export function BusinessShell() {
     return <Navigate to={lang === 'en' ? '/business/new' : '/entreprise/nouvelle'} replace />;
   }
 
-  // Only real, shipped modules appear in the sidebar. Placeholder
-  // routes (invoicing, expenses, reports, documents, addresses) still
-  // exist as URL fallbacks so old bookmarks show "coming soon" instead
-  // of blowing up, but they don't clutter the menu until the modules
-  // are actually built.
-  const items = ([
-    { to: urlFor('businessDashboard', lang), label: t('business_nav.dashboard'),  icon: LayoutDashboard, permission: 'always' },
-    { to: urlFor('businessShipments', lang), label: t('business_nav.shipments'),  icon: Package,         permission: 'shipments.read' },
-    { to: urlFor('businessQuotes',    lang), label: t('business_nav.quotes'),     icon: FileText,        permission: 'quotes.read' },
-    { to: urlFor('businessInvoicing', lang), label: t('business_nav.invoicing'),  icon: Receipt,         permission: 'invoices.read' },
-    { to: urlFor('businessExpenses',  lang), label: t('business_nav.expenses'),   icon: Wallet,          permission: 'expenses.read' },
-    { to: urlFor('businessReports',   lang), label: t('business_nav.reports'),    icon: BarChart3,       permission: 'reports.read' },
-    { to: urlFor('businessClients',   lang), label: t('business_nav.clients'),    icon: Users,           permission: 'clients.read' },
-    { to: urlFor('businessAddresses', lang), label: t('business_nav.addresses'),  icon: MapPin,          permission: 'clients.read' },
-    { to: urlFor('businessDocuments', lang), label: t('business_nav.documents'),  icon: Files,           permission: 'shipments.read' },
-    { to: urlFor('businessSupport',   lang), label: t('business_nav.support'),    icon: MessageSquare,   permission: 'always' },
-    { to: urlFor('businessTeam',      lang), label: t('business_nav.team'),       icon: UserCog,         permission: 'members.read' },
-    { to: urlFor('businessSettings',  lang), label: t('business_nav.settings'),   icon: Settings,        permission: 'business.update' },
-    { to: urlFor('businessApiKeys',   lang), label: t('business_nav.api_keys'),   icon: Key,             permission: 'business.update' },
-    { to: urlFor('businessWebhooks',  lang), label: t('business_nav.webhooks'),   icon: Webhook,         permission: 'business.update' },
-  ] as const).filter((it) => it.permission === 'always' || can(it.permission as BusinessAction));
+  // Grouped navigation. Four sections keep the space legible for a non-
+  // technical owner. Addresses + Documents are deliberately NOT top-level
+  // menus (their routes still exist): addresses are managed from a client's
+  // detail page, documents from a shipment's detail page. Developer-facing
+  // tools live under one clearly-labelled "Intégrations" group so a shop
+  // owner without a developer can ignore the whole block.
+  const groups: { header: string; items: { to: string; label: string; icon: typeof Package; permission: BusinessAction | 'always' }[] }[] = [
+    {
+      header: t('business_nav.group_commerce'),
+      items: [
+        { to: urlFor('businessDashboard', lang), label: t('business_nav.dashboard'),  icon: LayoutDashboard, permission: 'always' },
+        { to: urlFor('businessClients',   lang), label: t('business_nav.clients'),    icon: Users,           permission: 'clients.read' },
+        { to: urlFor('businessQuotes',    lang), label: t('business_nav.quotes'),     icon: FileText,        permission: 'quotes.read' },
+        { to: urlFor('businessShipments', lang), label: t('business_nav.shipments'),  icon: Package,         permission: 'shipments.read' },
+      ],
+    },
+    {
+      header: t('business_nav.group_finance'),
+      items: [
+        { to: urlFor('businessInvoicing', lang), label: t('business_nav.invoicing'),  icon: Receipt,   permission: 'invoices.read' },
+        { to: urlFor('businessExpenses',  lang), label: t('business_nav.expenses'),   icon: Wallet,    permission: 'expenses.read' },
+        { to: urlFor('businessReports',   lang), label: t('business_nav.reports'),    icon: BarChart3, permission: 'reports.read' },
+      ],
+    },
+    {
+      header: t('business_nav.group_team'),
+      items: [
+        { to: urlFor('businessTeam',     lang), label: t('business_nav.team'),     icon: UserCog,       permission: 'members.read' },
+        { to: urlFor('businessSettings', lang), label: t('business_nav.settings'), icon: Settings,      permission: 'business.update' },
+        { to: urlFor('businessSupport',  lang), label: t('business_nav.support'),  icon: MessageSquare, permission: 'always' },
+      ],
+    },
+    {
+      header: t('business_nav.group_integrations'),
+      items: [
+        { to: urlFor('businessApiKeys',  lang), label: t('business_nav.api_keys'),  icon: Key,     permission: 'business.update' },
+        { to: urlFor('businessApiUsage', lang), label: t('business_nav.api_usage'), icon: Activity, permission: 'business.update' },
+        { to: urlFor('businessWebhooks', lang), label: t('business_nav.webhooks'),  icon: Webhook,  permission: 'business.update' },
+      ],
+    },
+  ];
+
+  const visibleGroups = groups
+    .map((g) => ({ ...g, items: g.items.filter((it) => it.permission === 'always' || can(it.permission as BusinessAction)) }))
+    .filter((g) => g.items.length > 0);
+  const flatItems = visibleGroups.flatMap((g) => g.items);
 
   return (
     <div className="business-shell min-h-screen bg-background flex">
@@ -66,35 +91,39 @@ export function BusinessShell() {
           </div>
           <div className="mt-2 flex items-center gap-2 rounded-md bg-white/5 px-2 py-1.5">
             <span className="text-sm text-white truncate">{current?.name ?? t('business_shell.no_business')}</span>
-            {businesses.length > 1 && <ChevronDown className="h-3.5 w-3.5 text-white/50 shrink-0" />}
           </div>
           <div className="mt-2 text-xs text-white/50 truncate">{user?.email}</div>
         </div>
 
-        <div className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
-          <nav className="space-y-0.5" aria-label={t('business_shell.header')}>
-            {items.map((it) => {
-              const active = location.pathname === it.to;
-              const Icon = it.icon;
-              return (
-                <Link
-                  key={it.to} to={it.to}
-                  className={cn(
-                    'flex items-center gap-2 rounded-md px-3 py-2 text-sm',
-                    active ? 'bg-luna-cyan text-luna-navy font-semibold' : 'text-white/80 hover:bg-white/10 hover:text-white',
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span className="flex-1">{it.label}</span>
-                  {it.to === urlFor('businessSupport', lang) && supportUnread > 0 && (
-                    <span className="rounded-full bg-red-500 text-white text-[10px] font-bold px-1.5 min-w-[1.25rem] text-center">
-                      {supportUnread > 9 ? '9+' : supportUnread}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
+        <div className="flex-1 py-3 px-2 space-y-3 overflow-y-auto">
+          {visibleGroups.map((group) => (
+            <nav key={group.header} className="space-y-0.5" aria-label={group.header}>
+              <div className="px-3 pt-1 pb-1 text-[10px] font-semibold uppercase tracking-wider text-white/40">
+                {group.header}
+              </div>
+              {group.items.map((it) => {
+                const active = location.pathname === it.to;
+                const Icon = it.icon;
+                return (
+                  <Link
+                    key={it.to} to={it.to}
+                    className={cn(
+                      'flex items-center gap-2 rounded-md px-3 py-2 text-sm',
+                      active ? 'bg-luna-cyan text-luna-navy font-semibold' : 'text-white/80 hover:bg-white/10 hover:text-white',
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span className="flex-1">{it.label}</span>
+                    {it.to === urlFor('businessSupport', lang) && supportUnread > 0 && (
+                      <span className="rounded-full bg-red-500 text-white text-[10px] font-bold px-1.5 min-w-[1.25rem] text-center">
+                        {supportUnread > 9 ? '9+' : supportUnread}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </nav>
+          ))}
 
           <div className="mt-3 pt-3 border-t border-white/10 space-y-0.5">
             {isAdmin && (
@@ -151,7 +180,7 @@ export function BusinessShell() {
           </div>
         </div>
         <div className="lg:hidden bg-white border-b border-slate-200 px-4 py-2 flex gap-3 overflow-x-auto">
-          {items.map((it) => {
+          {flatItems.map((it) => {
             const active = location.pathname === it.to;
             return (
               <Link
