@@ -21,13 +21,16 @@ import type { AccountType } from '@/lib/profile';
  * that's still hydrating never bounces the user around.
  */
 export function OnboardingGate({ children }: { children: ReactNode }) {
-  const { loading: authLoading, user } = useAuth();
+  const { loading: authLoading, user, isAdmin, adminLoading } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
   const location = useLocation();
   const lang = document.documentElement.lang === 'en' ? 'en' : 'fr';
 
-  if (authLoading || (user && profileLoading)) return <>{children}</>;
+  if (authLoading || (user && (profileLoading || adminLoading))) return <>{children}</>;
   if (!user) return <>{children}</>;                             // let ProtectedRoute handle it
+  // Admins manage the site from /admin — the particulier/pro pick is a
+  // client-only step and must never be forced on them.
+  if (isAdmin) return <>{children}</>;
 
   const onboarded = !!profile?.onboarded_at && !!profile?.account_type;
   const onOnboarding = /\/onboarding$/.test(location.pathname);

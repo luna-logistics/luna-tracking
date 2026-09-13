@@ -19,18 +19,26 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const from = (location.state as { from?: string } | null)?.from ?? urlFor('account', lang);
+  const from = (location.state as { from?: string } | null)?.from ?? null;
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setSubmitting(false);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
+      setSubmitting(false);
       toast.error(error.message);
       return;
     }
-    navigate(from, { replace: true });
+    // Admins land on /admin (never on the client onboarding pick) unless
+    // they were bounced here from a specific protected page.
+    let target = from;
+    if (!target) {
+      const { data: admin } = await supabase.rpc('is_admin', { uid: data.user.id });
+      target = admin === true ? urlFor('admin', lang) : urlFor('account', lang);
+    }
+    setSubmitting(false);
+    navigate(target, { replace: true });
   };
 
   return (

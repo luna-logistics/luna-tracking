@@ -37,6 +37,12 @@ export default function AuthCallback() {
         navigate(urlFor('login', lang), { replace: true });
         return;
       }
+      const { data: admin } = await supabase.rpc('is_admin', { uid: data.session.user.id });
+      if (cancelled) return;
+      if (admin === true) {
+        navigate(urlFor('admin', lang), { replace: true });
+        return;
+      }
       const profile = await fetchProfile(data.session.user.id);
       if (cancelled) return;
       if (!profile?.onboarded_at || !profile?.account_type) {
