@@ -53,6 +53,10 @@ export const ROUTES = {
   adminBlog:    { indexable: false, bilingual: false, fr: '/admin/blog',      en: '/admin/blog' },
   adminCollaborators: { indexable: false, bilingual: false, fr: '/admin/collaborateurs', en: '/admin/collaborateurs' },
   adminCustomPages:   { indexable: false, bilingual: false, fr: '/admin/pages',           en: '/admin/pages' },
+  about:        { indexable: true,  bilingual: true,  fr: '/a-propos',             en: '/about' },
+  legalNotice:  { indexable: true,  bilingual: true,  fr: '/mentions-legales',     en: '/legal-notice' },
+  terms:        { indexable: true,  bilingual: true,  fr: '/conditions-generales', en: '/terms' },
+  privacy:      { indexable: true,  bilingual: true,  fr: '/confidentialite',      en: '/privacy' },
 };
 
 export function urlFor(key, lang = 'fr') {

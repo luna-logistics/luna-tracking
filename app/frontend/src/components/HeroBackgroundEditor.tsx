@@ -239,7 +239,8 @@ function FocalPreview({
             style={{
               backgroundImage: `url(${url})`,
               backgroundPosition: `${config.focal_x}% ${config.focal_y}%`,
-              backgroundSize: `${config.zoom}%`,
+              transform: `scale(${Math.max(1, config.zoom / 100)})`,
+              transformOrigin: `${config.focal_x}% ${config.focal_y}%`,
             }}
           />
           <div

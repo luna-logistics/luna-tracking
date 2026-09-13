@@ -111,9 +111,25 @@ export default function ShopAndShipProduct() {
           </Link>
 
           <div className="mt-6 grid gap-8 md:grid-cols-2">
-            <div className="aspect-square rounded-2xl bg-luna-navy/5 grid place-items-center text-luna-navy/40">
-              <ShoppingCart className="h-20 w-20" aria-hidden="true" />
-            </div>
+            {product.image_url ? (
+              <div className="aspect-square rounded-2xl overflow-hidden bg-white border border-slate-200">
+                <img
+                  src={product.image_url}
+                  alt={displayName}
+                  width={800}
+                  height={800}
+                  decoding="async"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : (
+              <div className="aspect-square rounded-2xl bg-luna-navy/5 grid place-items-center text-luna-navy/40">
+                <div className="flex flex-col items-center gap-2">
+                  <ShoppingCart className="h-20 w-20" aria-hidden="true" />
+                  <span className="text-sm font-medium text-luna-navy/50">{t('shop.photo_coming')}</span>
+                </div>
+              </div>
+            )}
             <div>
               {displayCategory && (
                 <div className="text-xs uppercase tracking-wide text-luna-blue font-semibold">{displayCategory}</div>

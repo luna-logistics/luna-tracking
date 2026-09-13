@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Calculator, ArrowRight, Loader2, Plane, Ship, Truck, Train, Package as PackageIcon } from 'lucide-react';
 import { SEO } from '@/components/SEO';
@@ -9,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { calculateRates, type RateMode, type RateQuote } from '@/lib/rates';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
+import { urlFor } from '@/lib/url/routes';
 
 /**
  * Public rate calculator. Backed by the calculate_rates() RPC — same
@@ -78,7 +80,7 @@ export default function RateCalculator() {
 
       <section className="bg-slate-50">
         <div className="max-w-3xl mx-auto px-4 py-10 space-y-6">
-          <form onSubmit={submit} className="rounded-2xl border-2 border-amber-500 bg-amber-50 p-5 space-y-4">
+          <form onSubmit={submit} className="rounded-2xl border-2 border-luna-blue/30 bg-white p-5 sm:p-6 shadow-sm space-y-4">
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label={t('rate_calc.field_origin')}>
                 <Select value={origin} onValueChange={setOrigin}>
@@ -125,8 +127,10 @@ export default function RateCalculator() {
                   placeholder="0.15" />
               </Field>
             </div>
+            {/* Full-width on phones so the floating chat bubble (bottom-right)
+                can never sit on top of the only submit button. */}
             <div className="flex justify-end">
-              <Button type="submit" variant="navy" disabled={busy || origin === destination}>
+              <Button type="submit" variant="navy" size="lg" className="w-full sm:w-auto" disabled={busy || origin === destination}>
                 {busy
                   ? <><Loader2 className="h-4 w-4 animate-spin" />{t('rate_calc.computing')}</>
                   : <><Calculator className="h-4 w-4" />{t('rate_calc.compute')}</>
@@ -134,7 +138,7 @@ export default function RateCalculator() {
               </Button>
             </div>
             {origin === destination && (
-              <p className="text-xs text-amber-800">{t('rate_calc.same_country_warning')}</p>
+              <p className="text-xs text-red-700">{t('rate_calc.same_country_warning')}</p>
             )}
           </form>
 
@@ -159,10 +163,39 @@ export default function RateCalculator() {
               <p className="text-xs text-slate-500 pt-2 text-center">
                 {t('rate_calc.footer_note')}
               </p>
+              <QuoteHandoff origin={origin} destination={destination} mode={mode} weight={weight} volume={volume} lang={lang} />
             </div>
           )}
         </div>
       </section>
+    </div>
+  );
+}
+
+/** Calculator -> quote page: one click, inputs carried in the query string
+ *  so the visitor never retypes what they just entered. */
+function QuoteHandoff({ origin, destination, mode, weight, volume, lang }: {
+  origin: string; destination: string; mode: RateMode | 'any'; weight: string; volume: string; lang: 'fr' | 'en';
+}) {
+  const { t } = useTranslation();
+  const params = new URLSearchParams();
+  params.set('from', origin);
+  params.set('to', destination);
+  if (mode !== 'any') params.set('mode', mode);
+  if (weight) params.set('weight', weight);
+  if (volume) params.set('volume', volume);
+  return (
+    <div className="mt-6 rounded-2xl bg-luna-gradient text-white p-6 sm:p-7 flex flex-col sm:flex-row sm:items-center gap-4">
+      <div className="flex-1">
+        <h3 className="text-lg font-bold">{t('rate_calc.quote_cta_title')}</h3>
+        <p className="mt-1 text-sm text-white/90">{t('rate_calc.quote_cta_body')}</p>
+      </div>
+      <Button asChild variant="brand" size="lg" className="shrink-0">
+        <Link to={`${urlFor('pricing', lang)}?${params.toString()}`}>
+          {t('rate_calc.quote_cta_button')}
+          <ArrowRight className="h-4 w-4" />
+        </Link>
+      </Button>
     </div>
   );
 }
@@ -218,8 +251,8 @@ function modeIcon(mode: RateMode) {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <Label className="text-luna-navy text-xs uppercase tracking-wide">{label}</Label>
-      <div className="mt-1.5">{children}</div>
+      <Label className="text-luna-navy">{label}</Label>
+      <div className="mt-2">{children}</div>
     </div>
   );
 }

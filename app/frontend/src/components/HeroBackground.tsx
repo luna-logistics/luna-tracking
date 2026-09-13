@@ -44,19 +44,30 @@ export function HeroBackground({
     <div className={cn('relative isolate overflow-hidden', fallbackClassName, className)}>
       {bg?.url && (
         <>
+          {/* `cover` guarantees the photo fills the band on every aspect
+              ratio (a 100%-wide image left a hard seam on tall phone heroes);
+              the admin's zoom is applied as a scale around the focal point. */}
           <div
             aria-hidden="true"
             className="absolute inset-0 -z-10 bg-no-repeat bg-cover"
             style={{
               backgroundImage: `url(${bg.url})`,
               backgroundPosition: `${bg.focal_x}% ${bg.focal_y}%`,
-              backgroundSize: `${bg.zoom}%`,
+              transform: `scale(${Math.max(1, (bg.zoom ?? 100) / 100)})`,
+              transformOrigin: `${bg.focal_x}% ${bg.focal_y}%`,
             }}
           />
           <div
             aria-hidden="true"
             className="absolute inset-0 -z-10 bg-luna-navy-deep"
             style={{ opacity: (bg.overlay ?? 45) / 100 }}
+          />
+          {/* Text protection: white copy sits top-left; a navy gradient
+              under it keeps contrast on light photo areas (faces, shirts)
+              whatever overlay level the admin picked. */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 -z-10 bg-gradient-to-br from-luna-navy-deep/85 via-luna-navy-deep/45 to-luna-navy-deep/10"
           />
           {resolvedAlt && (
             <img

@@ -12,7 +12,9 @@ Le site est bilingue français / anglais : chaque page dispose d'un équivalent 
 - [Suivi de colis](https://lunatrackinglogistics.com/suivi): recherche par numéro de tracking ou par lien partageable, avec statut en temps réel.
 - [Calculateur de tarif](https://lunatrackinglogistics.com/calculateur): estimation instantanée du coût d'un envoi selon le mode, le poids et la destination.
 - [Tarifs](https://lunatrackinglogistics.com/tarifs): grille de prix par service et par corridor.
-- [Contact](https://lunatrackinglogistics.com/contact): formulaire, adresse à Ixelles, horaires d'ouverture.
+- [Contact](https://lunatrackinglogistics.com/contact): e-mail, adresse de l'agence à Ixelles, horaires d'ouverture.
+- [À propos](https://lunatrackinglogistics.com/a-propos): l'histoire et les valeurs de Luna Tracking Logistics SRL (BCE 1040.011.234).
+- [Mentions légales](https://lunatrackinglogistics.com/mentions-legales), [Conditions générales](https://lunatrackinglogistics.com/conditions-generales), [Politique de confidentialité](https://lunatrackinglogistics.com/confidentialite).
 
 ## Services
 

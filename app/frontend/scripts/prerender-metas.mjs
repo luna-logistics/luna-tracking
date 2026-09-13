@@ -52,6 +52,10 @@ const ROUTE_I18N = {
   shopAndShip: 'shop',
   forwarding:  'forwarding',
   blogIndex:   'blog',
+  about:       'about',
+  legalNotice: 'legal_notice',
+  terms:       'legal_terms',
+  privacy:     'legal_privacy',
 };
 
 /** Which i18n field feeds the initial-HTML <h1> per page + optional
@@ -71,6 +75,10 @@ const ROUTE_HEADINGS = {
   shopAndShip: { h1: 'page_title',   h2s: [] },
   forwarding:  { h1: 'page_title',   h2s: ['how_title', 'examples_title', 'form_title'] },
   blogIndex:   { h1: 'page_title',   h2s: [] },
+  about:       { h1: 'page_title',   h2s: ['story_title', 'values_title', 'company_title'] },
+  legalNotice: { h1: 'page_title',   h2s: ['s1_title', 's2_title', 's3_title'] },
+  terms:       { h1: 'page_title',   h2s: ['s1_title', 's2_title', 's3_title'] },
+  privacy:     { h1: 'page_title',   h2s: ['s1_title', 's2_title', 's3_title'] },
 };
 
 // ─── Fetch admin overrides + dynamic slugs from Supabase ──────────────────
@@ -237,7 +245,9 @@ async function emitStaticRoute(key, def) {
               url: SITE_URL,
               logo: `${SITE_URL}/brand/logo-luna-navbar2.png`,
               image: `${SITE_URL}/brand/logo-luna-navbar2.png`,
-              email: 'info@lunatrackinglogistics.be',
+              email: 'info@lunatrackinglogistics.com',
+              vatID: 'BE1040011234',
+              legalName: 'Luna Tracking Logistics SRL',
               address: {
                 '@type': 'PostalAddress',
                 streetAddress: "Rue de l'Automne 59",

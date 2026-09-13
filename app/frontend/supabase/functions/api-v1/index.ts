@@ -41,7 +41,7 @@ const OPENAPI_SPEC = {
     version: '1.0.0',
     summary: 'Freight logistics API for Luna Tracking Logistics.',
     description: 'Read-only public API today (shipments, quotes, rates, tracking, usage). Write endpoints, webhooks setup via API, and paid tiers are on the roadmap. Documentation: https://lunatrackinglogistics.com/docs/api',
-    contact: { name: 'Luna Tracking Logistics', email: 'info@lunatrackinglogistics.be', url: 'https://lunatrackinglogistics.com/contact' },
+    contact: { name: 'Luna Tracking Logistics', email: 'info@lunatrackinglogistics.com', url: 'https://lunatrackinglogistics.com/contact' },
     license: { name: 'Proprietary', url: 'https://lunatrackinglogistics.com/mentions-legales' },
   },
   servers: [

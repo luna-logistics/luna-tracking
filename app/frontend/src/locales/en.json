@@ -18,7 +18,11 @@
     "signup": "Create account",
     "account": "My account",
     "logout": "Sign out",
-    "admin": "Admin"
+    "admin": "Admin",
+    "legal_notice": "Legal notice",
+    "terms": "Terms & conditions",
+    "privacy": "Privacy policy",
+    "about": "About us"
   },
   "footer": {
     "about_title": "Luna Tracking Logistics",
@@ -26,10 +30,14 @@
     "services_title": "Our services",
     "contact_title": "Get in touch",
     "address": "Rue de l'Automne 59, 1050 Ixelles",
-    "email": "info@lunatrackinglogistics.be",
+    "email": "info@lunatrackinglogistics.com",
     "instagram": "Instagram",
     "instagram_handle": "@Luna_TrackingLogistics",
-    "legal": "© {{year}} Luna Tracking Logistics. All rights reserved."
+    "legal": "© {{year}} Luna Tracking Logistics. All rights reserved.",
+    "legal_title": "Legal",
+    "company_number_label": "Company number (BCE)",
+    "vat_label": "VAT",
+    "registered_office_label": "Registered office"
   },
   "home": {
     "meta_title": "Luna Tracking Logistics — Belgium-DRC freight, transparent tracking",
@@ -70,7 +78,7 @@
     "submit": "Track my shipment",
     "loading": "Searching…",
     "unavailable_title": "Tracking temporarily unavailable",
-    "unavailable_body": "Our online tracking service is not live yet. Email us at info@lunatrackinglogistics.be with your tracking password and we will reply promptly.",
+    "unavailable_body": "Our online tracking service is not live yet. Email us at info@lunatrackinglogistics.com with your tracking password and we will reply promptly.",
     "empty_result": "No shipment found for that password. Check it or contact us."
   },
   "pricing": {
@@ -99,18 +107,34 @@
     "submit": "Send my request",
     "sending": "Sending…",
     "success_title": "Thanks — we've received your request",
-    "success_body": "Our team will get back to you shortly with a detailed quote. A confirmation was sent to the email you provided."
+    "success_body": "Our team will get back to you within one business day at the email you provided, with a detailed quote. You can also follow our reply in the chat window at the bottom right of the screen.",
+    "calc_card_title": "Just need a ballpark figure?",
+    "calc_card_body": "Our calculator gives an instant indicative price, taxes included, based on weight, volume and transport mode.",
+    "calc_card_cta": "Get an indicative rate",
+    "origin_other": "Other city",
+    "origin_other_label": "Specify the origin city",
+    "origin_other_placeholder": "e.g. Lille, Rotterdam",
+    "prefilled_banner": "We carried over your calculator inputs. Add your contact details to receive a firm quote.",
+    "response_time_note": "Reply within one business day, Monday to Friday.",
+    "privacy_note": "Your details are used only to process your request. They are never shared with third parties.",
+    "error_send": "Sending failed. Try again in a moment or email us directly at {{email}}.",
+    "request_subject": "Quote request — {{origin}} → {{destination}}"
   },
   "contact": {
     "meta_title": "Contact — Luna Tracking Logistics",
-    "meta_description": "Contact Luna Tracking Logistics: info@lunatrackinglogistics.be, Rue de l'Automne 59, 1050 Ixelles. Instagram @Luna_TrackingLogistics.",
+    "meta_description": "Contact Luna Tracking Logistics: info@lunatrackinglogistics.com, Rue de l'Automne 59, 1050 Ixelles. Instagram @Luna_TrackingLogistics.",
     "page_title": "Contact us",
     "page_intro": "A question about a shipment, a quote in progress, a tracking issue? We reply fast.",
     "email_title": "Email",
     "address_title": "Address",
     "instagram_title": "Instagram",
     "hours_title": "Opening hours",
-    "hours_body": "Monday to Friday, 9am to 6pm. Email reply within one business day."
+    "hours_body": "Monday to Friday, 9am to 6pm. Email reply within one business day.",
+    "phone_title": "Phone / WhatsApp",
+    "phone": "",
+    "phone_call_cta": "Call",
+    "phone_whatsapp_cta": "Message on WhatsApp",
+    "address_maps_cta": "Open in Google Maps"
   },
   "auth": {
     "login_title": "Sign in",
@@ -239,17 +263,17 @@
     "input_placeholder": "Write your message…",
     "send": "Send",
     "enter_hint": "Enter to send · Shift+Enter for a new line",
-    "bubble_title": "Luna support",
-    "bubble_launcher_label": "Chat with us",
-    "bubble_online": "Online",
+    "bubble_title": "Write to us — reply within 24 h",
+    "bubble_launcher_label": "Write to us",
     "bubble_open_aria": "Open support chat",
     "bubble_start_hint": "Type your first message to start the conversation.",
-    "bubble_guest_intro": "No account needed. Leave us your email so we can get back to you.",
+    "bubble_guest_intro": "No account needed. Leave us your email: we reply here and by email within one business day.",
     "bubble_first_message_label": "Your message",
     "bubble_first_message_placeholder": "Hi, I have a question about…",
     "bubble_send_first": "Send",
     "bubble_closed": "Conversation closed.",
-    "minimize": "Minimise"
+    "minimize": "Minimise",
+    "bubble_required_hint": "Email and message are required."
   },
   "admin_support": {
     "meta_title": "Messaging — Admin",
@@ -1019,7 +1043,6 @@
     "toc_errors": "Errors",
     "toc_limits": "Limits",
     "toc_roadmap": "Roadmap",
-
     "what_title": "1. What is an API, really?",
     "what_p1": "An API is a door Luna Tracking opens to your tools (website, Excel script, ERP, mobile app…). Instead of retyping your shipments by hand, your tool asks Luna a question in HTTP and gets the answer back as JSON.",
     "what_p2": "Nothing to install on our servers, no VPN, no gateway — just URLs like any website, except they return data instead of pages.",
@@ -1030,7 +1053,6 @@
     "diag_response": "2. JSON response",
     "what_analogy_title": "The restaurant analogy",
     "what_analogy_body": "The client (your tool) is you at the table. The waiter (the API) takes your order, checks you're allowed to order, and fetches the dish from the kitchen (the database). You never see the kitchen — and that's a good thing.",
-
     "today_title": "2. What you can do today",
     "today_intro": "The API is already live. These use cases work out of the box:",
     "today_c1_t": "List your shipments",
@@ -1041,7 +1063,6 @@
     "today_c3_b": "Your B2B address book, exportable in one request.",
     "today_c4_t": "Get a rate",
     "today_c4_b": "Currency + weight + volume → available modes and customer prices, no account required.",
-
     "quick_title": "3. Quickstart — your first request",
     "quick_intro": "Goal: receive a real response from the API in under 3 minutes. Open a terminal (or an online one like reqbin.com).",
     "quick_s1_title": "Check the API is up (no account needed)",
@@ -1049,7 +1070,6 @@
     "quick_s1_expect": "Expected response (the time field will differ):",
     "quick_s1_check_title": "Works?",
     "quick_s1_check_body": "If you got that JSON, the API is reachable from your machine. Otherwise: check your connection and re-copy the command carefully.",
-
     "quick_s2_title": "Get your API key",
     "quick_s2_body": "Endpoints that touch YOUR data need a key. Here's how:",
     "quick_s2_l1": "Sign up on Luna Tracking and pick \"Professional\" during onboarding.",
@@ -1059,11 +1079,9 @@
     "quick_s2_cta": "Create my account",
     "quick_s2_warn_title": "Heads up: the key is shown ONCE",
     "quick_s2_warn_body": "On generation, copy the full key immediately and store it in a password manager. If you lose it: revoke it and create a new one. We cannot show it to you again.",
-
     "quick_s3_title": "Your first authenticated request",
     "quick_s3_body": "Replace YOUR_BUSINESS_ID with your business ID (visible on the dashboard) and lk_live_xxx.YOUR_SECRET with your actual key.",
     "quick_s3_expect": "You'll receive your shipment list:",
-
     "auth_title": "4. How you prove who you are",
     "auth_intro": "The API accepts two ways to authenticate: one for your app (Bearer JWT), one for scripts and integrations (ApiKey). Each request carries the token in the Authorization header; the API verifies it, then answers or refuses.",
     "diag_auth_header": "Authorization: Bearer|ApiKey …",
@@ -1076,14 +1094,12 @@
     "auth_apikey_body": "A long-lived key, tied to YOUR business only. Never expires but can be revoked at any moment. The right choice for a cron, an ERP, a webhook, a nightly export.",
     "auth_never_title": "Never in the browser, never in Git",
     "auth_never_body": "An ApiKey grants access to YOUR business data. Never put it in browser JavaScript, don't commit it to GitHub, don't email it. Use a secret manager (1Password, Vault, env variables).",
-
     "resp_title": "5. What responses look like",
     "resp_intro": "Every response has the same shape: either { data } (with optional { meta }), or { error } with a code and a message. Write your code once, reuse everywhere.",
     "resp_ok_title": "Success",
     "resp_err_title": "Error",
     "resp_header_title": "API version",
     "resp_header_body": "Each response carries an X-Api-Version header. Check it client-side to be sure you're talking to the right version:",
-
     "ep_title": "6. Available endpoints",
     "ep_intro": "Two groups: public (no auth), and business-scoped (Bearer JWT or ApiKey).",
     "ep_group_public": "Public endpoints — no authentication",
@@ -1100,7 +1116,6 @@
     "ep_usage": "Aggregated usage: totals + timeline + top endpoints + per-key breakdown, over the requested window.",
     "ep_perms_title": "Permissions (scopes) attachable to a key",
     "ep_perms_body": "When you create a key, you pick what it can do. A minimal tick list keeps the blast radius small if the key leaks.",
-
     "oa_title": "6b. OpenAPI contract + tooling",
     "oa_intro": "The API is described in OpenAPI 3.1 — the standard machine-readable format. Import it directly into Postman, Insomnia, Bruno, Swagger Editor, or any SDK generator. The file is served live from our server: every new API version reflects automatically.",
     "oa_url_title": "Spec URL (JSON)",
@@ -1110,8 +1125,6 @@
     "oa_postman_note": "Copy the URL above, then Postman → Import → Link.",
     "oa_sdk_title": "Generate an SDK in your language",
     "oa_sdk_body": "The spec is enough to generate a typed client (TypeScript, Python, Go, Java, Kotlin, Ruby, Rust, PHP, C#…). Two examples:",
-
-
     "err_title": "7. Error codes",
     "err_intro": "Errors always look like { error: { code, message } }. Code the field, not the message (which may be translated).",
     "err_col_code": "Code",
@@ -1123,19 +1136,16 @@
     "err_not_found": "The requested object does not exist, or the tracking link is not enabled.",
     "err_db": "Database-side error (transient — retry).",
     "err_internal": "Unexpected error inside the API. Contact us with the exact time.",
-
     "limits_title": "8. Limits and cost",
     "limits_intro": "The API is currently free. Every call is logged (method, path, status, response time) so we can one day propose fair plans — but no paywall today.",
     "limits_free_title": "Free, no strings attached",
     "limits_free_body": "No strict rate limit for now. If you plan thousands of requests per hour, tell us first — we prefer being warned rather than seeing you blocked. A paid tier (Free / Pro / Business / Enterprise) will be announced if volume warrants it — existing customers will get at least 30 days' notice.",
-
     "roadmap_title": "9. What's next",
     "roadmap_intro": "The next chantiers, in order. We won't paywall the API until these bricks are ready.",
     "roadmap_i1": "Write endpoints (POST /shipments, POST /quotes) — create and update from your tools.",
     "roadmap_i2": "Webhooks — receive an automatic ping when a status changes (shipment.in_transit, quote.accepted…).",
     "roadmap_i3": "OpenAPI/Swagger documentation — auto-generate SDKs in your favourite language.",
     "roadmap_i4": "Official SDKs (JS/Python) — no more cURL to type.",
-
     "cta_title": "Ready to try?",
     "cta_body": "Sign up, generate a key, make your first request. We reply within 24h if you get stuck.",
     "cta_signup": "Create an account",
@@ -1162,7 +1172,10 @@
     "transit_days_unknown": "Estimated transit time",
     "price_excl_tax": "indicative price incl. tax",
     "footer_note": "Indicative rates. A firm quote is issued after final dimensions and goods description are confirmed.",
-    "error_generic": "Rate lookup failed. Please try again in a moment."
+    "error_generic": "Rate lookup failed. Please try again in a moment.",
+    "quote_cta_title": "Need a firm quote?",
+    "quote_cta_body": "These prices are indicative. Send us your shipment details and we confirm a rate within one business day.",
+    "quote_cta_button": "Request a quote with these details"
   },
   "public_tracking": {
     "meta_title": "Shipment tracking — Luna Tracking Logistics",
@@ -1376,7 +1389,11 @@
     "detail_back_to_catalog": "Back to catalog",
     "detail_out_of_stock": "Currently unavailable.",
     "detail_not_found_title": "Product not found",
-    "detail_not_found_body": "This product does not exist or has been removed from the catalog."
+    "detail_not_found_body": "This product does not exist or has been removed from the catalog.",
+    "cart_bar_items_one": "{{count}} item in your cart",
+    "cart_bar_items_other": "{{count}} items in your cart",
+    "cart_bar_cta": "Checkout",
+    "photo_coming": "Photo coming soon"
   },
   "forwarding": {
     "meta_title": "International forwarding to the DRC — Luna Tracking Logistics",
@@ -1702,6 +1719,122 @@
     "loading": "Loading…",
     "error_generic": "An error occurred. Please try again.",
     "required": "This field is required",
-    "email_invalid": "Invalid email address"
+    "email_invalid": "Invalid email address",
+    "close": "Close"
+  },
+  "guest_support": {
+    "email_label": "Your email",
+    "name_label": "Your name (optional)"
+  },
+  "legal_common": {
+    "identity_title": "Company details",
+    "company_name": "Company name",
+    "legal_form": "Legal form",
+    "company_number": "Company number (BCE)",
+    "vat_number": "VAT number",
+    "address": "Registered office",
+    "email": "Email",
+    "phone": "Phone",
+    "publisher": "Publisher",
+    "last_updated": "Last updated: {{date}}",
+    "missing_hint": "Not filled in yet — complete it in Admin → Content → Legal information.",
+    "registered_office": "Registered office",
+    "agency": "Agency"
+  },
+  "legal_notice": {
+    "meta_title": "Legal notice — Luna Tracking Logistics",
+    "meta_description": "Legal notice for lunatrackinglogistics.com: publisher, contact details, company number, hosting, intellectual property and mediation.",
+    "page_title": "Legal notice",
+    "page_intro": "Legal information about the publisher of lunatrackinglogistics.com, as required by articles XII.6 and following of the Belgian Code of Economic Law.",
+    "s1_title": "Site publisher",
+    "s1_body": "The website lunatrackinglogistics.com is published by Luna Tracking Logistics, whose details appear above. For any question about the site or our services, write to info@lunatrackinglogistics.com.",
+    "s2_title": "Hosting",
+    "s2_body": "The site is hosted by Cloudflare, Inc., 101 Townsend St, San Francisco, CA 94107, USA (www.cloudflare.com). Application data (customer accounts, orders, support messages) is hosted by Supabase, Inc. on servers located in the European Union.",
+    "s3_title": "Intellectual property",
+    "s3_body": "All content on this site (text, logos, images, structure, code) belongs to Luna Tracking Logistics or its partners and is protected by copyright and trademark law. Any reproduction, display or reuse, in whole or in part, without prior written permission is prohibited.",
+    "s4_title": "Liability",
+    "s4_body": "Rates shown by the calculator are indicative; only a written quote is binding on Luna Tracking Logistics. We strive to keep the information on this site accurate and up to date, without guarantee of completeness. Luna Tracking Logistics cannot be held liable for indirect damages resulting from the use of the site or the inability to access it.",
+    "s5_title": "Disputes and mediation",
+    "s5_body": "In the event of a dispute with a consumer, and failing an amicable solution, the Belgian Consumer Mediation Service (North Gate II, Boulevard du Roi Albert II 8 box 1, 1000 Brussels — www.mediationconsommateur.be) may be contacted. The European online dispute resolution platform is available at ec.europa.eu/consumers/odr. Belgian law applies; the courts of the judicial district of Brussels have jurisdiction."
+  },
+  "legal_terms": {
+    "meta_title": "Terms & conditions — Luna Tracking Logistics",
+    "meta_description": "Luna Tracking Logistics terms of sale and service: quotes, prices, payment, accepted goods, transit times, customs, insurance, claims.",
+    "page_title": "Terms & conditions",
+    "page_intro": "These terms govern every transport, forwarding and Shop & Ship service entrusted to Luna Tracking Logistics through this site. Any quote request or order implies their acceptance.",
+    "s1_title": "1. Scope",
+    "s1_body": "Luna Tracking Logistics organises the carriage of goods between Belgium and the Democratic Republic of the Congo by air, sea or road, the forwarding of parcels received at our depot, and the \"Shop & Ship\" service (purchasing products in Belgium on behalf of the customer and shipping them to the Congo).",
+    "s2_title": "2. Quotes and prices",
+    "s2_body": "Prices shown by the online calculator are indicative and include taxes. Only a written quote, issued after the weight, dimensions and nature of the goods are confirmed, is binding on Luna Tracking Logistics. A quote is valid for 30 days unless stated otherwise. Customs duties, taxes and fees payable on arrival are not included unless expressly stated in the quote.",
+    "s3_title": "3. Orders and payment",
+    "s3_body": "Transport is confirmed upon written acceptance of the quote (email or site messaging). \"Shop & Ship\" orders are paid in advance on the site; we purchase the products after payment is received. A \"Shop & Ship\" order can be cancelled free of charge as long as we have not yet purchased the products; contact us as soon as possible at info@lunatrackinglogistics.com.",
+    "s4_title": "4. Accepted goods",
+    "s4_body": "The customer warrants that the goods entrusted are lawful, correctly declared and packed. The following are refused in particular: dangerous goods, weapons, narcotics, cash, undeclared valuables, perishable goods not agreed in advance, and any item whose import is prohibited in the destination country. Luna Tracking Logistics may refuse or suspend a non-compliant shipment; costs incurred remain payable.",
+    "s5_title": "5. Transit times",
+    "s5_body": "Transit times given are indicative. They depend on airlines and shipping lines, customs formalities and local conditions. A delay does not give rise to compensation unless Luna Tracking Logistics is proven at fault.",
+    "s6_title": "6. Customs and formalities",
+    "s6_body": "The customer provides the necessary documents (invoices, packing list, recipient identity). Duties, taxes and inspection fees claimed by the authorities on arrival are borne by the recipient unless otherwise agreed in writing.",
+    "s7_title": "7. Liability and insurance",
+    "s7_body": "The liability of Luna Tracking Logistics for loss or damage is limited in accordance with the applicable international conventions (Montreal Convention for air, Hague-Visby Rules for sea, CMR Convention for road). Ad valorem insurance can be taken out on request before shipment; otherwise the customer bears the risk beyond the legal limits.",
+    "s8_title": "8. Claims",
+    "s8_body": "Any visible damage must be noted on delivery. Claims for loss or damage must reach us in writing within 7 days of delivery (or of the scheduled delivery date in case of loss), with supporting documents. We acknowledge receipt and reply within one business day.",
+    "s9_title": "9. Right of withdrawal",
+    "s9_body": "In accordance with article VI.53 of the Belgian Code of Economic Law, the right of withdrawal does not apply to the carriage of goods performed on a specific date or within a specific period, nor to goods purchased on behalf of the customer and personalised to their instructions. Cancellation options for \"Shop & Ship\" orders are described in article 3.",
+    "s10_title": "10. Governing law",
+    "s10_body": "These terms are governed by Belgian law. In the event of a dispute, an amicable solution will be sought first; consumers may contact the Belgian Consumer Mediation Service. Failing that, the courts of the judicial district of Brussels have exclusive jurisdiction."
+  },
+  "legal_privacy": {
+    "meta_title": "Privacy policy — Luna Tracking Logistics",
+    "meta_description": "How Luna Tracking Logistics collects, uses and protects your personal data (quotes, tracking, orders, messaging) in line with the GDPR.",
+    "page_title": "Privacy policy",
+    "page_intro": "Luna Tracking Logistics processes your personal data in accordance with the General Data Protection Regulation (GDPR) and the Belgian law of 30 July 2018. This page explains what data we collect, why, and what your rights are.",
+    "s1_title": "1. Data controller",
+    "s1_body": "The data controller is Luna Tracking Logistics, whose details appear above. For any question about your data: info@lunatrackinglogistics.com.",
+    "s2_title": "2. Data we collect",
+    "s2_body": "- **Quote requests and messaging**: name, email, phone, shipment details, the content of your messages.\n- **Customer account**: email, password (encrypted), name, shipment and order history.\n- **Shop & Ship orders**: products ordered, recipient name, phone and address in the Congo. Payment is handled by our payment provider; we do not store your card details.\n- **Parcel tracking**: tracking password and data of the shipment consulted.\n- **Technical data**: IP address, browser and pages visited, in our host's logs, for site security.",
+    "s3_title": "3. Purposes and legal bases",
+    "s3_body": "- Preparing a quote and performing the transport or order (performance of the contract).\n- Replying to your messages and providing customer follow-up (performance of the contract, legitimate interest).\n- Meeting our legal, accounting and customs obligations (legal obligation).\n- Securing the site and preventing fraud (legitimate interest).\n\nWe do not send marketing without your consent and we never sell your data.",
+    "s4_title": "4. Recipients",
+    "s4_body": "Your data is accessible to our team and to our technical processors: Supabase (database and authentication, EU servers), Cloudflare (hosting and security), Resend (email delivery), our payment provider for online orders, as well as the carriers, customs agents and logistics partners strictly necessary to move your shipment, including in the Democratic Republic of the Congo. Transfers outside the European Union are governed by the European Commission standard contractual clauses or are necessary for the performance of the transport contract.",
+    "s5_title": "5. Retention",
+    "s5_body": "Quote data and messages: 3 years after the last contact. Account data: as long as the account is active, then 3 years. Transport and invoicing documents: 7 years (accounting obligation). Technical logs: 12 months at most.",
+    "s6_title": "6. Your rights",
+    "s6_body": "You have the right to access, rectify, erase, restrict, port and object to the processing of your data, and to withdraw your consent at any time. Write to info@lunatrackinglogistics.com; we reply within one month. You may also lodge a complaint with the Belgian Data Protection Authority (Rue de la Presse 35, 1000 Brussels — www.dataprotectionauthority.be).",
+    "s7_title": "7. Cookies and local storage",
+    "s7_body": "This site uses no advertising cookies and no third-party audience measurement. Only strictly necessary items are stored in your browser: your login session, chosen language, cart contents and the token of your support conversation. They require no consent.",
+    "s8_title": "8. Security",
+    "s8_body": "Exchanges with the site are encrypted (HTTPS). Access to data is limited to authorised staff. Passwords are stored encrypted. In the event of a data breach likely to affect you, we will inform you as required by law.",
+    "s9_title": "9. Changes",
+    "s9_body": "This policy may be updated to reflect changes in our services or in regulation. The date of the last update is shown at the top of the page."
+  },
+  "legal_identity": {
+    "company_name": "Luna Tracking Logistics SRL",
+    "legal_form": "SRL (Belgian private limited company)",
+    "company_number": "1040.011.234",
+    "vat_number": "BE 1040.011.234",
+    "registered_office": "268 chaussée de Jette, 1081 Koekelberg, Belgium",
+    "publisher": ""
+  },
+  "about": {
+    "meta_title": "About us — Luna Tracking Logistics SRL, Belgium-Congo freight",
+    "meta_description": "Who we are: Luna Tracking Logistics SRL, a transport and logistics agency between Belgium and the Congo, built on trust, reliability, proximity and service quality.",
+    "page_title": "About us",
+    "page_intro": "A transport agency between Belgium and the Congo, founded by professionals from the service and import-export sectors.",
+    "story_title": "The company",
+    "story_body": "After our respective careers, we decided to combine our skills and create a company built on the values that matter most to us: trust, reliability, proximity and quality of service.\n\nOur ambition is to make trade between Europe and Africa easier and to give every customer professional, human support — a stress-free service you can rely on.\n\nAfter working for a service and import-export company, we decided to open our own agency between Belgium and the Democratic Republic of the Congo, to better meet customer demand and deliver a quality service.\n\nThat experience is what led us to take the leap and open our agency: \"Luna Tracking Logistics\".",
+    "values_title": "Our values",
+    "value1_title": "Trust",
+    "value1_body": "A named contact, written commitments and transparent tracking of every shipment.",
+    "value2_title": "Reliability",
+    "value2_body": "Clear quotes, honest transit times and goods handled with care.",
+    "value3_title": "Proximity",
+    "value3_body": "An agency in Brussels and partners in the Congo: we reply fast, in your language.",
+    "value4_title": "Service quality",
+    "value4_body": "Air, sea or road: we pick with you the option that fits your budget and your deadline.",
+    "company_title": "The company",
+    "cta_title": "Let's talk about your shipment",
+    "cta_body": "A quote within one business day, no commitment.",
+    "cta_quote": "Request a quote",
+    "cta_contact": "Contact us"
   }
 }

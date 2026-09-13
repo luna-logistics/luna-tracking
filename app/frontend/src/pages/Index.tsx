@@ -119,7 +119,7 @@ export default function Index() {
                       alt={p.alt}
                       width={800}
                       height={800}
-                      loading="lazy"
+                      loading="eager"
                       decoding="async"
                       className="w-full h-full object-cover"
                     />

@@ -99,6 +99,28 @@ export default function ShopAndShip() {
         </div>
       </HeroBackground>
 
+      {/* Phone-only sticky cart bar: the cart column sits below ten
+          products on small screens, so tapping "Ajouter" looked inert. */}
+      {view === 'catalog' && count > 0 && (
+        <div className="lg:hidden sticky top-16 z-30 border-b border-luna-blue/20 bg-white/95 backdrop-blur">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6 py-2.5 flex items-center gap-3">
+            <ShoppingCart className="h-5 w-5 text-luna-navy shrink-0" aria-hidden="true" />
+            <div className="min-w-0 flex-1 text-sm">
+              <span className="font-semibold text-luna-navy">{t('shop.cart_bar_items', { count })}</span>
+              <span className="text-slate-500"> · {total.toFixed(2)} €</span>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="navy"
+              onClick={() => { setView('checkout'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+            >
+              {t('shop.cart_bar_cta')}
+            </Button>
+          </div>
+        </div>
+      )}
+
       <section className="py-12">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 grid gap-8 lg:grid-cols-[1fr_320px]">
           {/* Catalog / checkout main column */}
@@ -129,10 +151,26 @@ export default function ShopAndShip() {
                     {filtered.map((p) => (
                       <div key={p.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col">
                         <Link to={productUrl(productSlug(p, lang), lang)} className="block">
-                          <div className="aspect-square rounded-xl bg-luna-navy/5 grid place-items-center text-luna-navy/40">
-                            {/* Placeholder icon in lieu of image_url per spec */}
-                            <ShoppingCart className="h-10 w-10" aria-hidden="true" />
-                          </div>
+                          {p.image_url ? (
+                            <div className="aspect-square rounded-xl overflow-hidden bg-white">
+                              <img
+                                src={p.image_url}
+                                alt={productName(p, lang)}
+                                width={600}
+                                height={600}
+                                loading="lazy"
+                                decoding="async"
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className="aspect-square rounded-xl bg-luna-navy/5 grid place-items-center text-luna-navy/40">
+                              <div className="flex flex-col items-center gap-1">
+                                <ShoppingCart className="h-10 w-10" aria-hidden="true" />
+                                <span className="text-[11px] font-medium text-luna-navy/50">{t('shop.photo_coming')}</span>
+                              </div>
+                            </div>
+                          )}
                           <h3 className="mt-3 font-semibold text-luna-navy line-clamp-2">{productName(p, lang)}</h3>
                           <div className="text-xs text-slate-500 mt-0.5">
                             {categoryName(categoryOf(p.category_id) ?? categories[0], lang)}

@@ -137,24 +137,23 @@ export function SupportChatBubble() {
           'bg-luna-navy text-white hover:bg-luna-navy/90 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-luna-cyan/40',
           open && !minimized
             ? 'h-12 w-12 rounded-full flex items-center justify-center'
-            : 'rounded-full pl-3 pr-5 py-2.5 sm:py-3 flex items-center gap-2.5',
+            : 'rounded-full p-2 sm:pl-3 sm:pr-5 sm:py-3 flex items-center gap-2.5',
         )}
       >
         {open && !minimized ? (
           <X className="h-5 w-5" />
         ) : (
           <>
-            <span className="relative flex h-8 w-8 items-center justify-center rounded-full bg-white/10">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10">
               <MessageSquare className="h-4 w-4" aria-hidden="true" />
-              <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 border-2 border-luna-navy" title={t('support_chat.bubble_online')} />
             </span>
-            <span className="text-sm font-medium whitespace-nowrap">
+            <span className="hidden sm:inline text-sm font-medium whitespace-nowrap">
               {t('support_chat.bubble_launcher_label')}
             </span>
           </>
         )}
         {unread > 0 && !(open && !minimized) && (
-          <span className="ml-1 rounded-full bg-red-500 text-white text-[10px] font-bold px-1.5 min-w-[1.25rem] text-center">
+          <span className="absolute -top-1 -right-1 sm:static sm:ml-1 rounded-full bg-red-500 text-white text-[10px] font-bold px-1.5 min-w-[1.25rem] text-center">
             {unread > 9 ? '9+' : unread}
           </span>
         )}
@@ -369,6 +368,9 @@ function GuestBubbleBody() {
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           {t('support_chat.bubble_send_first')}
         </Button>
+        {(!email.trim() || !firstMessage.trim()) && (
+          <p className="text-[11px] text-slate-500 text-center">{t('support_chat.bubble_required_hint')}</p>
+        )}
       </form>
     );
   }

@@ -86,6 +86,8 @@ const AdminCustomPages = lazy(() => import('@/pages/AdminCustomPages'));
 const AdminCustomPageForm = lazy(() => import('@/pages/AdminCustomPageForm'));
 const CustomPage = lazy(() => import('@/pages/CustomPage'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
+const About = lazy(() => import('@/pages/About'));
+const LegalPage = lazy(() => import('@/pages/LegalPage'));
 
 const queryClient = new QueryClient();
 
@@ -156,6 +158,10 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
           <Route path={t('/reexpedition', '/international-forwarding')} element={<PublicLayout><Forwarding /></PublicLayout>} />
           <Route path="/blog" element={<PublicLayout><BlogIndex /></PublicLayout>} />
           <Route path="/blog/:slug" element={<PublicLayout><BlogPost /></PublicLayout>} />
+          <Route path={t('/a-propos', '/about')} element={<PublicLayout><About /></PublicLayout>} />
+          <Route path={t('/mentions-legales', '/legal-notice')} element={<PublicLayout><LegalPage kind="notice" /></PublicLayout>} />
+          <Route path={t('/conditions-generales', '/terms')} element={<PublicLayout><LegalPage kind="terms" /></PublicLayout>} />
+          <Route path={t('/confidentialite', '/privacy')} element={<PublicLayout><LegalPage kind="privacy" /></PublicLayout>} />
 
           {/* Auth — plain shell (no Navbar/Footer, focused card) */}
           <Route path={t('/connexion', '/login')} element={<Login />} />

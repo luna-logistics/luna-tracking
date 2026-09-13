@@ -1,10 +1,11 @@
 import { useTranslation } from 'react-i18next';
-import { Mail, MapPin, Instagram, Clock } from 'lucide-react';
+import { Mail, MapPin, Instagram, Clock, Phone, MessageCircle, ExternalLink } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { IconCircle } from '@/components/IconCircle';
 import { useContent } from '@/contexts/SiteContentContext';
 import { Ed } from '@/components/Ed';
 import { Block } from '@/components/Block';
+import { mapsUrl, whatsappUrl, telUrl } from '@/lib/contact-links';
 
 export default function Contact() {
   const { t } = useTranslation();
@@ -17,16 +18,43 @@ export default function Contact() {
   const addressTitle    = useContent('contact', 'address_title',    t('contact.address_title'));
   const instagramTitle  = useContent('contact', 'instagram_title',  t('contact.instagram_title'));
   const hoursTitle      = useContent('contact', 'hours_title',      t('contact.hours_title'));
+  const phoneTitle      = useContent('contact', 'phone_title',      t('contact.phone_title'));
+  // Admin fills the number in /admin/contenus → Contact. Empty = card hidden.
+  const phone           = useContent('contact', 'phone',            t('contact.phone')).trim();
+  const email           = t('footer.email');
+  const address         = t('footer.address');
 
   const blocks = [
+    ...(phone ? [{
+      key: 'phone', icon: Phone, titleKey: 'phone_title', title: phoneTitle,
+      body: (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <a href={telUrl(phone)} className="text-luna-blue hover:underline font-medium">{phone}</a>
+          <a href={whatsappUrl(phone)} target="_blank" rel="noopener noreferrer"
+             className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 text-white px-3 py-1 text-xs font-semibold hover:bg-emerald-700">
+            <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
+            {t('contact.phone_whatsapp_cta')}
+          </a>
+        </div>
+      ),
+    }] : []),
     { key: 'email',     icon: Mail,      titleKey: 'email_title',     title: emailTitle,
       body: (
-        <a href="mailto:info@lunatrackinglogistics.be" className="text-luna-blue hover:underline">
-          {t('footer.email')}
+        <a href={`mailto:${email}`} className="text-luna-blue hover:underline break-all">
+          {email}
         </a>
       ) },
     { key: 'address',   icon: MapPin,    titleKey: 'address_title',   title: addressTitle,
-      body: <span>{t('footer.address')}</span> },
+      body: (
+        <div>
+          <span>{address}</span>
+          <a href={mapsUrl(address)} target="_blank" rel="noopener noreferrer"
+             className="mt-1 inline-flex items-center gap-1 text-luna-blue hover:underline text-xs font-medium">
+            {t('contact.address_maps_cta')}
+            <ExternalLink className="h-3 w-3" aria-hidden="true" />
+          </a>
+        </div>
+      ) },
     { key: 'instagram', icon: Instagram, titleKey: 'instagram_title', title: instagramTitle,
       body: (
         <a href="https://www.instagram.com/Luna_TrackingLogistics/"
@@ -55,7 +83,7 @@ export default function Contact() {
           <Block name="contact-cards" className="mt-10 grid gap-6 sm:grid-cols-2">
             {blocks.map((b) => (
               <Block key={b.key} name={`contact-card-${b.key}`}>
-                <div className="rounded-2xl border-2 border-luna-blue/30 bg-white p-6 shadow-sm">
+                <div className="rounded-2xl border-2 border-luna-blue/30 bg-white p-6 shadow-sm h-full">
                   <IconCircle icon={b.icon} variant="onLight" label={b.title} />
                   <Ed page="contact" field={b.titleKey} as="h2" className="mt-4 text-lg font-semibold text-luna-navy block">
                     {b.title}

@@ -8,6 +8,8 @@ export const RESERVED_SLUGS = new Set<string>([
   'compte','connexion','inscription','mot-de-passe-oublie','auth','tracking',
   'pricing','shop-and-ship','international-forwarding','account','login','signup',
   'forgot-password','robots.txt','sitemap.xml','favicon.ico','brand',
+  'a-propos','about','mentions-legales','legal-notice','conditions-generales','terms',
+  'confidentialite','privacy','calculateur','calculator','docs',
 ]);
 
 export type CustomPage = {
