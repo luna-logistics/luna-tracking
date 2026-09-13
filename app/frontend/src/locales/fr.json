@@ -314,6 +314,7 @@
     "meta_title": "Comptes & rapports — Luna Tracking Logistics",
     "title": "Comptes & rapports",
     "intro": "Suivez les revenus, dépenses, expéditions et principaux indicateurs de votre activité. Les rapports Luna servent au pilotage de votre entreprise et ne remplacent pas un logiciel de comptabilité complet.",
+    "multicurrency_note": "Certaines opérations sont enregistrées dans une autre devise que {{currency}}. Les totaux ci-dessous sont calculés uniquement en {{currency}} : les montants en devise étrangère n'y sont pas inclus (aucune conversion n'est effectuée). Retrouvez le détail par opération, avec sa devise, dans les exports CSV.",
     "range_this_month": "Ce mois",
     "range_last_month": "Mois dernier",
     "range_ytd": "Année en cours",

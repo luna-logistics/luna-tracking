@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   BarChart3, Download, Loader2, Package, FileText, Receipt, Wallet,
-  TrendingUp, Calendar,
+  TrendingUp, Calendar, AlertTriangle,
 } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
@@ -70,6 +70,12 @@ export default function BusinessReports() {
   };
 
   const modeMax = rep ? Math.max(1, ...rep.revenue_by_mode.map((m) => Number(m.subtotal))) : 1;
+  // The totals are summed in the business currency only; the report RPC
+  // drops foreign-currency rows from them. Detect whether any recorded
+  // operation was in another currency so we can warn honestly instead of
+  // presenting a partial total as complete. No FX conversion is done.
+  const hasForeignCurrency = !!rep && [...rep.sales_journal, ...rep.expenses_journal]
+    .some((r) => r.currency && r.currency !== rep.currency);
 
   return (
     <>
@@ -95,10 +101,16 @@ export default function BusinessReports() {
       </div>
       <p className="text-sm text-slate-600 max-w-3xl mb-4">{t('business_reports.intro')}</p>
       {rep && (
-        <p className="text-xs text-slate-500 mb-6 inline-flex items-center gap-1.5">
+        <p className="text-xs text-slate-500 mb-3 inline-flex items-center gap-1.5">
           <Calendar className="h-3 w-3" />
           {t('business_reports.period_label')}: {fmtDate(rep.range.since)} → {fmtDate(rep.range.until)}
         </p>
+      )}
+      {rep && hasForeignCurrency && (
+        <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 flex items-start gap-2 max-w-3xl">
+          <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
+          <span>{t('business_reports.multicurrency_note', { currency: rep.currency })}</span>
+        </div>
       )}
 
       {loading && (
