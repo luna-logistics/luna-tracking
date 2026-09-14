@@ -44,8 +44,8 @@ export async function fetchTrackingStatus(
   return {
     status: 'not_found',
     message: locale === 'en'
-      ? 'That tracking code does not look valid. Please copy it exactly as it appears on your shipping slip.'
-      : "Ce mot de passe ne semble pas valide. Copiez-le exactement tel qu'il figure sur votre bordereau.",
+      ? 'That tracking number does not look valid. Please copy it exactly as it appears on your shipping slip.'
+      : "Ce numéro de suivi ne semble pas valide. Copiez-le exactement tel qu'il figure sur votre bordereau.",
   };
 }
 
@@ -117,11 +117,11 @@ async function fetchLunaNativeTracking(token: string, locale: 'fr' | 'en'): Prom
 
 function notFoundMsg(locale: 'fr' | 'en'): string {
   return locale === 'en'
-    ? 'No shipment matches that tracking code. Double-check the spelling or contact us.'
-    : "Aucune expédition ne correspond à ce mot de passe. Vérifiez l'orthographe ou contactez-nous.";
+    ? 'No shipment matches that tracking number. Double-check the spelling or contact us.'
+    : "Aucune expédition ne correspond à ce numéro de suivi. Vérifiez l'orthographe ou contactez-nous.";
 }
 function unavailableMsg(locale: 'fr' | 'en'): string {
   return locale === 'en'
-    ? 'Tracking is temporarily unavailable. Try again in a moment or email us with your code.'
-    : "Le suivi est temporairement indisponible. Réessayez dans un instant ou contactez-nous avec votre code.";
+    ? 'Tracking is temporarily unavailable. Try again in a moment or email us with your tracking number.'
+    : "Le suivi est temporairement indisponible. Réessayez dans un instant ou contactez-nous avec votre numéro de suivi.";
 }

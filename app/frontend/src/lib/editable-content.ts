@@ -116,7 +116,7 @@ export const EDITABLE_PAGES: EditablePage[] = [
     fields: [
       { key: 'page_title',       kind: 'text',     i18nKey: 'tracking.page_title', labelFr: 'Titre de la page',    labelEn: 'Page title' },
       { key: 'page_intro',       kind: 'textarea', i18nKey: 'tracking.page_intro', labelFr: 'Texte d\'introduction', labelEn: 'Intro text' },
-      { key: 'password_label',   kind: 'text',     i18nKey: 'tracking.password_label',    labelFr: 'Libellé du champ mot de passe',  labelEn: 'Password field label' },
+      { key: 'password_label',   kind: 'text',     i18nKey: 'tracking.password_label',    labelFr: 'Libellé du champ numéro de suivi', labelEn: 'Tracking-number field label' },
       { key: 'unavailable_title',kind: 'text',     i18nKey: 'tracking.unavailable_title', labelFr: 'Titre "indisponible"',           labelEn: '"Unavailable" title' },
       { key: 'unavailable_body', kind: 'textarea', i18nKey: 'tracking.unavailable_body',  labelFr: 'Texte "indisponible"',           labelEn: '"Unavailable" body' },
       metaTitle('tracking.meta_title'),
