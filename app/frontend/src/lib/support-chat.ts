@@ -117,6 +117,30 @@ export async function fetchUnreadCount(): Promise<number> {
 
 type Unsubscribe = () => void;
 
+/**
+ * Unique per-subscription channel topic.
+ *
+ * Every subscriber below MUST get its own channel instance. Two callers
+ * that share a fixed topic (e.g. `useSupportUnread` in a dashboard shell
+ * AND the global `SupportAdminNotifier`, both wanting all messages) would
+ * otherwise both call `supabase.channel('support:all')`; supabase-js hands
+ * the second caller back the FIRST — already-subscribed — channel, and its
+ * chained `.on('postgres_changes', …)` throws "cannot add postgres_changes
+ * callbacks … after subscribe()", which bubbled to the error boundary on
+ * login. A unique suffix guarantees a genuinely fresh channel each time, so
+ * `.on()` is always chained before `.subscribe()` on that new channel and
+ * cleanup (`removeChannel`) removes exactly this instance.
+ */
+let channelSeq = 0;
+function uniqueTopic(base: string): string {
+  channelSeq += 1;
+  const rand =
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2);
+  return `${base}#${channelSeq}-${rand}`;
+}
+
 /** Live tail of a single conversation. RLS filters at the server so
  *  another user cannot receive messages for a conversation they can't
  *  read — the filter here is a performance hint, not a security gate. */
@@ -124,7 +148,7 @@ export function subscribeToMessages(
   conversationId: string,
   onInsert: (m: SupportMessage) => void,
 ): Unsubscribe {
-  const channel = supabase.channel(`support:conv:${conversationId}`)
+  const channel = supabase.channel(uniqueTopic(`support:conv:${conversationId}`))
     .on('postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'support_messages', filter: `conversation_id=eq.${conversationId}` },
       (payload) => onInsert(payload.new as SupportMessage))
@@ -136,7 +160,7 @@ export function subscribeToMessages(
  *  by RLS anyway — subscribing here from a client account is harmless
  *  (they'd only see their own INSERTs). */
 export function subscribeToAllMessages(onInsert: (m: SupportMessage) => void): Unsubscribe {
-  const channel = supabase.channel('support:all')
+  const channel = supabase.channel(uniqueTopic('support:all'))
     .on('postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'support_messages' },
       (payload) => onInsert(payload.new as SupportMessage))
@@ -149,7 +173,7 @@ export function subscribeToAllMessages(onInsert: (m: SupportMessage) => void): U
 export function subscribeToConversations(
   onChange: () => void,
 ): Unsubscribe {
-  const channel = supabase.channel('support:conversations')
+  const channel = supabase.channel(uniqueTopic('support:conversations'))
     .on('postgres_changes',
       { event: '*', schema: 'public', table: 'support_conversations' },
       () => onChange())
