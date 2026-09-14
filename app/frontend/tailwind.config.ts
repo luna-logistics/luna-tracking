@@ -18,8 +18,11 @@ export default {
       // Homepage navbar breakpoints — mirror the design's JS thresholds:
       // full inline nav >=1240, wrapped second-row nav 700-1239, hamburger <700.
       screens: {
-        navrow: '700px',
+        // `nav` (1240) drives the homepage card/capability grids.
+        // `navfull` (1100) switches the navbar between its single inline
+        // row and the hamburger — never a wrapped second row.
         nav: '1240px',
+        navfull: '1100px',
       },
       colors: {
         border: 'hsl(var(--border))',
