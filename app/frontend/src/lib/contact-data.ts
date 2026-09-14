@@ -153,7 +153,8 @@ const CHANNELS: Channel[] = [
     id: 'chat', name: { fr: 'Chat du site', en: 'Website chat' },
     value: { fr: 'Bulle en bas à droite', en: 'Bubble at the bottom right' },
     use: { fr: 'Une question rapide pendant votre visite', en: 'A quick question while you browse' },
-    delay: { fr: '', en: '' },
+    // Confirmed: the chat is staffed during office opening hours.
+    delay: { fr: 'Aux heures d’ouverture du bureau', en: 'During office opening hours' },
   },
   {
     id: 'instagram', name: { fr: 'Instagram', en: 'Instagram' },

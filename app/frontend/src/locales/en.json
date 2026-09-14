@@ -210,7 +210,7 @@
     "success_new": "Send another message",
     "office_title": "Our office in Ixelles",
     "office_address": "Rue de l’Automne 59, 1050 Ixelles, Belgium",
-    "office_note": "This is where your parcels are received and processed.",
+    "office_note": "This is where your parcels are received and processed. You can also drop off and collect your parcels here.",
     "map_button": "Show the map",
     "map_hint": "The map loads only after a click — no third-party request before that.",
     "map_open": "Open in Google Maps",
