@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Menu, X, User, LayoutDashboard, Pencil, PencilOff, LogOut } from 'lucide-react';
+import { Menu, X, UserCircle, LayoutDashboard, Pencil, PencilOff, LogOut } from 'lucide-react';
 import { useState } from 'react';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { urlFor } from '@/lib/url/routes';
@@ -9,8 +9,18 @@ import { useEditMode } from '@/contexts/EditModeContext';
 import { cn } from '@/lib/utils';
 
 /**
- * Site header. White ground so the on-white logo reads correctly; navy CTA
- * text keeps the brand present without competing with the hero band below.
+ * Site header — navy design from the "Homepage Luna" redesign (2026-09-14).
+ *
+ * Responsive nav mirrors the mockup's three tiers via CSS breakpoints
+ * (added to tailwind.config as `navrow` 700 + `nav` 1240):
+ *   - >= 1240 (`nav:`)      full inline pill nav in the header row
+ *   - 700-1239 (`navrow:`)  nav wraps onto a full-width second row
+ *   - < 700                 hamburger button + dropdown panel
+ * The right cluster (language, account) stays in the top row at every width.
+ *
+ * Everything functional is preserved: bilingual routing via `urlFor`, the
+ * real LanguageSwitcher, auth-aware account/admin/edit/logout controls, and
+ * the active-route highlight.
  */
 export function Navbar() {
   const { t, i18n } = useTranslation();
@@ -33,64 +43,59 @@ export function Navbar() {
     { to: urlFor('contact', lang), label: t('nav.contact') },
   ];
 
+  const pill = (active: boolean) =>
+    cn(
+      'px-4 py-2 rounded-lg text-[13px] whitespace-nowrap transition-colors border',
+      active
+        ? 'bg-luna-aqua border-luna-aqua text-luna-ink font-semibold hover:bg-luna-aqua2 hover:border-luna-aqua2'
+        : 'bg-luna-royal border-luna-hair text-[#E4EDF9] font-medium hover:bg-luna-azure hover:border-[#4A6FA0]',
+    );
+
+  const NavLinks = () => (
+    <>
+      {links.map((l) => (
+        <Link key={l.to} to={l.to} aria-current={isActive(l.to) ? 'page' : undefined} className={pill(isActive(l.to))}>
+          {l.label}
+        </Link>
+      ))}
+    </>
+  );
+
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/95 backdrop-blur">
-      <div className="mx-auto flex h-16 sm:h-[72px] max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
-        <Link to={urlFor('home', lang)} className="shrink-0 flex items-center gap-2.5" aria-label={t('brand.name')}>
-          {/* Phoenix mark + wordmark composed in HTML (Poppins, brand
-              gradient) so both scale cleanly and sit side by side — the
-              stacked PNG variant is never used in the header. */}
-          <img
-            src="/brand/logo-luna-mark.png"
-            alt=""
-            aria-hidden="true"
-            className="h-12 w-12 sm:h-14 sm:w-14 object-contain"
-            width={56}
-            height={56}
-          />
-          <span className="flex flex-col leading-none">
-            <span className="font-heading font-bold text-[26px] sm:text-[30px] tracking-wide bg-luna-wordmark bg-clip-text text-transparent">
-              LUNA
-            </span>
-            <span className="font-heading font-semibold text-[11px] sm:text-[12.5px] text-luna-blue mt-0.5">
-              Tracking Logistics
-            </span>
+    <header className="sticky top-0 z-40 w-full bg-luna-ink border-b border-luna-aqua/20">
+      <div className="mx-auto flex max-w-[1220px] flex-wrap items-center gap-x-4 gap-y-2.5 px-5 sm:px-8 py-2.5">
+        {/* Logo: phoenix icon + wordmark, horizontal, side by side */}
+        <Link to={urlFor('home', lang)} className="flex-none flex items-center gap-2.5" aria-label={t('brand.name')}>
+          <img src="/brand/luna-icon.png" alt="" aria-hidden="true" className="block h-11 w-auto" width={44} height={44} />
+          <span className="block leading-none">
+            <span className="block text-[22px] font-semibold tracking-[0.055em] text-white">LUNA</span>
+            <span className="mt-1 block text-[11px] font-medium tracking-[0.05em] text-luna-aqua whitespace-nowrap">Tracking Logistics</span>
           </span>
         </Link>
 
-        <nav className="hidden lg:flex items-center gap-0.5 min-w-0" aria-label={t('nav.home')}>
-          {links.map((l) => (
-            <Link
-              key={l.to}
-              to={l.to}
-              className={cn(
-                'rounded-md px-2.5 py-2 text-sm font-medium whitespace-nowrap transition-colors',
-                isActive(l.to)
-                  ? 'text-luna-navy bg-luna-navy/10'
-                  : 'text-slate-700 hover:text-luna-navy hover:bg-luna-navy/5'
-              )}
-            >
-              {l.label}
-            </Link>
-          ))}
+        {/* Full inline nav — desktop (>= 1240) */}
+        <nav className="hidden nav:flex flex-wrap items-center gap-2" aria-label={t('nav.home')}>
+          <NavLinks />
         </nav>
 
-        <div className="hidden lg:flex shrink-0 items-center gap-2">
-          <LanguageSwitcher variant="light" />
+        {/* Right cluster — every width */}
+        <div className="ml-auto flex items-center gap-2.5">
+          <LanguageSwitcher variant="dark" />
+
           {user ? (
             <>
               {isAdmin && (
                 <button
                   type="button"
                   onClick={toggleEdit}
-                  className={cn(
-                    'inline-flex items-center justify-center rounded-md h-9 w-9 transition-colors',
-                    editMode
-                      ? 'bg-luna-cyan text-luna-navy'
-                      : 'text-luna-navy hover:bg-luna-navy/5 border border-slate-200'
-                  )}
                   title={editMode ? t('edit_mode.exit') : t('edit_mode.enter')}
                   aria-label={editMode ? t('edit_mode.exit') : t('edit_mode.enter')}
+                  className={cn(
+                    'inline-flex h-10 w-10 items-center justify-center rounded-lg border transition-colors',
+                    editMode
+                      ? 'bg-luna-aqua border-luna-aqua text-luna-ink'
+                      : 'border-luna-hair text-luna-aqua hover:bg-luna-sky/20',
+                  )}
                 >
                   {editMode ? <PencilOff className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
                 </button>
@@ -98,110 +103,79 @@ export function Navbar() {
               {isAdmin && (
                 <Link
                   to="/admin"
-                  className="inline-flex items-center gap-1 rounded-md bg-luna-cyan/20 px-2.5 py-2 text-sm font-semibold text-luna-navy hover:bg-luna-cyan/30"
                   title={t('nav.admin')}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-luna-hair text-luna-aqua hover:bg-luna-sky/20"
                 >
                   <LayoutDashboard className="h-4 w-4" />
-                  <span className="hidden xl:inline">{t('nav.admin')}</span>
                 </Link>
               )}
               <Link
                 to={urlFor('account', lang)}
-                className="inline-flex items-center gap-1 rounded-md px-2.5 py-2 text-sm font-medium text-luna-navy hover:bg-luna-navy/5"
-                title={t('nav.account')}
+                className="inline-flex items-center gap-2 rounded-lg border border-luna-sky px-3.5 py-2 text-[13px] font-medium text-white hover:bg-luna-sky/20 whitespace-nowrap"
               >
-                <User className="h-4 w-4" />
-                <span className="hidden xl:inline">{t('nav.account')}</span>
+                <UserCircle className="h-[18px] w-[18px] text-luna-aqua" />
+                <span className="hidden sm:inline">{t('nav.account')}</span>
               </Link>
               <button
                 type="button"
                 onClick={() => signOut()}
-                className="inline-flex items-center justify-center h-9 w-9 rounded-md text-slate-500 hover:text-luna-navy hover:bg-luna-navy/5"
                 title={t('nav.logout')}
                 aria-label={t('nav.logout')}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-luna-hair text-[#B9C9E0] hover:text-white hover:bg-luna-sky/20"
               >
                 <LogOut className="h-4 w-4" />
               </button>
             </>
           ) : (
-            <>
-              <Link
-                to={urlFor('login', lang)}
-                className="rounded-md px-2.5 py-2 text-sm font-medium text-luna-navy hover:bg-luna-navy/5 whitespace-nowrap"
-              >
-                {t('nav.login')}
-              </Link>
-              <Link
-                to={urlFor('signup', lang)}
-                className="rounded-md bg-luna-navy px-2.5 py-2 text-sm font-semibold text-white hover:bg-luna-navy/90 whitespace-nowrap"
-              >
-                {t('nav.signup')}
-              </Link>
-            </>
+            <Link
+              to={urlFor('login', lang)}
+              className="inline-flex items-center gap-2 rounded-lg border border-luna-sky px-3.5 py-2 text-[13px] font-medium text-white hover:bg-luna-sky/20 whitespace-nowrap"
+            >
+              <UserCircle className="h-[18px] w-[18px] text-luna-aqua" />
+              {t('nav.account')}
+            </Link>
           )}
+
+          {/* Hamburger — only below 700 */}
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            aria-expanded={open}
+            aria-label="Menu"
+            className="navrow:hidden inline-flex h-10 w-10 items-center justify-center rounded-lg border border-luna-sky text-luna-aqua hover:bg-luna-sky/20"
+          >
+            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
         </div>
 
-        <button
-          type="button"
-          className="lg:hidden inline-flex h-10 w-10 items-center justify-center rounded-md text-luna-navy hover:bg-luna-navy/5"
-          onClick={() => setOpen((v) => !v)}
-          aria-expanded={open}
-          aria-label="Menu"
-        >
-          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+        {/* Wrapped second-row nav — 700 to 1239 */}
+        <nav className="hidden navrow:flex nav:hidden basis-full flex-wrap items-center gap-2 pb-1" aria-label={t('nav.home')}>
+          <NavLinks />
+        </nav>
       </div>
 
+      {/* Mobile dropdown — below 700 */}
       {open && (
-        <div className="lg:hidden border-t border-slate-200 bg-white">
-          <nav className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-3">
+        <nav className="navrow:hidden border-t border-luna-hair bg-luna-ink px-5 sm:px-8 py-4">
+          <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))' }}>
             {links.map((l) => (
               <Link
                 key={l.to}
                 to={l.to}
                 onClick={() => setOpen(false)}
+                aria-current={isActive(l.to) ? 'page' : undefined}
                 className={cn(
-                  'rounded-md px-3 py-2 text-sm font-medium',
+                  'px-4 py-3 rounded-lg text-[13px] transition-colors border',
                   isActive(l.to)
-                    ? 'text-luna-navy bg-luna-navy/10'
-                    : 'text-slate-700 hover:text-luna-navy hover:bg-luna-navy/5'
+                    ? 'bg-luna-aqua border-luna-aqua text-luna-ink font-semibold'
+                    : 'bg-luna-royal border-luna-hair text-[#E4EDF9] font-medium',
                 )}
               >
                 {l.label}
               </Link>
             ))}
-            {isAdmin && (
-              <Link
-                to="/admin"
-                onClick={() => setOpen(false)}
-                className="rounded-md bg-luna-cyan/20 px-3 py-2 text-sm font-semibold text-luna-navy hover:bg-luna-cyan/30 inline-flex items-center gap-1"
-              >
-                <LayoutDashboard className="h-4 w-4" />
-                {t('nav.admin')}
-              </Link>
-            )}
-            <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-3">
-              <LanguageSwitcher variant="light" />
-              {user ? (
-                <button
-                  type="button"
-                  onClick={() => { void signOut(); setOpen(false); }}
-                  className="text-sm text-luna-navy"
-                >
-                  {t('nav.logout')}
-                </button>
-              ) : (
-                <Link
-                  to={urlFor('login', lang)}
-                  onClick={() => setOpen(false)}
-                  className="text-sm font-semibold text-luna-navy"
-                >
-                  {t('nav.login')}
-                </Link>
-              )}
-            </div>
-          </nav>
-        </div>
+          </div>
+        </nav>
       )}
     </header>
   );

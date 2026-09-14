@@ -36,8 +36,8 @@ export function Footer() {
   return (
     <footer className="mt-auto">
       {/* Wave transitions the off-white body ground INTO the navy footer */}
-      <WaveDivider side="bottom" color="text-luna-navy-deep" />
-      <div className="bg-luna-navy-deep text-white">
+      <WaveDivider side="bottom" color="text-luna-ink" />
+      <div className="bg-luna-ink text-[#B9C9E0]">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-12 grid gap-10 md:grid-cols-3">
           <div>
             {/* The horizontal logo is authored for a WHITE ground (dark-blue
@@ -46,21 +46,21 @@ export function Footer() {
                 needing a second color-flipped export. */}
             <div className="inline-flex rounded-xl bg-white p-3 shadow-sm mb-4">
               <img
-                src="/brand/logo-luna-navbar2.png"
+                src="/brand/luna-logo-stacked.png"
                 alt={t('brand.name')}
-                className="h-12 w-auto block"
-                width={192}
-                height={48}
+                className="w-[116px] h-auto block"
+                width={116}
+                height={140}
               />
             </div>
             <p className="text-sm text-white/80 leading-relaxed">{t('footer.about_body')}</p>
-            <Link to={urlFor('about', lang)} className="mt-3 inline-block text-sm font-medium text-luna-cyan-light hover:text-white">
+            <Link to={urlFor('about', lang)} className="mt-3 inline-block text-sm font-medium text-luna-aqua hover:text-white">
               {t('nav.about')} →
             </Link>
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-luna-cyan-light mb-3">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-luna-aqua mb-3">
               {t('footer.services_title')}
             </h3>
             <ul className="space-y-2 text-sm">
@@ -76,30 +76,30 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-luna-cyan-light mb-3">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-luna-aqua mb-3">
               {t('footer.contact_title')}
             </h3>
             <ul className="space-y-2 text-sm text-white/85">
               {phone && (
                 <li className="flex items-start gap-2">
-                  <Phone className="h-4 w-4 mt-0.5 shrink-0 text-luna-cyan" aria-hidden="true" />
+                  <Phone className="h-4 w-4 mt-0.5 shrink-0 text-luna-sky" aria-hidden="true" />
                   <a href={telUrl(phone)} className="hover:text-white">{phone}</a>
                 </li>
               )}
               <li className="flex items-start gap-2">
-                <Mail className="h-4 w-4 mt-0.5 shrink-0 text-luna-cyan" aria-hidden="true" />
+                <Mail className="h-4 w-4 mt-0.5 shrink-0 text-luna-sky" aria-hidden="true" />
                 <a href={`mailto:${email}`} className="hover:text-white break-all">
                   {email}
                 </a>
               </li>
               <li className="flex items-start gap-2">
-                <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-luna-cyan" aria-hidden="true" />
+                <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-luna-sky" aria-hidden="true" />
                 <a href={mapsUrl(address)} target="_blank" rel="noopener noreferrer" className="hover:text-white">
                   {address}
                 </a>
               </li>
               <li className="flex items-start gap-2">
-                <Instagram className="h-4 w-4 mt-0.5 shrink-0 text-luna-cyan" aria-hidden="true" />
+                <Instagram className="h-4 w-4 mt-0.5 shrink-0 text-luna-sky" aria-hidden="true" />
                 <a
                   href="https://www.instagram.com/Luna_TrackingLogistics/"
                   target="_blank"
@@ -113,12 +113,12 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-white/10">
+        <div className="bg-luna-ink2">
           <div className="mx-auto max-w-6xl px-4 sm:px-6 py-5 text-xs text-white/60 space-y-3">
             {/* Mandatory Belgian mentions (Code de droit économique XII.6):
                 legal name, company number, VAT, registered office. */}
             <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <Building2 className="h-3.5 w-3.5 shrink-0 text-luna-cyan/70" aria-hidden="true" />
+              <Building2 className="h-3.5 w-3.5 shrink-0 text-luna-sky/70" aria-hidden="true" />
               <span className="text-white/75 font-medium">{companyName}</span>
               {companyNumber && (
                 <span>· {t('footer.company_number_label')} {companyNumber}</span>

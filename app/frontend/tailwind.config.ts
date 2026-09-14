@@ -15,6 +15,12 @@ export default {
       },
     },
     extend: {
+      // Homepage navbar breakpoints — mirror the design's JS thresholds:
+      // full inline nav >=1240, wrapped second-row nav 700-1239, hamburger <700.
+      screens: {
+        navrow: '700px',
+        nav: '1240px',
+      },
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
@@ -61,6 +67,19 @@ export default {
           cyan: '#1AEBF5',
           'cyan-light': '#5DDDEA', // readable accent text on navy (not on the board)
           slate: '#41536F',
+          // Homepage-redesign tokens (Claude Design "Homepage Luna", 2026-09-14).
+          // Deep indigo-navy system used by the navbar, hero, CTA band + footer.
+          ink: '#0A1650',        // primary dark surface (navbar, hero, footer)
+          ink2: '#060A18',       // darkest strip (footer legal bar)
+          royal: '#0D2E6B',      // raised nav pill / mid gradient stop
+          azure: '#2E6FD1',      // nav pill hover
+          sky: '#1FA3C9',        // link / icon accent
+          aqua: '#1FE0F0',       // primary CTA + active pill
+          aqua2: '#6BEDF7',      // CTA hover
+          hair: '#2A4380',       // hairline borders on ink
+          mist: '#F4F7FB',       // off-white section ground
+          body: '#4A5A75',       // body text on light
+          'muted-ink': '#4A6FA0',// muted heading/text on light
         },
       },
       backgroundImage: {
