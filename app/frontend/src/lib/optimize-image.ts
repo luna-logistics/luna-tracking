@@ -56,9 +56,15 @@ export async function optimizeImage(file: File, opts: OptimizeOptions = {}): Pro
   if (!blob) throw new Error('Image encoding failed');
 
   // Don't push the re-encoded version if it's bigger than the source
-  // (already-optimised WebP smaller than any re-encode).
+  // (already-optimised WebP smaller than any re-encode) — UNLESS the source
+  // still carries embedded metadata (EXIF/XMP, or a C2PA "AI" provenance
+  // manifest). The canvas re-encode above is always metadata-free by
+  // construction; the original is not. When the source has metadata we prefer
+  // the clean re-encode even if a touch larger, so nothing with a C2PA/AI
+  // watermark ever reaches the CDN. Clean sources keep the size-optimal
+  // passthrough exactly as before.
   if (blob.size >= file.size && file.type === mime) {
-    return file;
+    if (!(await hasEmbeddedMetadata(file))) return file;
   }
 
   const ext = mime === 'image/webp' ? 'webp' : 'jpg';
@@ -78,4 +84,33 @@ function loadImage(file: File): Promise<HTMLImageElement> {
 
 function canvasToBlob(canvas: HTMLCanvasElement, mime: string, quality: number): Promise<Blob | null> {
   return new Promise((resolve) => canvas.toBlob((b) => resolve(b), mime, quality));
+}
+
+/**
+ * True if the file's bytes contain an embedded metadata block we don't want
+ * on the CDN: EXIF, XMP, or a C2PA / JUMBF "content credentials" manifest
+ * (what AI image tools embed to mark a picture as machine-generated). Byte
+ * scan, no allocation of a giant string. Only called on the rare passthrough
+ * branch (an already-WebP source), so the O(n·m) scan cost is negligible.
+ */
+async function hasEmbeddedMetadata(file: File): Promise<boolean> {
+  try {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    // ASCII fourccs / markers: WebP "EXIF"/"XMP " chunks, and C2PA JUMBF boxes.
+    return ['EXIF', 'XMP ', 'jumb', 'c2pa', 'JUMB'].some((m) => bytesInclude(bytes, m));
+  } catch {
+    return false; // unreadable → don't block the upload, just skip the check
+  }
+}
+
+function bytesInclude(haystack: Uint8Array, needle: string): boolean {
+  const n = needle.length;
+  for (let i = 0; i + n <= haystack.length; i++) {
+    let match = true;
+    for (let j = 0; j < n; j++) {
+      if (haystack[i + j] !== needle.charCodeAt(j)) { match = false; break; }
+    }
+    if (match) return true;
+  }
+  return false;
 }
