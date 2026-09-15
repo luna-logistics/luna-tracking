@@ -1673,7 +1673,8 @@
     "back_to_list": "Back to blog",
     "empty": "No published articles yet.",
     "not_found_title": "Article not found",
-    "not_found_body": "This article does not exist or has been removed."
+    "not_found_body": "This article does not exist or has been removed.",
+    "faq_heading": "Frequently asked questions"
   },
   "admin_blog": {
     "title": "Blog",

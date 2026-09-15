@@ -104,7 +104,7 @@ async function sbFetch(table, query) {
 const overrideRows  = await sbFetch('site_content', 'select=page_key,lang,field_key,value&or=(field_key.in.(meta_title,meta_description),page_key.eq.image)');
 const imageRows     = await sbFetch('site_images',  'select=image_key,url');
 const productRows   = await sbFetch('products',     'select=slug_fr,slug_en,name_fr,name_en,description_fr,description_en,meta_title_fr,meta_title_en,meta_description_fr,meta_description_en,image_url&is_active=eq.true');
-const blogRows      = await sbFetch('blog_posts',   'select=slug_fr,slug_en,title_fr,title_en,excerpt_fr,excerpt_en,meta_title_fr,meta_title_en,meta_description_fr,meta_description_en,featured_image,published_at,updated_at&published=eq.true');
+const blogRows      = await sbFetch('blog_posts',   'select=slug_fr,slug_en,title_fr,title_en,excerpt_fr,excerpt_en,meta_title_fr,meta_title_en,meta_description_fr,meta_description_en,featured_image,faq_fr,faq_en,published_at,updated_at&published=eq.true');
 const customRows    = await sbFetch('custom_pages', 'select=slug_fr,slug_en,title_fr,title_en,meta_title_fr,meta_title_en,meta_description_fr,meta_description_en,og_image,published_at,updated_at&published=eq.true');
 
 const overrides = new Map();
@@ -337,22 +337,46 @@ async function emitBlogPost(row) {
     if (row.slug_en) hreflangs.push({ hreflang: 'en',        href: `${SITE_URL}${blogPostUrl(row.slug_en, 'en')}` });
     if (row.slug_fr) hreflangs.push({ hreflang: 'x-default', href: `${SITE_URL}${blogPostUrl(row.slug_fr, 'fr')}` });
 
-    const jsonLd = {
-      '@context': 'https://schema.org',
-      '@type': 'Article',
-      headline: (lang === 'en' ? row.title_en : row.title_fr),
-      description,
-      image: ogImage ? [ogImage] : undefined,
-      datePublished: row.published_at,
-      dateModified: row.updated_at,
-      author: { '@type': 'Organization', name: SITE_NAME },
-      publisher: {
-        '@type': 'Organization', name: SITE_NAME,
-        logo: { '@type': 'ImageObject', url: `${SITE_URL}/brand/logo-luna-navbar2.png` },
+    // Article + BreadcrumbList (+ FAQPage when the post carries a FAQ),
+    // mirroring what the runtime BlogPost page emits so crawlers see the same
+    // structured data. FAQ is read from the row (never a static block).
+    const faq = Array.isArray(lang === 'en' ? row.faq_en : row.faq_fr)
+      ? (lang === 'en' ? row.faq_en : row.faq_fr).filter((x) => x && x.q && x.a)
+      : [];
+    const graph = [
+      {
+        '@type': 'Article',
+        headline: (lang === 'en' ? row.title_en : row.title_fr),
+        description,
+        image: ogImage ? [ogImage] : undefined,
+        datePublished: row.published_at,
+        dateModified: row.updated_at,
+        author: { '@type': 'Organization', name: SITE_NAME },
+        publisher: {
+          '@type': 'Organization', name: SITE_NAME,
+          logo: { '@type': 'ImageObject', url: `${SITE_URL}/brand/logo-luna-navbar2.png` },
+        },
+        mainEntityOfPage: { '@type': 'WebPage', '@id': canonical },
+        inLanguage: lang,
       },
-      mainEntityOfPage: { '@type': 'WebPage', '@id': canonical },
-      inLanguage: lang,
-    };
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: lang === 'en' ? 'Home' : 'Accueil', item: `${SITE_URL}${urlFor('home', lang)}` },
+          { '@type': 'ListItem', position: 2, name: 'Blog', item: `${SITE_URL}${urlFor('blogIndex', lang)}` },
+          { '@type': 'ListItem', position: 3, name: (lang === 'en' ? row.title_en : row.title_fr), item: canonical },
+        ],
+      },
+    ];
+    if (faq.length > 0) {
+      graph.push({
+        '@type': 'FAQPage',
+        mainEntity: faq.map((f) => ({
+          '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a },
+        })),
+      });
+    }
+    const jsonLd = { '@context': 'https://schema.org', '@graph': graph };
 
     const head = metaTagsFor({
       lang, title, description, canonical, ogImage, ogImageAlt: title,

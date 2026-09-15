@@ -7,7 +7,7 @@ import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
 import {
   fetchPostBySlug,
-  postTitle, postExcerpt, postContent, postMetaTitle, postMetaDescription, postImageAlt,
+  postTitle, postExcerpt, postContent, postMetaTitle, postMetaDescription, postImageAlt, postFaq,
   type BlogPost,
 } from '@/lib/blog';
 import { urlFor } from '@/lib/url/routes';
@@ -69,23 +69,47 @@ export default function BlogPostPage() {
   const langSlug = lang === 'en' ? post.slug_en : post.slug_fr;
   const canonical = `${SITE_URL}${lang === 'en' ? `/en/blog/${langSlug}` : `/blog/${langSlug}`}`;
 
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'Article',
-    headline: title,
-    description: postMetaDescription(post, lang) ?? postExcerpt(post, lang) ?? undefined,
-    image: post.featured_image ? [post.featured_image] : undefined,
-    datePublished: post.published_at,
-    dateModified: post.updated_at,
-    author: { '@type': 'Organization', name: 'Luna Tracking Logistics' },
-    publisher: {
-      '@type': 'Organization',
-      name: 'Luna Tracking Logistics',
-      logo: { '@type': 'ImageObject', url: `${SITE_URL}/brand/logo-luna-navbar2.png` },
+  const faq = postFaq(post, lang);
+
+  // Article + BreadcrumbList (+ FAQPage when the post carries a FAQ), all in
+  // one @graph and all derived from the post data — never a static block.
+  const graph: Record<string, unknown>[] = [
+    {
+      '@type': 'Article',
+      headline: title,
+      description: postMetaDescription(post, lang) ?? postExcerpt(post, lang) ?? undefined,
+      image: post.featured_image ? [post.featured_image] : undefined,
+      datePublished: post.published_at,
+      dateModified: post.updated_at,
+      author: { '@type': 'Organization', name: 'Luna Tracking Logistics' },
+      publisher: {
+        '@type': 'Organization',
+        name: 'Luna Tracking Logistics',
+        logo: { '@type': 'ImageObject', url: `${SITE_URL}/brand/logo-luna-navbar2.png` },
+      },
+      mainEntityOfPage: { '@type': 'WebPage', '@id': canonical },
+      inLanguage: lang,
     },
-    mainEntityOfPage: { '@type': 'WebPage', '@id': canonical },
-    inLanguage: lang,
-  };
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: t('nav.home'), item: `${SITE_URL}${urlFor('home', lang)}` },
+        { '@type': 'ListItem', position: 2, name: t('nav.blog'), item: `${SITE_URL}${urlFor('blogIndex', lang)}` },
+        { '@type': 'ListItem', position: 3, name: title, item: canonical },
+      ],
+    },
+  ];
+  if (faq.length > 0) {
+    graph.push({
+      '@type': 'FAQPage',
+      mainEntity: faq.map((f) => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
+    });
+  }
+  const jsonLd = { '@context': 'https://schema.org', '@graph': graph };
 
   return (
     <>
@@ -129,6 +153,20 @@ export default function BlogPostPage() {
             className="prose prose-slate max-w-none mt-8 prose-headings:text-luna-navy prose-a:text-luna-blue"
             dangerouslySetInnerHTML={{ __html: sanitizeBlogHtml(body) }}
           />
+
+          {faq.length > 0 && (
+            <section className="mt-12 border-t border-slate-200 pt-8" aria-labelledby="faq-heading">
+              <h2 id="faq-heading" className="text-2xl font-bold text-luna-navy">{t('blog.faq_heading')}</h2>
+              <dl className="mt-6 space-y-6">
+                {faq.map((f, i) => (
+                  <div key={i}>
+                    <dt className="text-lg font-semibold text-luna-navy">{f.q}</dt>
+                    <dd className="mt-2 text-slate-600 leading-relaxed">{f.a}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          )}
         </div>
       </article>
     </>

@@ -1,5 +1,8 @@
 import { supabase } from '@/lib/supabase';
 
+/** One FAQ entry on a blog post (bilingual columns hold arrays of these). */
+export type FaqItem = { q: string; a: string };
+
 export type BlogPost = {
   id: string;
   /** Bilingual slugs — /blog/{slug_fr} + /en/blog/{slug_en}. */
@@ -21,6 +24,10 @@ export type BlogPost = {
   meta_title_en: string | null;
   meta_description_fr: string | null;
   meta_description_en: string | null;
+  /** Bilingual FAQ: array of { q, a }. Null/empty = no FAQ section and no
+   *  FAQPage JSON-LD, so existing posts are unaffected. */
+  faq_fr: FaqItem[] | null;
+  faq_en: FaqItem[] | null;
   published: boolean;
   published_at: string | null;
   created_at: string;
@@ -43,6 +50,11 @@ export function postMetaDescription(p: BlogPost, lang: Lang) {
 export function postImageAlt(p: BlogPost, lang: Lang) {
   const a = lang === 'en' ? p.featured_image_alt_en : p.featured_image_alt_fr;
   return a || postTitle(p, lang);
+}
+/** FAQ entries for the active language (empty array when none). */
+export function postFaq(p: BlogPost, lang: Lang): FaqItem[] {
+  const f = lang === 'en' ? p.faq_en : p.faq_fr;
+  return Array.isArray(f) ? f.filter((x) => x && x.q && x.a) : [];
 }
 
 export async function fetchPublishedPosts(): Promise<BlogPost[]> {
@@ -86,7 +98,10 @@ export async function fetchPostById(id: string): Promise<BlogPost | null> {
   return (data as BlogPost) ?? null;
 }
 
-export async function upsertPost(p: Omit<BlogPost, 'created_at' | 'updated_at' | 'published_at' | 'slug'> & { id?: string; published_at?: string | null }) {
+export async function upsertPost(
+  p: Omit<BlogPost, 'created_at' | 'updated_at' | 'published_at' | 'slug' | 'faq_fr' | 'faq_en'>
+    & { id?: string; published_at?: string | null; faq_fr?: FaqItem[] | null; faq_en?: FaqItem[] | null },
+) {
   const { data, error } = await supabase.from('blog_posts').upsert(p).select().single();
   if (error) throw error;
   return data as BlogPost;
