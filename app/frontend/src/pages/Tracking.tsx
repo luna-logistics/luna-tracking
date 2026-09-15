@@ -61,10 +61,14 @@ export default function Tracking() {
     { key: '4', icon: BellRing, title: useContent('tracking', 'step4_title', t('tracking.step4_title')), body: useContent('tracking', 'step4_body', t('tracking.step4_body')) },
   ];
 
-  const faqs = [1, 2, 3, 4].map((n) => ({
-    q: useContent('tracking', `faq${n}_q`, t(`tracking.faq${n}_q`)),
-    a: useContent('tracking', `faq${n}_a`, t(`tracking.faq${n}_a`)),
-  }));
+  // Unrolled (not .map) so each useContent is a top-level hook call in a fixed
+  // order — calling hooks inside a callback breaks the rules of hooks.
+  const faqs = [
+    { q: useContent('tracking', 'faq1_q', t('tracking.faq1_q')), a: useContent('tracking', 'faq1_a', t('tracking.faq1_a')) },
+    { q: useContent('tracking', 'faq2_q', t('tracking.faq2_q')), a: useContent('tracking', 'faq2_a', t('tracking.faq2_a')) },
+    { q: useContent('tracking', 'faq3_q', t('tracking.faq3_q')), a: useContent('tracking', 'faq3_a', t('tracking.faq3_a')) },
+    { q: useContent('tracking', 'faq4_q', t('tracking.faq4_q')), a: useContent('tracking', 'faq4_a', t('tracking.faq4_a')) },
+  ];
 
   return (
     <>
