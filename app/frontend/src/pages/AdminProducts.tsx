@@ -14,6 +14,8 @@ import { BilingualPair } from '@/components/BilingualPair';
 import { translateText } from '@/lib/translate';
 import { slugify } from '@/lib/blog';
 import { suggestHsCode, type HsSuggestion } from '@/lib/hs-classifier';
+import { isLunaEligibleProduct, type EligibilityResult } from '@/lib/product-eligibility';
+import { normalizeCsvRow, rejectedRowsToCsv } from '@/lib/store-import';
 import { optimizeImage } from '@/lib/optimize-image';
 import {
   fetchAllProducts, fetchProductCategories, upsertProduct, toggleProductActive, deleteProduct,
@@ -613,6 +615,10 @@ type ImportRow = {
   row: number;
   raw: Record<string, string>;
   errors: string[];
+  /** Eligibility verdict (accepted / excluded / to_verify) from the shared,
+   *  store-agnostic filter — computed for every row regardless of structural
+   *  validity, so the admin sees why a row will or won't be imported. */
+  eligibility: EligibilityResult;
   data?: {
     slug_fr: string; slug_en: string;
     name_fr: string; name_en: string;
@@ -642,13 +648,16 @@ function CsvImport({ categories, onDone }: { categories: ProductCategory[]; onDo
     });
   };
 
-  const valid = rows.filter((r) => r.errors.length === 0 && r.data);
+  // Only structurally-valid AND eligibility-accepted rows are imported.
+  // Excluded / to-verify rows are shown but never inserted.
+  const importable = rows.filter((r) => r.errors.length === 0 && r.data && r.eligibility.status === 'accepted');
+  const rejected = rows.filter((r) => r.eligibility.status !== 'accepted');
 
   const doImport = async () => {
-    if (valid.length === 0) { toast.info(t('admin.products_import_no_valid')); return; }
+    if (importable.length === 0) { toast.info(t('admin.products_import_no_valid')); return; }
     setImporting(true);
     let ok = 0, skipped = 0;
-    for (const r of valid) {
+    for (const r of importable) {
       try { await upsertProduct(r.data!); ok++; }
       catch { skipped++; }
     }
@@ -658,8 +667,22 @@ function CsvImport({ categories, onDone }: { categories: ProductCategory[]; onDo
     onDone();
   };
 
+  const downloadRejected = () => {
+    const csv = rejectedRowsToCsv(rejected.map((r) => ({
+      raw: r.raw,
+      status: r.eligibility.status,
+      reason: r.eligibility.reason,
+    })));
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'luna-import-a-verifier.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
   return (
-    <div className="max-w-4xl">
+    <div className="max-w-5xl">
       <p className="text-sm text-slate-600 mb-4">{t('admin.products_import_intro')}</p>
       <label className="inline-flex items-center gap-2 rounded-md bg-luna-navy text-white px-4 py-2 text-sm font-medium cursor-pointer hover:bg-luna-navy/90">
         {t('admin.products_import_choose')}
@@ -669,48 +692,71 @@ function CsvImport({ categories, onDone }: { categories: ProductCategory[]; onDo
       {rows.length > 0 && (
         <>
           <h3 className="mt-6 text-lg font-semibold text-luna-navy">{t('admin.products_import_preview')}</h3>
+          <p className="mt-1 text-xs text-slate-500 max-w-3xl">{t('admin.products_import_filter_note')}</p>
           <div className="mt-3 rounded-2xl border border-slate-200 bg-white overflow-x-auto">
             <table className="w-full text-xs">
               <thead className="bg-slate-50 text-luna-navy">
                 <tr>
                   <th className="text-left px-3 py-2 font-semibold">{t('admin.products_import_row_col')}</th>
                   <th className="text-left px-3 py-2 font-semibold">{t('admin.products_import_status_col')}</th>
-                  <th className="text-left px-3 py-2 font-semibold">slug_fr</th>
-                  <th className="text-left px-3 py-2 font-semibold">slug_en</th>
+                  <th className="text-left px-3 py-2 font-semibold">{t('admin.products_import_reason_col')}</th>
                   <th className="text-left px-3 py-2 font-semibold">name_fr</th>
+                  <th className="text-left px-3 py-2 font-semibold">product_type</th>
                   <th className="text-left px-3 py-2 font-semibold">price</th>
                   <th className="text-left px-3 py-2 font-semibold">category_slug</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {rows.map((r) => (
-                  <tr key={r.row} className={r.errors.length ? 'bg-red-50/40' : ''}>
-                    <td className="px-3 py-2 font-mono text-slate-500">{r.row}</td>
-                    <td className="px-3 py-2">
-                      {r.errors.length === 0 ? (
-                        <span className="inline-flex items-center rounded-full bg-green-100 text-green-800 px-2 py-0.5 font-semibold">
-                          {t('admin.products_import_ok')}
-                        </span>
-                      ) : (
-                        <span className="text-red-700" title={r.errors.join('; ')}>
-                          {t('admin.products_import_error')}: {r.errors.join('; ')}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2 font-mono">{r.raw.slug_fr ?? r.raw.slug ?? ''}</td>
-                    <td className="px-3 py-2 font-mono">{r.raw.slug_en ?? r.raw.slug ?? ''}</td>
-                    <td className="px-3 py-2">{r.raw.name_fr ?? ''}</td>
-                    <td className="px-3 py-2">{r.raw.price ?? ''}</td>
-                    <td className="px-3 py-2 font-mono">{r.raw.category_slug ?? ''}</td>
-                  </tr>
-                ))}
+                {rows.map((r) => {
+                  const hasErr = r.errors.length > 0;
+                  const status = r.eligibility.status;
+                  const rowBg = hasErr || status === 'excluded' ? 'bg-red-50/40'
+                    : status === 'to_verify' ? 'bg-amber-50/40' : '';
+                  return (
+                    <tr key={r.row} className={rowBg}>
+                      <td className="px-3 py-2 font-mono text-slate-500">{r.row}</td>
+                      <td className="px-3 py-2">
+                        {hasErr ? (
+                          <span className="inline-flex items-center rounded-full bg-red-100 text-red-800 px-2 py-0.5 font-semibold">
+                            {t('admin.products_import_error')}
+                          </span>
+                        ) : status === 'accepted' ? (
+                          <span className="inline-flex items-center rounded-full bg-green-100 text-green-800 px-2 py-0.5 font-semibold">
+                            {t('admin.products_import_status_accepted')}
+                          </span>
+                        ) : status === 'excluded' ? (
+                          <span className="inline-flex items-center rounded-full bg-red-100 text-red-800 px-2 py-0.5 font-semibold">
+                            {t('admin.products_import_status_excluded')}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center rounded-full bg-amber-100 text-amber-900 px-2 py-0.5 font-semibold">
+                            {t('admin.products_import_status_to_verify')}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-slate-600">
+                        {hasErr ? <span className="text-red-700">{r.errors.join('; ')}</span> : r.eligibility.reason}
+                        {r.eligibility.is_alcoholic && <span className="ml-1 text-slate-400">· alcool</span>}
+                      </td>
+                      <td className="px-3 py-2">{r.raw.name_fr ?? ''}</td>
+                      <td className="px-3 py-2 font-mono text-slate-500">{r.raw.product_type ?? '—'}</td>
+                      <td className="px-3 py-2">{r.raw.price ?? ''}</td>
+                      <td className="px-3 py-2 font-mono">{r.raw.category_slug ?? ''}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
-          <div className="mt-4">
-            <Button variant="navy" disabled={importing || valid.length === 0} onClick={doImport}>
-              {importing ? t('admin.products_import_importing') : t('admin.products_import_confirm', { count: valid.length })}
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <Button variant="navy" disabled={importing || importable.length === 0} onClick={doImport}>
+              {importing ? t('admin.products_import_importing') : t('admin.products_import_confirm', { count: importable.length })}
             </Button>
+            {rejected.length > 0 && (
+              <Button variant="outline" type="button" onClick={downloadRejected}>
+                {t('admin.products_import_download_rejected')} ({rejected.length})
+              </Button>
+            )}
           </div>
         </>
       )}
@@ -720,6 +766,9 @@ function CsvImport({ categories, onDone }: { categories: ProductCategory[]; onDo
 
 function validateRow(raw: Record<string, string>, row: number, categories: ProductCategory[]): ImportRow {
   const errors: string[] = [];
+  // Store-agnostic eligibility — same pipeline a future scraper will use
+  // (normalise → filter). Independent of the structural checks below.
+  const eligibility = isLunaEligibleProduct(normalizeCsvRow(raw));
   // Back-compat: accept a legacy single `slug` column and use it for both
   // slug_fr and slug_en if the FR/EN columns are missing.
   const slugFr = (raw.slug_fr ?? raw.slug ?? '').trim();
@@ -740,9 +789,9 @@ function validateRow(raw: Record<string, string>, row: number, categories: Produ
   if (slugFr && !/^[a-z0-9-]+$/.test(slugFr)) errors.push('slug_fr format');
   if (slugEn && !/^[a-z0-9-]+$/.test(slugEn)) errors.push('slug_en format');
 
-  if (errors.length) return { row, raw, errors };
+  if (errors.length) return { row, raw, errors, eligibility };
   return {
-    row, raw, errors: [],
+    row, raw, errors: [], eligibility,
     data: {
       slug_fr: slugFr, slug_en: slugEn,
       name_fr: raw.name_fr.trim(),

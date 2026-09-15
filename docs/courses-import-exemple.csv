@@ -1,0 +1,19 @@
+store_slug,source_url,source_product_id,source_category,product_type,name_fr,name_en,description_fr,description_en,storage_info,is_alcoholic,price,weight_kg,barcode,hs_code,image_url,category_slug,slug_fr,slug_en
+lidl,https://www.lidl.be/p/pain-frais,PF001,Boulangerie,food,Pain frais tradition,Fresh traditional bread,,,,,1.29,0.4,,,,staples,pain-frais-tradition,fresh-traditional-bread
+lidl,https://www.lidl.be/p/jambon,CH002,Charcuterie,food,Jambon cuit tranché,Sliced cooked ham,,,A conserver au frais,,2.49,0.2,,,,staples,jambon-cuit-tranche,sliced-cooked-ham
+lidl,https://www.lidl.be/p/viande-hachee,VH003,Viande fraîche,food,Viande hachée de boeuf,Fresh minced beef,,,,,4.99,0.5,,,,staples,viande-hachee-boeuf,fresh-minced-beef
+lidl,https://www.lidl.be/p/yaourt,YA004,Produits laitiers frais,food,Yaourt nature x4,Plain yogurt x4,,,A conserver au frais,,1.19,0.5,,,,staples,yaourt-nature-x4,plain-yogurt-x4
+lidl,https://www.lidl.be/p/pizza,PZ005,Surgelés,food,Pizza surgelée 4 fromages,Frozen 4-cheese pizza,,,A conserver à -18°C,,2.79,0.35,,,,staples,pizza-surgelee-4-fromages,frozen-4-cheese-pizza
+lidl,https://www.lidl.be/p/pommes,FR006,Fruits et légumes,food,Pommes Golden 1kg,Golden apples 1kg,Fruits frais,,,,1.99,1,,,,staples,pommes-golden-1kg,golden-apples-1kg
+lidl,https://www.lidl.be/p/sauce-fraiche,SC007,Traiteur,food,Sauce carbonara,Carbonara sauce,,,A conserver au frais entre 2 et 4°C,,1.89,0.3,,,,staples,sauce-carbonara,carbonara-sauce
+lidl,https://www.lidl.be/p/spaghetti,SP008,Épicerie,food,Spaghetti n°5 500g,Spaghetti no.5 500g,Pâtes de blé dur,Durum wheat pasta,Conservation à température ambiante,,0.89,0.5,,,,staples,spaghetti-n5-500g,spaghetti-no5-500g
+lidl,https://www.lidl.be/p/riz-basmati,RZ009,Épicerie,food,Riz basmati 1kg,Basmati rice 1kg,,,,,2.29,1,,,,staples,riz-basmati-1kg,basmati-rice-1kg
+lidl,https://www.lidl.be/p/tomates-pelees,TP010,Conserves,food,Tomates pelées 400g,Peeled tomatoes 400g,En conserve,Canned,,,0.55,0.4,,,,canned,tomates-pelees-400g,peeled-tomatoes-400g
+lidl,https://www.lidl.be/p/biscuits,BI011,Épicerie,food,Biscuits sablés 250g,Shortbread biscuits 250g,,,,,1.49,0.25,,,,staples,biscuits-sables-250g,shortbread-biscuits-250g
+lidl,https://www.lidl.be/p/cafe,CA012,Épicerie,food,Café moulu 250g,Ground coffee 250g,,,,,3.49,0.25,,,,staples,cafe-moulu-250g,ground-coffee-250g
+lidl,https://www.lidl.be/p/sauce-tomate,ST013,Épicerie,food,Sauce tomate basilic 350g,Tomato basil sauce 350g,,,,,1.29,0.35,,,,canned,sauce-tomate-basilic-350g,tomato-basil-sauce-350g
+lidl,https://www.lidl.be/p/vin-rouge,VR014,Vins,food,Vin rouge Bordeaux 75cl,Red Bordeaux wine 75cl,,,,,5.99,0.75,,,,staples,vin-rouge-bordeaux-75cl,red-bordeaux-wine-75cl
+lidl,https://www.lidl.be/p/lait-poudre,LP015,Épicerie,food,Lait en poudre entier 900g,Whole milk powder 900g,,,Conservation à température ambiante,,7.99,0.9,,,,staples,lait-en-poudre-entier-900g,whole-milk-powder-900g
+lidl,https://www.lidl.be/p/produit-x,PX016,,,Produit maison X,House product X,,,,,2.00,0.3,,,,staples,produit-maison-x,house-product-x
+lidl,https://www.lidl.be/p/tshirt,TS017,Textile,clothing,T-shirt coton,Cotton t-shirt,,,,,4.99,0.2,,,,staples,t-shirt-coton,cotton-t-shirt
+lidl,https://www.lidl.be/p/article-y,AY018,,food,Article maison Y,House item Y,,,,,3.00,0.4,,,,staples,article-maison-y,house-item-y
