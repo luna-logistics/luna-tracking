@@ -93,7 +93,7 @@ const BASE_ATTR = ['href', 'target', 'rel', 'style', 'class'];
 
 /** Wider sanitizer for admin-authored blog posts — allows <img> and <figure>. */
 const BLOG_TAGS = [...BASE_TAGS, 'figure', 'figcaption', 'img'];
-const BLOG_ATTR = [...BASE_ATTR, 'src', 'alt', 'srcset', 'sizes', 'loading', 'decoding'];
+const BLOG_ATTR = [...BASE_ATTR, 'src', 'alt', 'width', 'height', 'srcset', 'sizes', 'loading', 'decoding'];
 
 export function sanitizeBlogHtml(html: string): string {
   if (typeof window === 'undefined') return html;
