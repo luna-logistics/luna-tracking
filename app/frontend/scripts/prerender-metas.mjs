@@ -104,7 +104,7 @@ async function sbFetch(table, query) {
 const overrideRows  = await sbFetch('site_content', 'select=page_key,lang,field_key,value&or=(field_key.in.(meta_title,meta_description),page_key.eq.image)');
 const imageRows     = await sbFetch('site_images',  'select=image_key,url');
 const productRows   = await sbFetch('products',     'select=slug_fr,slug_en,name_fr,name_en,description_fr,description_en,meta_title_fr,meta_title_en,meta_description_fr,meta_description_en,image_url&is_active=eq.true');
-const blogRows      = await sbFetch('blog_posts',   'select=slug_fr,slug_en,title_fr,title_en,excerpt_fr,excerpt_en,meta_title_fr,meta_title_en,meta_description_fr,meta_description_en,featured_image,faq_fr,faq_en,published_at,updated_at&published=eq.true');
+const blogRows      = await sbFetch('blog_posts',   'select=slug_fr,slug_en,title_fr,title_en,excerpt_fr,excerpt_en,meta_title_fr,meta_title_en,meta_description_fr,meta_description_en,featured_image,featured_image_en,faq_fr,faq_en,published_at,updated_at&published=eq.true');
 const customRows    = await sbFetch('custom_pages', 'select=slug_fr,slug_en,title_fr,title_en,meta_title_fr,meta_title_en,meta_description_fr,meta_description_en,og_image,published_at,updated_at&published=eq.true');
 
 const overrides = new Map();
@@ -330,7 +330,7 @@ async function emitBlogPost(row) {
       || (lang === 'en' ? row.title_en : row.title_fr);
     const description = (lang === 'en' ? row.meta_description_en : row.meta_description_fr)
       || (lang === 'en' ? row.excerpt_en : row.excerpt_fr) || '';
-    const ogImage = row.featured_image || OG_FALLBACK;
+    const ogImage = (lang === 'en' ? (row.featured_image_en || row.featured_image) : row.featured_image) || OG_FALLBACK;
 
     const hreflangs = [];
     if (row.slug_fr) hreflangs.push({ hreflang: 'fr',        href: `${SITE_URL}${blogPostUrl(row.slug_fr, 'fr')}` });

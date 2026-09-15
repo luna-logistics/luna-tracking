@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { CalendarDays, ArrowRight } from 'lucide-react';
 import { SEO } from '@/components/SEO';
-import { fetchPublishedPosts, postTitle, postExcerpt, postImageAlt, postSlug, type BlogPost } from '@/lib/blog';
+import { fetchPublishedPosts, postTitle, postExcerpt, postImageAlt, postImage, postSlug, type BlogPost } from '@/lib/blog';
 import { urlFor } from '@/lib/url/routes';
 import { useContent } from '@/contexts/SiteContentContext';
 import { Ed } from '@/components/Ed';
@@ -59,10 +59,10 @@ export default function BlogIndex() {
                     to={url}
                     className="group rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-md hover:border-luna-blue/40 transition-shadow"
                   >
-                    {p.featured_image ? (
+                    {postImage(p, lang) ? (
                       <div className="aspect-video overflow-hidden bg-luna-navy/5">
                         <img
-                          src={p.featured_image}
+                          src={postImage(p, lang) as string}
                           alt={postImageAlt(p, lang)}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />

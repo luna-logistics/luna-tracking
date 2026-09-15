@@ -18,6 +18,8 @@ export type BlogPost = {
   content_fr: string;
   content_en: string;
   featured_image: string | null;
+  /** Per-language hero/OG image for /en/blog/*; falls back to featured_image. */
+  featured_image_en: string | null;
   featured_image_alt_fr: string | null;
   featured_image_alt_en: string | null;
   meta_title_fr: string | null;
@@ -50,6 +52,11 @@ export function postMetaDescription(p: BlogPost, lang: Lang) {
 export function postImageAlt(p: BlogPost, lang: Lang) {
   const a = lang === 'en' ? p.featured_image_alt_en : p.featured_image_alt_fr;
   return a || postTitle(p, lang);
+}
+/** Featured image for the active language (EN falls back to the FR image). */
+export function postImage(p: BlogPost, lang: Lang): string | null {
+  if (lang === 'en') return p.featured_image_en || p.featured_image;
+  return p.featured_image;
 }
 /** FAQ entries for the active language (empty array when none). */
 export function postFaq(p: BlogPost, lang: Lang): FaqItem[] {
@@ -99,8 +106,8 @@ export async function fetchPostById(id: string): Promise<BlogPost | null> {
 }
 
 export async function upsertPost(
-  p: Omit<BlogPost, 'created_at' | 'updated_at' | 'published_at' | 'slug' | 'faq_fr' | 'faq_en'>
-    & { id?: string; published_at?: string | null; faq_fr?: FaqItem[] | null; faq_en?: FaqItem[] | null },
+  p: Omit<BlogPost, 'created_at' | 'updated_at' | 'published_at' | 'slug' | 'faq_fr' | 'faq_en' | 'featured_image_en'>
+    & { id?: string; published_at?: string | null; faq_fr?: FaqItem[] | null; faq_en?: FaqItem[] | null; featured_image_en?: string | null },
 ) {
   const { data, error } = await supabase.from('blog_posts').upsert(p).select().single();
   if (error) throw error;

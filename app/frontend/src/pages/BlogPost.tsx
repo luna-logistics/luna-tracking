@@ -7,7 +7,7 @@ import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
 import {
   fetchPostBySlug,
-  postTitle, postExcerpt, postContent, postMetaTitle, postMetaDescription, postImageAlt, postFaq,
+  postTitle, postExcerpt, postContent, postMetaTitle, postMetaDescription, postImageAlt, postImage, postFaq,
   type BlogPost,
 } from '@/lib/blog';
 import { urlFor } from '@/lib/url/routes';
@@ -70,6 +70,7 @@ export default function BlogPostPage() {
   const canonical = `${SITE_URL}${lang === 'en' ? `/en/blog/${langSlug}` : `/blog/${langSlug}`}`;
 
   const faq = postFaq(post, lang);
+  const heroImg = postImage(post, lang);
 
   // Article + BreadcrumbList (+ FAQPage when the post carries a FAQ), all in
   // one @graph and all derived from the post data — never a static block.
@@ -78,7 +79,7 @@ export default function BlogPostPage() {
       '@type': 'Article',
       headline: title,
       description: postMetaDescription(post, lang) ?? postExcerpt(post, lang) ?? undefined,
-      image: post.featured_image ? [post.featured_image] : undefined,
+      image: heroImg ? [heroImg] : undefined,
       datePublished: post.published_at,
       dateModified: post.updated_at,
       author: { '@type': 'Organization', name: 'Luna Tracking Logistics' },
@@ -117,7 +118,7 @@ export default function BlogPostPage() {
         title={postMetaTitle(post, lang)}
         description={postMetaDescription(post, lang) ?? postExcerpt(post, lang) ?? undefined}
         type="article"
-        image={post.featured_image ?? undefined}
+        image={heroImg ?? undefined}
         imageAlt={postImageAlt(post, lang)}
       />
       <Helmet>
@@ -141,9 +142,9 @@ export default function BlogPostPage() {
             <p className="mt-3 text-lg text-slate-600 leading-relaxed">{postExcerpt(post, lang)}</p>
           )}
 
-          {post.featured_image && (
+          {heroImg && (
             <img
-              src={post.featured_image}
+              src={heroImg}
               alt={postImageAlt(post, lang)}
               className="mt-8 w-full rounded-2xl aspect-video object-cover"
             />
