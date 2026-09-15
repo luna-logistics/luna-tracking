@@ -33,7 +33,7 @@ const { ROUTES, urlFor, productUrl, blogPostUrl, customPageUrl } = routesMod;
 
 const DIST      = path.resolve(__dirname, '..', 'dist');
 const SITE_URL  = 'https://lunatrackinglogistics.com';
-const OG_FALLBACK = `${SITE_URL}/brand/og-default.jpg`;
+const ogFallback = (lang) => `${SITE_URL}/brand/og-default${lang === 'en' ? '-en' : ''}.jpg`;
 const SITE_NAME = 'Luna Tracking Logistics';
 
 const shellHtml = await fs.readFile(path.join(DIST, 'index.html'), 'utf8');
@@ -191,12 +191,12 @@ function readI18n(lang, page, field) {
   return (p && typeof p === 'object') ? p[field] : undefined;
 }
 
-function heroOgImage(pageKey) {
+function heroOgImage(pageKey, lang) {
   // Prefer the page's own hero image, then its OG slot, then the site fallback.
   return imagesByKey.get(`${pageKey}_hero`)
       ?? imagesByKey.get(`${pageKey}_og`)
       ?? imagesByKey.get('home_og')
-      ?? OG_FALLBACK;
+      ?? ogFallback(lang);
 }
 
 /** Alt text for that same image, from the admin-authored override in
@@ -298,7 +298,7 @@ async function emitStaticRoute(key, def) {
 
     const head = metaTagsFor({
       lang, title, description, canonical,
-      ogImage: heroOgImage(i18nPage),
+      ogImage: heroOgImage(i18nPage, lang),
       ogImageAlt: heroOgImageAlt(i18nPage, lang, title),
       hreflangs, jsonLd,
     });
@@ -330,7 +330,7 @@ async function emitBlogPost(row) {
       || (lang === 'en' ? row.title_en : row.title_fr);
     const description = (lang === 'en' ? row.meta_description_en : row.meta_description_fr)
       || (lang === 'en' ? row.excerpt_en : row.excerpt_fr) || '';
-    const ogImage = (lang === 'en' ? (row.featured_image_en || row.featured_image) : row.featured_image) || OG_FALLBACK;
+    const ogImage = (lang === 'en' ? (row.featured_image_en || row.featured_image) : row.featured_image) || ogFallback(lang);
 
     const hreflangs = [];
     if (row.slug_fr) hreflangs.push({ hreflang: 'fr',        href: `${SITE_URL}${blogPostUrl(row.slug_fr, 'fr')}` });
@@ -400,7 +400,7 @@ async function emitCustomPage(row) {
     const title = (lang === 'en' ? row.meta_title_en : row.meta_title_fr)
       || (lang === 'en' ? row.title_en : row.title_fr);
     const description = (lang === 'en' ? row.meta_description_en : row.meta_description_fr) || '';
-    const ogImage = row.og_image || OG_FALLBACK;
+    const ogImage = row.og_image || ogFallback(lang);
 
     const hreflangs = [];
     if (row.slug_fr) hreflangs.push({ hreflang: 'fr',        href: `${SITE_URL}${customPageUrl(row.slug_fr, 'fr')}` });
@@ -443,7 +443,7 @@ async function emitProduct(row) {
     const title = (lang === 'en' ? row.meta_title_en : row.meta_title_fr) || `${name} — ${SITE_NAME}`;
     const description = (lang === 'en' ? row.meta_description_en : row.meta_description_fr)
       || (lang === 'en' ? row.description_en : row.description_fr) || '';
-    const ogImage = row.image_url || OG_FALLBACK;
+    const ogImage = row.image_url || ogFallback(lang);
 
     const hreflangs = [];
     if (row.slug_fr) hreflangs.push({ hreflang: 'fr',        href: `${SITE_URL}${productUrl(row.slug_fr, 'fr')}` });

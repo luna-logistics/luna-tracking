@@ -51,7 +51,7 @@ export function SEO({
     canonical ??
     (typeof window !== 'undefined' ? window.location.origin + window.location.pathname : SITE_URL);
 
-  const ogImage = image ?? `${SITE_URL}/brand/og-default.jpg`;
+  const ogImage = image ?? `${SITE_URL}/brand/og-default${htmlLang === 'en' ? '-en' : ''}.jpg`;
   const resolvedOgTitle = ogTitle || title;
   const resolvedOgDescription = ogDescription || description;
 
