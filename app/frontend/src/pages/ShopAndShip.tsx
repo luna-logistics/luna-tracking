@@ -22,6 +22,7 @@ import { productUrl, urlFor } from '@/lib/url/routes';
 import { useContent, useSiteImage } from '@/contexts/SiteContentContext';
 import { Ed } from '@/components/Ed';
 import { Block } from '@/components/Block';
+import { cn } from '@/lib/utils';
 
 /**
  * Achat & Envoi (Shop & Ship) — "Achat Envoi Luna" redesign from Claude
@@ -44,7 +45,7 @@ export default function ShopAndShip() {
   const howTitle        = useContent('shop-and-ship', 'how_title',        t('shop.how_title'));
   const ogImage         = useSiteImage('shop_og', '') || undefined;
   const { user } = useAuth();
-  const { lines, add, setQty, remove, clear, total, count } = useCart();
+  const { lines, add, setQty, remove, clear, count } = useCart();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [cities, setCities] = useState<DestinationCity[]>([]);
@@ -65,20 +66,39 @@ export default function ShopAndShip() {
     [products, filter]
   );
 
+  // Cart revalidation against the freshly-loaded active products: a line whose
+  // product is no longer active/readable is "unavailable" (excluded from
+  // checkout); a line whose live price differs is flagged and re-priced. The
+  // stored snapshot (orders.items) is unchanged — we just checkout at the
+  // current price and drop unavailable lines.
+  const productsById = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
+  const cartRows = useMemo(() => lines.map((l) => {
+    const cur = productsById.get(l.product_id);
+    const unavailable = !loading && !cur;
+    const newPrice = cur ? cur.price : l.unit_price;
+    return { l, cur, unavailable, priceChanged: !!cur && cur.price !== l.unit_price, oldPrice: l.unit_price, newPrice };
+  }), [lines, productsById, loading]);
+  const availableRows = cartRows.filter((r) => !r.unavailable);
+  const revalidatedTotal = availableRows.reduce((s, r) => s + r.newPrice * r.l.quantity, 0);
+  const priceChanges = cartRows.filter((r) => r.priceChanged && !r.unavailable);
+  const hasUnavailable = cartRows.some((r) => r.unavailable);
+
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!user) return;
     const form = new FormData(e.currentTarget);
+    if (availableRows.length === 0) { toast.error(t('shop.cart_all_unavailable')); return; }
     setSubmitting(true);
     try {
-      const items: OrderItem[] = lines.map((l) => ({
-        product_id: l.product_id, slug: l.slug, name: l.name, quantity: l.quantity, unit_price: l.unit_price,
+      // Checkout only available lines, at the current (revalidated) price.
+      const items: OrderItem[] = availableRows.map((r) => ({
+        product_id: r.l.product_id, slug: r.l.slug, name: r.l.name, quantity: r.l.quantity, unit_price: r.newPrice,
       }));
       // (cart line's `slug` is the language-specific slug captured at add time)
       const order = await createOrder({
         user_id: user.id,
         items,
-        total,
+        total: revalidatedTotal,
         recipient_name: String(form.get('recipient_name') ?? ''),
         recipient_phone: String(form.get('recipient_phone') ?? ''),
         recipient_city_id: String(form.get('recipient_city_id') ?? '') || null,
@@ -156,7 +176,7 @@ export default function ShopAndShip() {
             <ShoppingCart className="h-5 w-5 shrink-0 text-luna-aqua" aria-hidden="true" />
             <div className="min-w-0 flex-1 text-sm text-white">
               <span className="font-semibold">{t('shop.cart_bar_items', { count })}</span>
-              <span className="text-[#B9C9E0]"> · {total.toFixed(2)} €</span>
+              <span className="text-[#B9C9E0]"> · {revalidatedTotal.toFixed(2)} €</span>
             </div>
             <button
               type="button"
@@ -275,22 +295,34 @@ export default function ShopAndShip() {
                       <p className="mb-[18px] text-[13px] leading-[1.7] text-[#B9C9E0]">{t('shop.cart_empty_hint')}</p>
                     ) : (
                       <ul className="mb-4 divide-y divide-[#4A6FA0]/30">
-                        {lines.map((l) => (
-                          <li key={l.product_id} className="py-3 first:pt-0">
+                        {cartRows.map(({ l, unavailable, priceChanged, oldPrice, newPrice }) => (
+                          <li key={l.product_id} className={cn('py-3 first:pt-0', unavailable && 'opacity-60')}>
                             <div className="line-clamp-2 text-[13px] font-medium text-white">{l.name}</div>
+                            {unavailable && (
+                              <div className="mt-1 inline-flex items-center rounded bg-red-500/20 px-1.5 py-0.5 text-[11px] font-semibold text-red-300">
+                                {t('shop.cart_unavailable')}
+                              </div>
+                            )}
+                            {priceChanged && !unavailable && (
+                              <div className="mt-1 text-[11px] text-luna-aqua">
+                                {t('shop.cart_price_changed', { old: oldPrice.toFixed(2), new: newPrice.toFixed(2) })}
+                              </div>
+                            )}
                             <div className="mt-1.5 flex items-center justify-between gap-2">
                               <div className="inline-flex items-center gap-1">
-                                <button type="button" aria-label="-" onClick={() => setQty(l.product_id, l.quantity - 1)}
-                                  className="grid h-7 w-7 place-items-center rounded-md border border-[#4A6FA0]/60 text-[#E4EDF9] hover:bg-white/10">
+                                <button type="button" aria-label="-" disabled={unavailable} onClick={() => setQty(l.product_id, l.quantity - 1)}
+                                  className="grid h-7 w-7 place-items-center rounded-md border border-[#4A6FA0]/60 text-[#E4EDF9] hover:bg-white/10 disabled:opacity-40">
                                   <Minus className="h-3.5 w-3.5" />
                                 </button>
                                 <span className="w-8 text-center text-sm text-white">{l.quantity}</span>
-                                <button type="button" aria-label="+" onClick={() => setQty(l.product_id, l.quantity + 1)}
-                                  className="grid h-7 w-7 place-items-center rounded-md border border-[#4A6FA0]/60 text-[#E4EDF9] hover:bg-white/10">
+                                <button type="button" aria-label="+" disabled={unavailable} onClick={() => setQty(l.product_id, l.quantity + 1)}
+                                  className="grid h-7 w-7 place-items-center rounded-md border border-[#4A6FA0]/60 text-[#E4EDF9] hover:bg-white/10 disabled:opacity-40">
                                   <Plus className="h-3.5 w-3.5" />
                                 </button>
                               </div>
-                              <span className="text-[13px] font-semibold text-white">{(l.unit_price * l.quantity).toFixed(2)} €</span>
+                              <span className="text-[13px] font-semibold text-white">
+                                {unavailable ? '—' : (newPrice * l.quantity).toFixed(2) + ' €'}
+                              </span>
                               <button type="button" aria-label={t('shop.cart_remove')} onClick={() => remove(l.product_id)}
                                 className="text-[#8FA3BF] hover:text-red-400">
                                 <X className="h-4 w-4" />
@@ -301,10 +333,17 @@ export default function ShopAndShip() {
                       </ul>
                     )}
 
+                    {(hasUnavailable || priceChanges.length > 0) && (
+                      <div className="mb-4 rounded-lg border border-luna-aqua/40 bg-luna-aqua/[.08] px-3 py-2 text-[11px] leading-[1.6] text-[#DCE7F7]">
+                        {hasUnavailable && <div>{t('shop.cart_unavailable_note')}</div>}
+                        {priceChanges.length > 0 && <div>{t('shop.cart_price_changed_note')}</div>}
+                      </div>
+                    )}
+
                     <div className="flex flex-col gap-2.5 rounded-lg border border-[#4A6FA0]/45 bg-white/[.05] px-4 py-3.5">
                       <div className="flex items-baseline justify-between gap-3 text-[13px] text-[#B9C9E0]">
                         <span>{t('shop.cart_subtotal')}</span>
-                        <span className="font-semibold text-white">{total.toFixed(2)} €</span>
+                        <span className="font-semibold text-white">{revalidatedTotal.toFixed(2)} €</span>
                       </div>
                       <div className="flex items-baseline justify-between gap-3 text-[13px] text-[#B9C9E0]">
                         <span>{t('shop.cart_shipping')}</span>
@@ -314,7 +353,7 @@ export default function ShopAndShip() {
 
                     <button
                       type="button"
-                      disabled={lines.length === 0}
+                      disabled={availableRows.length === 0}
                       onClick={() => setView('checkout')}
                       className="mt-[18px] flex w-full items-center justify-center gap-2.5 rounded-lg bg-luna-aqua px-[18px] py-3.5 text-[13px] font-semibold text-luna-ink transition-colors hover:bg-luna-aqua2 disabled:cursor-not-allowed disabled:border disabled:border-[#4A6FA0]/60 disabled:bg-white/[.04] disabled:text-[#8FA3BF]"
                     >
@@ -335,6 +374,13 @@ export default function ShopAndShip() {
               <div className="rounded-xl border border-[#DCE5F0] bg-white p-6 shadow-sm">
                 <h2 className="text-2xl font-bold text-luna-ink">{t('shop.checkout_title')}</h2>
                 <p className="mt-2 text-sm text-luna-body">{t('shop.checkout_intro')}</p>
+
+                {(hasUnavailable || priceChanges.length > 0) && (
+                  <div className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900">
+                    {hasUnavailable && <div>{t('shop.cart_unavailable_note')}</div>}
+                    {priceChanges.length > 0 && <div>{t('shop.cart_price_changed_note')}</div>}
+                  </div>
+                )}
 
                 {!user ? (
                   <div className="mt-6 rounded-xl border border-amber-300 bg-amber-50 p-4">
