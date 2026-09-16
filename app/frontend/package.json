@@ -11,7 +11,7 @@
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
     "check-i18n": "node scripts/check-i18n.mjs",
     "test:eligibility": "node scripts/check-eligibility.mjs",
-    "test:scraper": "node --test scripts/scraper/__tests__/scraper.test.mjs",
+    "test:scraper": "node --test scripts/scraper/__tests__/scraper.test.mjs scripts/scraper/__tests__/robustness.test.mjs",
     "scrape": "node scripts/scrape.mjs",
     "indexnow": "node scripts/indexnow-submit.mjs"
   },

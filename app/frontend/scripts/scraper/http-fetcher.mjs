@@ -6,6 +6,7 @@
  * 429/503 or a challenge page is reported, not circumvented.
  */
 import { DEFAULT_USER_AGENT } from './types.mjs';
+import { classifyResponse, STATUS } from './detect.mjs';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -28,19 +29,6 @@ function classify(contentType, url) {
   if (ct.includes('gzip') || url.endsWith('.gz')) return 'gzip';
   if (ct.includes('html')) return 'html';
   return 'other';
-}
-
-/** Heuristic: does the body look like an anti-bot interstitial (not real content)? */
-function looksBlocked(status, body) {
-  if (status === 403 || status === 429 || status === 503) return true;
-  const b = body.slice(0, 4000).toLowerCase();
-  return (
-    b.includes('cf-browser-verification') ||
-    b.includes('/cdn-cgi/challenge-platform') ||
-    b.includes('just a moment') ||
-    b.includes('captcha') && b.includes('verify you are human') ||
-    b.includes('access denied') && b.includes('akamai')
-  );
 }
 
 export class Fetcher {
@@ -96,27 +84,31 @@ export class Fetcher {
           body = await res.text();
           this.stats.bytes += body.length;
         }
-        const blocked = looksBlocked(res.status, body);
+        const headers = { 'retry-after': res.headers.get('retry-after') || '' };
+        const block = classifyResponse({ status: res.status, url: res.url || url, requestedUrl: url, contentType, body, headers });
+        const blocked = block.code !== STATUS.OK && block.code !== STATUS.NOT_A_PRODUCT_PAGE && block.code !== STATUS.JAVASCRIPT_REQUIRED;
         if (blocked) this.stats.blocked++;
-        // Retry transient server errors (not 4xx client errors, not blocks)
-        if (!res.ok && (res.status >= 500 && res.status !== 501) && attempt < this.retries) {
+        // Retry ONLY genuine transient server errors — never a detected
+        // challenge/rate-limit/access-deny (retrying those is aggressive + futile).
+        if (!res.ok && res.status >= 500 && res.status !== 501 && !block.terminal && attempt < this.retries) {
           attempt++; await sleep(400 * 2 ** attempt); continue;
         }
         if (res.ok) this.stats.ok++; else this.stats.failed++;
         return {
-          ok: res.ok, status: res.status, url: res.url || url,
-          contentType, kind, body, bytes, error: res.ok ? null : `HTTP ${res.status}`, blocked,
+          ok: res.ok, status: res.status, url: res.url || url, requestedUrl: url,
+          contentType, kind, body, bytes, headers, block,
+          error: res.ok ? null : `HTTP ${res.status}`, blocked,
         };
       } catch (err) {
         clearTimeout(timer);
         lastErr = err?.name === 'AbortError' ? 'timeout' : (err?.message || String(err));
         if (attempt < this.retries) { attempt++; await sleep(400 * 2 ** attempt); continue; }
         this.stats.failed++;
-        return { ok: false, status: 0, url, contentType: '', kind: 'other', body: '', bytes: null, error: lastErr, blocked: false };
+        return { ok: false, status: 0, url, requestedUrl: url, contentType: '', kind: 'other', body: '', bytes: null, error: lastErr, blocked: false, block: classifyResponse({ status: 0, error: lastErr }) };
       }
     }
     this.stats.failed++;
-    return { ok: false, status: 0, url, contentType: '', kind: 'other', body: '', bytes: null, error: lastErr || 'unknown', blocked: false };
+    return { ok: false, status: 0, url, requestedUrl: url, contentType: '', kind: 'other', body: '', bytes: null, error: lastErr || 'unknown', blocked: false, block: classifyResponse({ status: 0, error: lastErr || 'unknown' }) };
   }
 
   /** Fetch + gunzip a (possibly gzipped) text resource. Uses native DecompressionStream. */
