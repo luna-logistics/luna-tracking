@@ -14,6 +14,7 @@ import { toNormalizedProduct } from '../normalize.mjs';
 import { toImportCsv } from '../csv.mjs';
 import { paginate } from '../pagination.mjs';
 import { shopifyProductToRaw } from '../platform.mjs';
+import { discoverProducts, SKIP_RE, PRODUCT_RE, LISTING_RE, PAGE_RE } from '../discover.mjs';
 
 const wrap = (jsonld) => `<html><head><script type="application/ld+json">${JSON.stringify(jsonld)}</script></head><body></body></html>`;
 
@@ -199,6 +200,52 @@ test('shopify product JSON → RawProduct', () => {
   assert.equal(raw.gtin, '3700000000001');
   assert.equal(raw.brand, 'Acme');
   assert.deepEqual(raw.images, ['https://cdn/x.jpg']);
+});
+
+// ── discovery ─────────────────────────────────────────────────────────────────
+test('discovery URL classifiers', () => {
+  assert.ok(PRODUCT_RE.test('https://s/product/abc'));
+  assert.ok(LISTING_RE.test('https://s/collections/men'));
+  assert.ok(PAGE_RE.test('https://s/shop?page=2'));
+  assert.ok(SKIP_RE.test('https://s/conditions-generales'));
+  assert.ok(SKIP_RE.test('https://s/cart'));
+  assert.ok(SKIP_RE.test('https://s/img/a.jpg'));
+  assert.ok(!SKIP_RE.test('https://s/product/hoodie'));
+});
+
+class DiscMock {
+  constructor(map) { this.map = map; this.stats = { requests: 0, ok: 0, failed: 0, blocked: 0, bytes: 0 }; this.userAgent = 't'; }
+  async get(url) { this.stats.requests++; const r = this.map[url] || { status: 404, body: '' }; return { ok: r.status >= 200 && r.status < 300, status: r.status, url, requestedUrl: url, body: r.body || '', kind: 'html', headers: {}, error: null }; }
+  async getText(url) { return this.get(url); }
+}
+const page = (links) => ({ status: 200, body: `<html><body>${links.map((h) => `<a href="${h}">x</a>`).join('')}</body></html>` });
+
+test('discovery crawls categories + pagination, skips junk, collects products', async () => {
+  const f = new DiscMock({
+    'https://shop.be/': page(['/category/food', '/product/a', '/conditions-generales', '/cart', '/blog/post-1']),
+    'https://shop.be/category/food': page(['/product/b', '/product/c', '/category/food?page=2', '/login']),
+    'https://shop.be/category/food?page=2': page(['/product/d', '/product/c']), // c repeats → dedup
+  });
+  const { urls, report } = await discoverProducts(f, 'https://shop.be/', { maxProducts: 100, maxPages: 50 });
+  const paths = urls.map((u) => new URL(u).pathname).sort();
+  assert.deepEqual(paths, ['/product/a', '/product/b', '/product/c', '/product/d']);
+  assert.equal(report.method, 'crawl');
+  assert.ok(!urls.some((u) => /conditions|cart|blog|login/.test(u))); // junk never crawled/collected
+});
+
+test('discovery respects maxProducts guardrail', async () => {
+  const many = Array.from({ length: 50 }, (_, i) => `/product/p${i}`);
+  const f = new DiscMock({ 'https://shop.be/': page(many) });
+  const { urls } = await discoverProducts(f, 'https://shop.be/', { maxProducts: 10, maxPages: 50 });
+  assert.equal(urls.length, 10);
+});
+
+test('discovery stops on a challenge during crawl (no infinite loop)', async () => {
+  const CFbody = '<html>Just a moment... /cdn-cgi/challenge-platform</html>';
+  const f = new DiscMock({ 'https://shop.be/': { status: 403, body: CFbody } });
+  const { urls, report } = await discoverProducts(f, 'https://shop.be/', {});
+  assert.equal(urls.length, 0);
+  assert.ok(report.stopped && report.stopped.code);
 });
 
 // ── robustness: invalid page yields nothing, never throws ─────────────────────

@@ -11,14 +11,13 @@
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';
 import { Fetcher } from './http-fetcher.mjs';
-import { discoverFromSitemaps } from './sitemap.mjs';
-import { parseRobots } from './robots.mjs';
 import { extractProduct } from './extract.mjs';
 import { toNormalizedProduct } from './normalize.mjs';
 import { detectPlatform, shopifyJsonUrl, shopifyProductToRaw } from './platform.mjs';
-import { renderPage } from './browser.mjs';
+import { BrowserSession, browserAvailable } from './browser.mjs';
 import { dedupKey, originOf } from './url-utils.mjs';
 import { classifyResponse, STATUS } from './detect.mjs';
+import { discoverProducts } from './discover.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ELIGIBILITY_TS = path.resolve(__dirname, '..', '..', 'src/lib/product-eligibility.ts');
@@ -82,11 +81,14 @@ export async function runScrape(config) {
     urls = config.urls;
     report.notes.push(`discovery: ${urls.length} URL(s) provided`);
   } else if (config.origin) {
-    const origin = originOf(config.origin) || config.origin;
-    const robotsRes = await fetcher.get(`${origin}/robots.txt`);
-    const robots = robotsRes.ok ? parseRobots(robotsRes.body) : null;
-    const disc = await discoverFromSitemaps(fetcher, origin, { max: limit, hint: robots?.sitemaps || [] });
-    urls = disc.urls; report.sitemapsRead = disc.sitemapsRead; report.notes.push(...disc.notes);
+    // Automatic discovery: sitemap → categories/listings → pagination → products.
+    const disc = await discoverProducts(fetcher, config.origin, {
+      maxProducts: limit, maxPages: config.maxPages, maxDepth: config.maxDepth,
+    });
+    urls = disc.urls;
+    report.discovery = disc.report;
+    report.notes.push(`discovery: ${disc.report.method} — ${disc.report.pagesCrawled} pages crawled, ${disc.report.productUrls} product URLs`, ...disc.report.notes);
+    if (disc.report.stopped) { report.status = disc.report.stopped.code; report.blocked = disc.report.stopped; }
   } else {
     throw new Error('runScrape: provide config.urls or config.origin');
   }
@@ -111,6 +113,16 @@ export async function runScrape(config) {
   // challenges) and nothing succeeds, stop instead of hammering the source.
   const breaker = Math.max(3, config.breaker ?? 6);
   let consecFail = 0; let lastFailCode = null;
+
+  // Browser fallback: HTTP-first. Use Playwright only for CSR pages, capped.
+  // Auto-on when Playwright is installed unless explicitly disabled. A session
+  // can be injected (config.browserSession) for testing.
+  const injectedSession = config.browserSession || null;
+  const wantBrowser = config.useBrowser !== false && (!!injectedSession || await browserAvailable());
+  const maxBrowser = config.maxBrowser ?? 40;
+  let browserUsed = 0;
+  let session = null;
+  report.playwrightAvailable = !!injectedSession || await browserAvailable();
 
   const processed = await pool(unique, async (url) => {
     const r = await fetcher.get(url);
@@ -153,10 +165,19 @@ export async function runScrape(config) {
       raw = preProduct;
       if (!raw && (nb || resp.code === STATUS.JAVASCRIPT_REQUIRED)) {
         report.browserRequired++;
-        if (config.useBrowser) {
-          const rendered = await renderPage(url, { userAgent: fetcher.userAgent });
-          if (rendered.html) { raw = extractProduct(rendered.html, r.url).product; }
-          else if (!rendered.available) report.notes.push('browser fallback requested but Playwright not installed');
+        if (wantBrowser && browserUsed < maxBrowser && !stop) {
+          browserUsed++;
+          if (!session) session = injectedSession || new BrowserSession({ userAgent: fetcher.userAgent });
+          const rendered = await session.render(url);
+          if (rendered.block && rendered.block.terminal) {
+            // Protection detected under the browser too → stop cleanly, no bypass.
+            if (!stop) stop = { code: rendered.block.code, reason: `${rendered.block.reason} (under browser)`, url, retryAfter: rendered.block.retryAfter };
+            return;
+          }
+          if (rendered.html) raw = extractProduct(rendered.html, r.url).product;
+        } else if (!report.playwrightAvailable && !report._pwNoted) {
+          report._pwNoted = true;
+          report.notes.push('some pages require JavaScript; install Playwright to render them (pnpm add -D playwright && npx playwright install chromium)');
         }
       }
     }
@@ -188,6 +209,9 @@ export async function runScrape(config) {
 
     products.push(np);
   }, concurrency, () => stop !== null);
+
+  if (session && session !== injectedSession) { await session.close(); }
+  report.browserUsed = browserUsed;
 
   if (stop) {
     report.status = stop.code;
@@ -223,6 +247,7 @@ export function formatReport(rep) {
     `network errors:     ${rep.networkErrors}`,
     `parse errors:       ${rep.parseErrors}`,
     `browser required:   ${rep.browserRequired}`,
+    `browser used:       ${rep.browserUsed || 0}${rep.playwrightAvailable ? '' : ' (Playwright not installed)'}`,
     `sitemaps read:      ${rep.sitemapsRead.length}`,
     `duration:           ${(rep.durationMs / 1000).toFixed(1)}s`,
   ];

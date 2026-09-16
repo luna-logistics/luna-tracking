@@ -39,6 +39,7 @@ function parseArgs(argv) {
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--browser') args.browser = true;
+    else if (a === '--no-browser') args['no-browser'] = true;
     else if (a.startsWith('--')) {
       const key = a.slice(2);
       const val = argv[++i];
@@ -85,10 +86,13 @@ async function main() {
       urls: args.url.length ? args.url : undefined,
       limit: args.limit ? parseInt(args.limit, 10) : undefined,
       concurrency: args.concurrency ? parseInt(args.concurrency, 10) : undefined,
+      maxPages: args['max-pages'] ? parseInt(args['max-pages'], 10) : undefined,
+      maxDepth: args['max-depth'] ? parseInt(args['max-depth'], 10) : undefined,
+      maxBrowser: args['max-browser'] ? parseInt(args['max-browser'], 10) : undefined,
       defaultProductType: args['product-type'] || null,
       categorySlug: args['category-slug'] || null,
       lang: args.lang === 'en' ? 'en' : 'fr',
-      useBrowser: !!args.browser,
+      useBrowser: args['no-browser'] ? false : undefined, // auto-on when Playwright is installed
       onProgress: (n, t) => process.stdout.write(`\r  fetched ${n}/${t}   `),
     });
     process.stdout.write('\r');

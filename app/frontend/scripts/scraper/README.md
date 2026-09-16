@@ -28,7 +28,9 @@ scripts/scraper/
   normalize.mjs      RawProduct → NormalizedProduct (identity: GTIN→SKU→MPN→URL; never invents codes)
   dedup: url-utils.dedupKey + engine identity key
   pagination.mjs     page=/p=/offset/rel=next with loop + repeat guards
-  browser.mjs        OPTIONAL Playwright fallback (lazy; engine works without it)
+  discover.mjs       AUTO discovery: sitemap → categories/listings → pagination → product URLs (product-oriented, guardrails)
+  detect.mjs         centralised protection/anomaly classifier (challenge/captcha/rate-limit/…)
+  browser.mjs        Playwright fallback (installed): BrowserSession, CSR-only, capped, protection-aware
   probe.mjs          source auto-analysis (SOURCE ANALYSIS report)
   engine.mjs         orchestrator (discovery→…→eligibility→SCRAPE REPORT)
   csv.mjs            NormalizedProduct[] → admin-import CSV
@@ -46,9 +48,13 @@ Playwright is a **fallback only**, for pages whose data appears after JS render.
 # analyse a new shop before building anything specific
 pnpm scrape probe https://example.com
 
-# run against a site's product sitemap (store must already exist in Admin → Magasins)
+# AUTO-DISCOVERY from a shop URL (sitemap → categories → pagination → products)
+# store must already exist in Admin → Magasins
 pnpm scrape run --store my-store --origin https://example.com \
-  --product-type food --category-slug cafe-the --limit 500 --out out.csv
+  --product-type food --category-slug cafe-the --limit 500 \
+  --max-pages 150 --max-depth 3 --out out.csv
+# --no-browser disables the Playwright fallback (HTTP-only); it is auto-on for
+# CSR pages otherwise (capped by --max-browser, default 40).
 
 # run against explicit product URLs
 pnpm scrape run --store my-store --url https://example.com/p/1 --url https://example.com/p/2 --out out.csv
@@ -59,6 +65,13 @@ pnpm test:scraper
 The `run` command writes a CSV in the **admin-import format**; load it in
 **Admin → Produits → Import CSV** (preview + draft import + `product_sources`).
 `category_slug` is left for the operator (categories are never auto-created).
+
+## Playwright
+Installed (`playwright` devDep + Chromium). HTTP-first: the browser renders
+only pages detected as CSR (empty SPA shell / JS-required), capped, and its
+output goes through the same protection classifier — a challenge/captcha under
+the browser stops the source (no bypass). Re-install the browser binary with
+`npx playwright install chromium` if missing.
 
 ## Adding a new source
 Ideally just: **a URL + an existing store** (+ `--product-type`). Add a small

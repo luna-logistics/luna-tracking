@@ -115,6 +115,26 @@ test('engine: circuit breaker stops after repeated network failures (no hammerin
   assert.ok(report.remaining > 0);
 });
 
+test('engine: CSR page (empty shell) → browser fallback renders + extracts product', async () => {
+  const shell = '<html><body><div id="root"></div></body></html>';
+  const fetcher = new MockFetcher({ 'https://s/product/x': { status: 200, body: shell } });
+  const fakeSession = { calls: 0, async render() { this.calls++; return { html: product('Rendered Product'), status: 200, block: null, error: null }; }, async close() {} };
+  const { products, report } = await runScrape({ store: { slug: 'test' }, urls: ['https://s/product/x'], concurrency: 1, defaultProductType: 'other', fetcher, browserSession: fakeSession });
+  assert.equal(fakeSession.calls, 1);
+  assert.equal(report.browserUsed, 1);
+  assert.equal(products.length, 1);
+  assert.equal(products[0].name_fr, 'Rendered Product');
+});
+
+test('engine: challenge detected UNDER the browser → stop, no bypass', async () => {
+  const shell = '<html><body><div id="app"></div></body></html>';
+  const fetcher = new MockFetcher({ 'https://s/product/1': { status: 200, body: shell }, 'https://s/product/2': { status: 200, body: shell } });
+  const blockedSession = { async render() { return { html: null, status: 403, block: { code: STATUS.BOT_CHALLENGE, reason: 'cf under browser', terminal: true, retryAfter: null }, error: null }; }, async close() {} };
+  const { products, report } = await runScrape({ store: { slug: 'test' }, urls: ['https://s/product/1', 'https://s/product/2'], concurrency: 1, defaultProductType: 'other', fetcher, browserSession: blockedSession });
+  assert.equal(report.status, STATUS.BOT_CHALLENGE);
+  assert.equal(products.length, 0);
+});
+
 test('engine: OK page with no product → not-a-product, not an error, not a product', async () => {
   const fetcher = new MockFetcher({ 'https://s/x': { status: 200, body: '<html><body><h1>About us</h1><p>' + 'x '.repeat(1200) + '</p></body></html>' } });
   const { products, report } = await runScrape({ store: { slug: 'test' }, urls: ['https://s/x'], concurrency: 1, fetcher });
