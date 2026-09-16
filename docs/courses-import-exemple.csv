@@ -12,8 +12,11 @@ lidl,https://www.lidl.be/p/tomates-pelees,TP010,Conserves,food,Tomates pelées 4
 lidl,https://www.lidl.be/p/biscuits,BI011,Épicerie,food,Biscuits sablés 250g,Shortbread biscuits 250g,,,,,1.49,0.25,,,,staples,biscuits-sables-250g,shortbread-biscuits-250g
 lidl,https://www.lidl.be/p/cafe,CA012,Épicerie,food,Café moulu 250g,Ground coffee 250g,,,,,3.49,0.25,,,,staples,cafe-moulu-250g,ground-coffee-250g
 lidl,https://www.lidl.be/p/sauce-tomate,ST013,Épicerie,food,Sauce tomate basilic 350g,Tomato basil sauce 350g,,,,,1.29,0.35,,,,canned,sauce-tomate-basilic-350g,tomato-basil-sauce-350g
-lidl,https://www.lidl.be/p/vin-rouge,VR014,Vins,food,Vin rouge Bordeaux 75cl,Red Bordeaux wine 75cl,,,,,5.99,0.75,,,,staples,vin-rouge-bordeaux-75cl,red-bordeaux-wine-75cl
+lidl,https://www.lidl.be/p/vin-rouge,VR014,Vins,food,Vin rouge Bordeaux 75cl,Red Bordeaux wine 75cl,,,,,5.99,1.25,,,,staples,vin-rouge-bordeaux-75cl,red-bordeaux-wine-75cl
 lidl,https://www.lidl.be/p/lait-poudre,LP015,Épicerie,food,Lait en poudre entier 900g,Whole milk powder 900g,,,Conservation à température ambiante,,7.99,0.9,,,,staples,lait-en-poudre-entier-900g,whole-milk-powder-900g
 lidl,https://www.lidl.be/p/produit-x,PX016,,,Produit maison X,House product X,,,,,2.00,0.3,,,,staples,produit-maison-x,house-product-x
 lidl,https://www.lidl.be/p/tshirt,TS017,Textile,clothing,T-shirt coton,Cotton t-shirt,,,,,4.99,0.2,,,,staples,t-shirt-coton,cotton-t-shirt
 lidl,https://www.lidl.be/p/article-y,AY018,,food,Article maison Y,House item Y,,,,,3.00,0.4,,,,staples,article-maison-y,house-item-y
+lidl,https://www.lidl.be/p/ketchup,KT019,Épicerie,food,Ketchup 500ml,Ketchup 500ml,,,À conserver au réfrigérateur après ouverture,,1.39,0.5,,,,staples,ketchup-500ml,ketchup-500ml
+lidl,https://www.lidl.be/p/carbonara-frais,CB020,Traiteur,food,Sauce carbonara réfrigérée,Chilled carbonara sauce,,,À conserver entre 2 et 4°C produit réfrigéré,,1.99,0.3,,,,staples,sauce-carbonara-refrigeree,chilled-carbonara-sauce
+lidl,https://www.lidl.be/p/chewing-gum,CG021,Confiserie,food,Chewing-gum menthe fraîche,Fresh mint chewing gum,,,,,1.09,0.03,,,,staples,chewing-gum-menthe-fraiche,fresh-mint-chewing-gum

@@ -55,6 +55,36 @@ check('Sauce tomate',                  food('Sauce tomate basilic'),            
 check('Huile de tournesol',            food('Huile de tournesol 1L'),                           'accepted');
 check('Chocolat tablette',             food('Tablette de chocolat noir'),                       'accepted');
 
+console.log('\n— COLD "after opening" vs real cold-chain, flavour "frais" —');
+check('Ketchup (fridge after opening)',  food('Ketchup', { storage_info: 'À conserver au réfrigérateur après ouverture' }), 'accepted');
+check('Mayonnaise (after opening)',      food('Mayonnaise', { storage_info: 'Après ouverture, à conserver au frais' }), 'accepted');
+check('Confiture (after opening)',       food('Confiture de fraises', { storage_info: 'Après ouverture à conserver au frais' }), 'accepted');
+check('Sauce carbonara (refrigerated)',  food('Sauce carbonara', { storage_info: 'À conserver entre 2 et 4°C, produit réfrigéré' }), 'excluded', 'froid');
+check('Chewing-gum menthe fraîche',      food('Chewing-gum menthe fraîche'),                      'accepted');
+check('Goût frais (soda)',               food('Soda goût frais citron'),                          'accepted');
+check('Pâtes fraîches (real fresh)',     food('Pâtes fraîches tagliatelles'),                     'excluded', 'frais');
+
+console.log('\n— AMBIENT dry-storage & real cold ranges —');
+check('Chips "endroit frais et sec"',    food('Chips sel', { source_category: 'Snacks', storage_info: 'À conserver dans un endroit frais et sec' }), 'accepted');
+check('Farine "endroit sec"',            food('Farine de blé', { storage_info: "À conserver dans un endroit sec, à l'abri de la chaleur" }), 'accepted');
+check('Huile olive "abri lumière"',      food("Huile d'olive vierge extra", { storage_info: "À conserver à l'abri de la lumière" }), 'accepted');
+check('Jus orange ambiant',              food("Jus d'orange", { source_category: 'Boissons', storage_info: 'Conservation à température ambiante. Après ouverture, à conserver au réfrigérateur' }), 'accepted');
+check('Jus pressé réfrigéré 0-4°C',      food("Jus d'orange pressé réfrigéré", { storage_info: 'À conserver entre 0 et 4 °C' }), 'excluded', 'froid');
+check('Beurre doux 2-6°C',               food('Beurre doux', { source_category: 'Produits laitiers', storage_info: 'À conserver entre 2 et 6 °C' }), 'excluded', 'froid');
+check('Emmental râpé 4-8°C',             food('Emmental râpé', { source_category: 'Produits laitiers', storage_info: 'À conserver entre 4 et 8 °C' }), 'excluded', 'froid');
+check('Glace vanille -18°C',             food('Glace vanille', { source_category: 'Surgelés', storage_info: 'À conserver à -18 °C' }), 'excluded', 'surgel');
+check('Œufs x6',                          food('Œufs x6', { source_category: 'Œufs' }), 'to_verify');
+check('Lait UHT ambiant (report)',       food('Lait demi-écrémé UHT', { source_category: 'Produits laitiers', storage_info: 'Avant ouverture, conservation à température ambiante' }), 'accepted');
+
+console.log('\n— CURED / DRIED meat & fish (ambient OK, cold wins) —');
+check('Saucisson sec "frais et sec"',    food('Saucisson sec', { source_category: 'Charcuterie', storage_info: 'À conserver dans un endroit frais et sec' }), 'accepted', 'charcuterie');
+check('Jambon sec tranché 0-4°C',        food('Jambon sec tranché', { source_category: 'Charcuterie', storage_info: 'À conserver entre 0 et 4 °C' }), 'excluded', 'froid');
+check('Jambon cru affiné (no info)',     food('Jambon cru affiné', { source_category: 'Charcuterie' }), 'to_verify', 'confirmer');
+check('Jambon cuit tranché',             food('Jambon cuit tranché', { source_category: 'Charcuterie' }), 'excluded', 'charcuterie');
+check('Biltong température ambiante',     food('Biltong boeuf séché', { storage_info: 'À conserver à température ambiante' }), 'accepted');
+check('Morue salée séchée ambiant',      food('Morue salée séchée', { storage_info: 'À conserver dans un endroit frais et sec' }), 'accepted', 'poisson');
+check('Saumon fumé 0-4°C',               food('Saumon fumé', { storage_info: 'À conserver entre 0 et 4 °C' }), 'excluded', 'froid');
+
 console.log('\n— ALCOHOL (accepted + flagged) —');
 check('Vin rouge',                     food('Vin rouge Bordeaux 75cl'),                         'accepted');
 check('Bière blonde',                  food('Bière blonde pils 6x33cl'),                        'accepted');

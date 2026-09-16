@@ -59,6 +59,14 @@ interface KeywordRule {
   /** Readable reason (French), shown in preview + logs. */
   reason: string;
   keywords: string[];
+  /** If ANY of these phrases is present in the corpus, the whole rule is
+   *  suppressed. Used for conditional cold ("à conserver au frais APRÈS
+   *  OUVERTURE" is not a cold-chain product). */
+  suppressIfPresent?: string[];
+  /** A single-word keyword only counts if at least one occurrence is NOT
+   *  immediately preceded by one of these words. Used so "menthe fraîche"
+   *  / "goût frais" (a flavour) is not read as a conservation signal. */
+  suppressIfPrecededBy?: string[];
 }
 
 interface TypeRules {
@@ -115,16 +123,45 @@ const FOOD_RULES: TypeRules = {
         'salade fraiche', 'salade en sachet', 'herbes fraiches', 'fines herbes fraiches',
         'fruits et legumes'] },
 
+    // Unconditional cold signals — always exclude, even with "après
+    // ouverture" present (a genuinely refrigerated product / a stated
+    // temperature range before opening).
+    // Unconditional cold WORDS. Numeric temperatures (any stated ≤ 8 °C
+    // range, or a negative °C = frozen) are handled separately by
+    // temperatureSignal() so we don't have to enumerate every range.
+    { code: 'excluded_refrigerated', reason: 'conservation au froid',
+      keywords: ['produit refrigere', 'refrigere', 'refrigeres', 'keep refrigerated',
+        'keep chilled', 'store chilled', 'store refrigerated', 'chaine du froid',
+        'conservation au froid'] },
+
+    // Conditional cold signals — DO NOT count when they only apply "après
+    // ouverture" (ketchup, mayonnaise, jams, spreads… are shelf-stable
+    // before opening), nor when the phrase is the ambient "endroit frais
+    // et sec" (a dry-storage mention, not a cold one).
     { code: 'excluded_cold_chain', reason: 'conservation au froid',
-      keywords: ['a conserver au frais', 'conserver au frais', 'a conserver entre',
-        'conserver entre', 'chaine du froid', 'conservation au froid', 'refrigere',
-        'refrigeres', 'refrigerer', 'keep refrigerated', 'keep chilled', 'store chilled',
-        'store refrigerated', 'maintenir au froid'] },
+      keywords: ['a conserver au frais', 'conserver au frais', 'au frais',
+        'a conserver au refrigerateur', 'conserver au refrigerateur', 'refrigerateur',
+        'maintenir au froid'],
+      suppressIfPresent: ['apres ouverture', 'apres l ouverture', 'une fois ouvert',
+        'une fois ouverte', 'after opening', 'once opened', 'frais et sec'] },
 
     // Generic fresh/perishable marker — last, so specific reasons win first.
+    // NB: bare English "fresh" is deliberately NOT a keyword — English puts
+    // the flavour adjective before the noun ("fresh mint"), and "fresh" is
+    // common shelf-stable marketing. Belgian sources label in FR/NL, so the
+    // reliable marker is the French "frais/fraîche". "poisson frais",
+    // "produit frais", a "Frais" aisle category, etc. still trigger.
     { code: 'excluded_fresh', reason: 'produit frais',
-      keywords: ['frais', 'fraiche', 'fraiches', 'fresh', 'perissable',
-        'a consommer rapidement', 'date courte'] },
+      keywords: ['frais', 'fraiche', 'fraiches', 'perissable',
+        'a consommer rapidement', 'date courte'],
+      // Flavours ("menthe fraîche", "goût frais"), serving suggestions
+      // ("servir bien frais") and the cold-storage phrase "au frais"
+      // (already handled unconditionally by the cold-chain rule) are not
+      // a "produit frais" signal on their own.
+      suppressIfPrecededBy: ['menthe', 'gout', 'gouts', 'arome', 'aromes', 'saveur',
+        'saveurs', 'parfum', 'parfums', 'note', 'notes', 'sensation', 'effet', 'air',
+        'senteur', 'senteurs', 'au', 'bien', 'servir', 'servez', 'deguster',
+        'endroit', 'lieu'] },
   ],
 
   // ─── ACCEPT (shelf-stable / long conservation) ───────────────────────
@@ -183,6 +220,26 @@ const FOOD_RULES: TypeRules = {
   ],
 };
 
+// ─── Cured / dried meat & fish (shelf-stable when dried + ambient) ───────
+// [DÉCISION UTILISATEUR] Dried charcuterie (saucisson sec, jambon cru
+// affiné, chorizo sec…) and dried/salted meat & fish (biltong, morue salée
+// séchée…) are ALLOWED when a drying signal + an ambient-storage signal are
+// both present. A cold signal ALWAYS wins (→ excluded). Drying signal but
+// no conservation info → to_verify (many dried-sliced products need cold).
+const MEATFISH_SIGNALS = ['charcuterie', 'saucisson', 'chorizo', 'salami',
+  'jambon', 'viande', 'boeuf', 'porc', 'poulet', 'dinde', 'volaille', 'poisson', 'morue',
+  'cabillaud', 'saumon', 'hareng', 'maquereau', 'anchois', 'biltong', 'jerky', 'ham',
+  'sausage', 'beef', 'fish', 'cod'];
+const FISH_SIGNALS = ['poisson', 'morue', 'cabillaud', 'saumon', 'hareng', 'maquereau',
+  'anchois', 'fish', 'cod'];
+const DRIED_SIGNALS = ['sec', 'seche', 'sechee', 'seches', 'sechees', 'affine', 'affinee',
+  'affines', 'affinees', 'curado', 'cru affine', 'crue affinee', 'salaison', 'fume seche',
+  'biltong', 'jerky', 'beef jerky', 'dried', 'cured', 'air dried'];
+const AMBIENT_SIGNALS = ['endroit frais et sec', 'frais et sec', 'endroit sec',
+  'temperature ambiante', 'a temperature ambiante', 'a l abri de la chaleur',
+  'a l abri de la lumiere', 'conservation ambiante', 'longue conservation', 'ambient',
+  'shelf stable', 'temperature de la piece'];
+
 /** Rules per product_type. Only `food` is validated. The others exist so
  *  the structure is ready, but have NO rules → their products are
  *  "to_verify" until Luna approves a rule set. */
@@ -213,7 +270,7 @@ function clean(s: string): string {
 /** Build the search corpus from every meaningful signal — not just the
  *  name. Source category and storage info are the strongest signals and
  *  are always included when present. */
-function buildCorpus(p: NormalizedProduct): { text: string; words: Set<string> } {
+function buildCorpus(p: NormalizedProduct): Corpus {
   const parts: string[] = [
     p.source_category, p.name_fr, p.name_en, p.description_fr, p.description_en,
     p.storage_info, p.category_slug,
@@ -235,22 +292,162 @@ function buildCorpus(p: NormalizedProduct): { text: string; words: Set<string> }
   }
 
   const text = clean(parts.join('  |  '));
-  return { text, words: new Set(text.split(' ').filter(Boolean)) };
+  const list = text.split(' ').filter(Boolean);
+
+  // Product-identity sub-corpus (name + category + description, NOT storage).
+  // The drying signal for cured products must come from the PRODUCT, never
+  // from a "endroit frais et SEC" storage mention.
+  const productParts = [p.source_category, p.name_fr, p.name_en, p.description_fr, p.description_en]
+    .filter((x): x is string => typeof x === 'string' && x.length > 0);
+  const productText = clean(productParts.join('  |  '));
+
+  return {
+    text, words: new Set(list), list,
+    tempText: tempNormalize(parts.join(' ')),
+    productText, productWords: new Set(productText.split(' ').filter(Boolean)),
+  };
 }
 
-function matchKeyword(kw: string, corpus: { text: string; words: Set<string> }): boolean {
+type Corpus = {
+  text: string; words: Set<string>; list: string[]; tempText: string;
+  productText: string; productWords: Set<string>;
+};
+
+/** Lowercase + strip accents but KEEP digits and signs, and turn ° into a
+ *  space, so "À conserver entre 2 et 6 °C" → "a conserver entre 2 et 6  c"
+ *  and "-18 °C" → "-18  c". Used only for temperatureSignal. */
+function tempNormalize(s: string): string {
+  return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/°/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Detect a conservation temperature from free text.
+ *   • any °C value ≤ -5      → 'frozen'  (e.g. "-18 °C")
+ *   • any °C value ≤ 8       → 'cold'    (e.g. "entre 0 et 4 °C", "4 à 8 °C")
+ *   • otherwise              → null      (oven/cooking temps, volumes like
+ *                                         "75 cl", ambient text, no number)
+ * Reads a number only when it is directly tied to a °C marker (`\d c`), so
+ * "endroit frais et sec", "75 cl", "cuisson 200 °C" never trigger.
+ */
+function temperatureSignal(t: string): 'frozen' | 'cold' | null {
+  const re = /([+-]?\d{1,3})\s?c\b/g;
+  let m: RegExpExecArray | null;
+  let cold = false;
+  while ((m = re.exec(t))) {
+    const v = Number.parseInt(m[1], 10);
+    if (Number.isNaN(v)) continue;
+    if (v <= -5) return 'frozen';
+    if (v <= 8) cold = true;
+  }
+  return cold ? 'cold' : null;
+}
+
+function matchKeyword(kw: string, corpus: Corpus): boolean {
   const k = clean(kw);
   if (!k) return false;
   return k.includes(' ') ? corpus.text.includes(k) : corpus.words.has(k);
 }
 
+/** True if `word` appears at least once NOT immediately preceded by one of
+ *  the guard words (used to ignore "menthe fraîche", "goût frais"…). */
+function hasUnguardedOccurrence(word: string, list: string[], guards: string[]): boolean {
+  const gset = new Set(guards.map(clean));
+  for (let i = 0; i < list.length; i++) {
+    if (list[i] === word && !gset.has(i > 0 ? list[i - 1] : '')) return true;
+  }
+  return false;
+}
+
+/** Tokens of a rule that actually count, honouring its guards. */
+function ruleMatches(rule: KeywordRule, corpus: Corpus): string[] | null {
+  if (rule.suppressIfPresent?.some((p) => corpus.text.includes(clean(p)))) return null;
+  const matched: string[] = [];
+  for (const kw of rule.keywords) {
+    if (!matchKeyword(kw, corpus)) continue;
+    if (rule.suppressIfPrecededBy && !clean(kw).includes(' ')
+        && !hasUnguardedOccurrence(clean(kw), corpus.list, rule.suppressIfPrecededBy)) continue;
+    matched.push(kw);
+  }
+  return matched.length ? matched : null;
+}
+
 /** First rule whose keywords hit; returns the rule + the tokens that matched. */
-function firstMatch(rules: KeywordRule[], corpus: { text: string; words: Set<string> }) {
+function firstMatch(rules: KeywordRule[], corpus: Corpus) {
   for (const rule of rules) {
-    const matched = rule.keywords.filter((k) => matchKeyword(k, corpus));
-    if (matched.length) return { rule, matched };
+    const matched = ruleMatches(rule, corpus);
+    if (matched) return { rule, matched };
   }
   return null;
+}
+
+/** True if any keyword hits the given (text, words) pair. */
+function hasAny(keywords: string[], text: string, words: Set<string>): boolean {
+  return keywords.some((kw) => { const k = clean(kw); return k.includes(' ') ? text.includes(k) : words.has(k); });
+}
+
+// Named refs into the food config, for the food-specific precedence below.
+const foodRule = (code: string) => FOOD_RULES.exclude.find((r) => r.code === code) as KeywordRule;
+const FROZEN_RULE = foodRule('excluded_frozen');
+const REFRIGERATED_RULE = foodRule('excluded_refrigerated');
+const COLDCHAIN_RULE = foodRule('excluded_cold_chain');
+const BAKERY_RULE = foodRule('excluded_bakery');
+const MEAT_RULE = foodRule('excluded_meat_seafood');
+const DAIRY_RULE = foodRule('excluded_dairy_fresh');
+const PRODUCE_RULE = foodRule('excluded_produce_fresh');
+const FRESH_RULE = foodRule('excluded_fresh');
+
+/** Cold-chain signal: a stated ≤ 8 °C temperature, a "produit réfrigéré"
+ *  word, or a "à conserver au frais/réfrigérateur" phrase that isn't
+ *  neutralised (après ouverture / endroit frais et sec). */
+function isColdSignal(corpus: Corpus): boolean {
+  return temperatureSignal(corpus.tempText) === 'cold'
+    || !!ruleMatches(REFRIGERATED_RULE, corpus)
+    || !!ruleMatches(COLDCHAIN_RULE, corpus);
+}
+
+/**
+ * Food-specific classifier. Precedence:
+ *   1. frozen (negative °C or a frozen word)                 → excluded
+ *   2. cured/dried meat & fish:
+ *        cold signal → excluded · ambient → accepted · else  → to_verify
+ *   3. fresh categories (bakery, meat, dairy, produce)       → excluded
+ *   4. any remaining cold signal (e.g. plain butter + range) → excluded
+ *   5. generic "frais/fraîche" marker                        → excluded
+ *   6. a shelf-stable acceptance signal                      → accepted
+ *   7. nothing conclusive                                    → to_verify
+ */
+function classifyFood(corpus: Corpus, is_alcoholic: boolean): EligibilityResult {
+  const R = (status: EligibilityStatus, code: string, reason: string, matched: string[] = []): EligibilityResult =>
+    ({ status, code, reason, matched, is_alcoholic });
+
+  if (temperatureSignal(corpus.tempText) === 'frozen') return R('excluded', 'excluded_frozen', 'surgelé', ['température négative']);
+  const frozenKw = ruleMatches(FROZEN_RULE, corpus);
+  if (frozenKw) return R('excluded', 'excluded_frozen', 'surgelé', frozenKw);
+
+  const cold = isColdSignal(corpus);
+
+  const isMeatFish = hasAny(MEATFISH_SIGNALS, corpus.productText, corpus.productWords);
+  const isDried = hasAny(DRIED_SIGNALS, corpus.productText, corpus.productWords);
+  if (isMeatFish && isDried) {
+    if (cold) return R('excluded', 'excluded_cold_chain', 'conservation au froid', ['séché mais réfrigéré']);
+    const dryReason = hasAny(FISH_SIGNALS, corpus.productText, corpus.productWords) ? 'poisson séché / salé' : 'charcuterie sèche';
+    if (hasAny(AMBIENT_SIGNALS, corpus.text, corpus.words)) return R('accepted', 'accept_cured_dry', dryReason);
+    return R('to_verify', 'to_verify_cured_no_storage', `${dryReason} — conservation à confirmer`);
+  }
+
+  const cat = firstMatch([BAKERY_RULE, MEAT_RULE, DAIRY_RULE, PRODUCE_RULE], corpus);
+  if (cat) return R('excluded', cat.rule.code, cat.rule.reason, cat.matched);
+
+  if (cold) return R('excluded', 'excluded_refrigerated', 'conservation au froid', ['froid']);
+
+  const fresh = ruleMatches(FRESH_RULE, corpus);
+  if (fresh) return R('excluded', 'excluded_fresh', 'produit frais', fresh);
+
+  const acc = firstMatch(FOOD_RULES.accept, corpus);
+  if (acc) return R('accepted', acc.rule.code, acc.rule.reason, acc.matched);
+
+  return R('to_verify', 'to_verify_insufficient', 'informations insuffisantes pour déterminer la conservation');
 }
 
 /**
@@ -259,9 +456,8 @@ function firstMatch(rules: KeywordRule[], corpus: { text: string; words: Set<str
  * Precedence:
  *   1. no / unknown product_type            → to_verify
  *   2. type has no validated rules yet       → to_verify
- *   3. an exclude signal fires               → excluded (safety first)
- *   4. an accept signal fires                → accepted
- *   5. otherwise (no conclusive signal)      → to_verify
+ *   3. food → dedicated classifier (see classifyFood)
+ *   4. other typed rules → generic exclude → accept → to_verify
  */
 export function isLunaEligibleProduct(p: NormalizedProduct): EligibilityResult {
   const corpus = buildCorpus(p);
@@ -289,6 +485,9 @@ export function isLunaEligibleProduct(p: NormalizedProduct): EligibilityResult {
       reason: `aucune règle validée pour le type « ${type} »`, matched: [], is_alcoholic };
   }
 
+  if (type === 'food') return classifyFood(corpus, is_alcoholic);
+
+  // Generic path for any future typed rule set (none today besides food).
   const excluded = firstMatch(rules.exclude, corpus);
   if (excluded) {
     return { status: 'excluded', code: excluded.rule.code,
