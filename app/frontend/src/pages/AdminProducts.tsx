@@ -19,7 +19,7 @@ import { normalizeCsvRow, rejectedRowsToCsv } from '@/lib/store-import';
 import { optimizeImage } from '@/lib/optimize-image';
 import {
   fetchAllProducts, fetchProductCategories, upsertProduct, toggleProductActive, deleteProduct,
-  upsertCategory, deleteCategory, uploadProductImage,
+  upsertCategory, deleteCategory, uploadProductImage, fetchStores, upsertProductSource, type Store,
   type Product, type ProductCategory,
 } from '@/lib/products';
 import { cn } from '@/lib/utils';
@@ -619,6 +619,11 @@ type ImportRow = {
    *  store-agnostic filter — computed for every row regardless of structural
    *  validity, so the admin sees why a row will or won't be imported. */
   eligibility: EligibilityResult;
+  /** Resolved store from store_slug (null if the column is empty). */
+  storeId: string | null;
+  /** store_slug was given but doesn't match any known store → row is treated
+   *  as "to verify" and NOT imported (never auto-creates a store). */
+  storeUnknown: boolean;
   data?: {
     slug_fr: string; slug_en: string;
     name_fr: string; name_en: string;
@@ -633,28 +638,41 @@ type ImportRow = {
 
 function CsvImport({ categories, onDone }: { categories: ProductCategory[]; onDone: () => void }) {
   const { t } = useTranslation();
-  const [rows, setRows] = useState<ImportRow[]>([]);
+  const [rawRows, setRawRows] = useState<Record<string, string>[]>([]);
   const [importing, setImporting] = useState(false);
+  const [stores, setStores] = useState<Store[]>([]);
   // Safety default: imported products land as drafts (is_active=false) for
   // manual review before they appear on the Courses page.
   const [importAsDraft, setImportAsDraft] = useState(true);
+
+  useEffect(() => { fetchStores().then(setStores); }, []);
+  const storeBySlug = useMemo(() => new Map(stores.map((s) => [s.slug, s.id])), [stores]);
+
+  // Re-validated whenever categories or the store list load, so a file dropped
+  // before stores finished loading is re-checked once they arrive.
+  const rows = useMemo(
+    () => rawRows.map((raw, i) => validateRow(raw, i + 2, categories, storeBySlug)),
+    [rawRows, categories, storeBySlug],
+  );
 
   const onFile = (file: File) => {
     Papa.parse<Record<string, string>>(file, {
       header: true,
       skipEmptyLines: true,
-      complete: (res) => {
-        const parsed = res.data.map((raw, i) => validateRow(raw, i + 2, categories));
-        setRows(parsed);
-      },
+      complete: (res) => setRawRows(res.data),
       error: (err) => { toast.error(err.message); },
     });
   };
 
-  // Only structurally-valid AND eligibility-accepted rows are imported.
-  // Excluded / to-verify rows are shown but never inserted.
-  const importable = rows.filter((r) => r.errors.length === 0 && r.data && r.eligibility.status === 'accepted');
-  const rejected = rows.filter((r) => r.eligibility.status !== 'accepted');
+  // A row imports only if it is structurally valid, eligibility-accepted, and
+  // its store_slug (when given) is known.
+  const importable = rows.filter((r) => r.errors.length === 0 && r.data && r.eligibility.status === 'accepted' && !r.storeUnknown);
+  const rejected = rows.filter((r) => r.errors.length === 0 && (r.eligibility.status !== 'accepted' || r.storeUnknown));
+
+  const rowReason = (r: ImportRow): string =>
+    r.storeUnknown ? `magasin inconnu « ${r.raw.store_slug?.trim()} »` : r.eligibility.reason;
+  const rowStatus = (r: ImportRow): 'accepted' | 'excluded' | 'to_verify' =>
+    r.storeUnknown ? 'to_verify' : r.eligibility.status;
 
   const doImport = async () => {
     if (importable.length === 0) { toast.info(t('admin.products_import_no_valid')); return; }
@@ -666,20 +684,36 @@ function CsvImport({ categories, onDone }: { categories: ProductCategory[]; onDo
     setImporting(true);
     let ok = 0, skipped = 0;
     for (const r of importable) {
-      try { await upsertProduct({ ...r.data!, is_active: active }); ok++; }
-      catch { skipped++; }
+      try {
+        const prod = await upsertProduct({
+          ...r.data!,
+          is_active: active,
+          store_id: r.storeId,
+          is_alcoholic: r.eligibility.is_alcoholic,
+          requires_cold_chain: r.eligibility.requires_cold_chain,
+        });
+        await upsertProductSource({
+          product_id: prod.id,
+          source_url: r.raw.source_url?.trim() || null,
+          source_product_id: r.raw.source_product_id?.trim() || null,
+          source_category: r.raw.source_category?.trim() || null,
+          eligibility_status: 'accepted',
+          eligibility_reason: r.eligibility.reason,
+        });
+        ok++;
+      } catch { skipped++; }
     }
     setImporting(false);
     toast.success(t(active ? 'admin.products_import_summary_live' : 'admin.products_import_summary_draft', { ok, skipped }));
-    setRows([]);
+    setRawRows([]);
     onDone();
   };
 
   const downloadRejected = () => {
     const csv = rejectedRowsToCsv(rejected.map((r) => ({
       raw: r.raw,
-      status: r.eligibility.status,
-      reason: r.eligibility.reason,
+      status: rowStatus(r),
+      reason: rowReason(r),
     })));
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
     const a = document.createElement('a');
@@ -717,7 +751,7 @@ function CsvImport({ categories, onDone }: { categories: ProductCategory[]; onDo
               <tbody className="divide-y divide-slate-100">
                 {rows.map((r) => {
                   const hasErr = r.errors.length > 0;
-                  const status = r.eligibility.status;
+                  const status = rowStatus(r);
                   const rowBg = hasErr || status === 'excluded' ? 'bg-red-50/40'
                     : status === 'to_verify' ? 'bg-amber-50/40' : '';
                   return (
@@ -743,10 +777,10 @@ function CsvImport({ categories, onDone }: { categories: ProductCategory[]; onDo
                         )}
                       </td>
                       <td className="px-3 py-2 text-slate-600">
-                        {hasErr ? <span className="text-red-700">{r.errors.join('; ')}</span> : r.eligibility.reason}
+                        {hasErr ? <span className="text-red-700">{r.errors.join('; ')}</span> : rowReason(r)}
                         {r.eligibility.is_alcoholic && <span className="ml-1 text-slate-400">· alcool</span>}
                         {r.eligibility.requires_cold_chain === true && <span className="ml-1 text-sky-600">· chaîne du froid</span>}
-                        {!hasErr && r.eligibility.status === 'accepted' && r.eligibility.requires_cold_chain === null &&
+                        {!hasErr && !r.storeUnknown && r.eligibility.status === 'accepted' && r.eligibility.requires_cold_chain === null &&
                           <span className="ml-1 text-amber-600">· conservation inconnue</span>}
                       </td>
                       <td className="px-3 py-2">{r.raw.name_fr ?? ''}</td>
@@ -779,11 +813,16 @@ function CsvImport({ categories, onDone }: { categories: ProductCategory[]; onDo
   );
 }
 
-function validateRow(raw: Record<string, string>, row: number, categories: ProductCategory[]): ImportRow {
+function validateRow(raw: Record<string, string>, row: number, categories: ProductCategory[], storeBySlug: Map<string, string>): ImportRow {
   const errors: string[] = [];
   // Store-agnostic eligibility — same pipeline a future scraper will use
   // (normalise → filter). Independent of the structural checks below.
   const eligibility = isLunaEligibleProduct(normalizeCsvRow(raw));
+  // Resolve store_slug → store_id. An unknown slug never creates a store; the
+  // row is treated as "to verify" and not imported.
+  const storeSlug = raw.store_slug?.trim();
+  const storeId = storeSlug ? (storeBySlug.get(storeSlug) ?? null) : null;
+  const storeUnknown = !!storeSlug && !storeBySlug.has(storeSlug);
   // Back-compat: accept a legacy single `slug` column and use it for both
   // slug_fr and slug_en if the FR/EN columns are missing.
   const slugFr = (raw.slug_fr ?? raw.slug ?? '').trim();
@@ -804,9 +843,9 @@ function validateRow(raw: Record<string, string>, row: number, categories: Produ
   if (slugFr && !/^[a-z0-9-]+$/.test(slugFr)) errors.push('slug_fr format');
   if (slugEn && !/^[a-z0-9-]+$/.test(slugEn)) errors.push('slug_en format');
 
-  if (errors.length) return { row, raw, errors, eligibility };
+  if (errors.length) return { row, raw, errors, eligibility, storeId, storeUnknown };
   return {
-    row, raw, errors: [], eligibility,
+    row, raw, errors: [], eligibility, storeId, storeUnknown,
     data: {
       slug_fr: slugFr, slug_en: slugEn,
       name_fr: raw.name_fr.trim(),

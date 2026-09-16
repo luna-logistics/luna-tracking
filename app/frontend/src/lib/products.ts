@@ -30,6 +30,22 @@ export type Product = {
   meta_title_en: string | null;
   meta_description_fr: string | null;
   meta_description_en: string | null;
+  /** Which store this product belongs to (null for the legacy demo rows). */
+  store_id?: string | null;
+  /** Informational: does it need the fridge? true/false/null (unknown). */
+  requires_cold_chain?: boolean | null;
+  is_alcoholic?: boolean;
+};
+
+export type Store = {
+  id: string;
+  slug: string;
+  name: string;
+  logo_url: string | null;
+  store_type: string;
+  country: string;
+  is_active: boolean;
+  display_order: number;
 };
 
 export function productName(p: Product, lang: 'fr' | 'en'): string {
@@ -94,6 +110,32 @@ export async function upsertProduct(p: Omit<Product, 'id'> & { id?: string }) {
   const { data, error } = await supabase.from('products').upsert(p).select().single();
   if (error) throw error;
   return data as Product;
+}
+
+/** Active stores, ordered — used by the CSV import to resolve store_slug and
+ *  by the Courses page store selector (later). */
+export async function fetchStores(): Promise<Store[]> {
+  const { data, error } = await supabase.from('stores').select('*').order('display_order');
+  if (error) { console.warn('[stores] fetch failed:', error.message); return []; }
+  return (data ?? []) as Store[];
+}
+
+export type ProductSourceInput = {
+  product_id: string;
+  source_url: string | null;
+  source_product_id: string | null;
+  source_category: string | null;
+  eligibility_status: 'accepted';
+  eligibility_reason: string | null;
+};
+
+/** Upsert the 1:1 source-traceability row. store_id is filled by a DB trigger
+ *  from products.store_id, so it is not passed here. */
+export async function upsertProductSource(s: ProductSourceInput) {
+  const { error } = await supabase
+    .from('product_sources')
+    .upsert({ ...s, last_checked_at: new Date().toISOString() });
+  if (error) throw error;
 }
 
 export async function toggleProductActive(id: string, next: boolean) {
