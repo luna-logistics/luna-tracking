@@ -43,18 +43,16 @@ scripts/scraper/
 Platform-native structured data (e.g. Shopify `*.json`) is used when detected.
 Playwright is a **fallback only**, for pages whose data appears after JS render.
 
-## CLI
+## CLI (autonomous — see USAGE.md for the full guide)
 ```bash
-# analyse a new shop before building anything specific
-pnpm scrape probe https://example.com
-
-# AUTO-DISCOVERY from a shop URL (sitemap → categories → pagination → products)
-# store must already exist in Admin → Magasins
-pnpm scrape run --store my-store --origin https://example.com \
-  --product-type food --category-slug cafe-the --limit 500 \
-  --max-pages 150 --max-depth 3 --out out.csv
-# --no-browser disables the Playwright fallback (HTTP-only); it is auto-on for
-# CSR pages otherwise (capped by --max-browser, default 40).
+pnpm probe  --origin "https://example.com"
+pnpm scrape --origin "https://example.com" --store my-store --limit 500 [--intervene] [--no-browser]
+pnpm resume --job <JOB_ID>          # continue after Ctrl+C (only remaining URLs)
+```
+Jobs persist under `scraper-output/jobs/<JOB_ID>/` (config, discovered, processed,
+products); CSV → `scraper-output/csv/`, reports → `scraper-output/reports/`.
+`--intervene` opens a visible browser and PAUSES on a CAPTCHA/challenge/login for
+you to act manually (ENTER to resume) — never an automatic bypass.
 
 # run against explicit product URLs
 pnpm scrape run --store my-store --url https://example.com/p/1 --url https://example.com/p/2 --out out.csv

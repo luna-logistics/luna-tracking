@@ -11,3 +11,6 @@ dist-ssr
 .idea
 *.log
 .wrangler/
+
+# Scraper local output + browser profile (never commit)
+scraper-output/

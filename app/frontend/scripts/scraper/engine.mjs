@@ -54,7 +54,7 @@ async function pool(items, worker, concurrency, shouldStop) {
  * }} config
  */
 export async function runScrape(config) {
-  if (!config?.store?.slug) throw new Error('runScrape: a valid existing store is required (store.slug)');
+  if (!config?.store) throw new Error('runScrape: config.store is required (may have an empty slug for unassigned scrapes)');
   const started = Date.now();
   const fetcher = config.fetcher || new Fetcher({ minDelayMs: 600 });
   const limit = config.limit ?? 1000;
@@ -125,6 +125,7 @@ export async function runScrape(config) {
   report.playwrightAvailable = !!injectedSession || await browserAvailable();
 
   const processed = await pool(unique, async (url) => {
+   try {
     const r = await fetcher.get(url);
     done++; if (config.onProgress) config.onProgress(done, unique.length);
 
@@ -135,10 +136,13 @@ export async function runScrape(config) {
     bump(resp.code);
 
     if (resp.terminal) {
-      // Stop safely: keep what we have, do not hammer the source.
-      if (!stop) stop = { code: resp.code, reason: resp.reason, url, retryAfter: resp.retryAfter };
-      return;
-    }
+      // Interactive + browser available → let the browser handle it so a human
+      // can solve the challenge/login manually (no automatic bypass). Otherwise
+      // stop safely, keeping what we have and not hammering the source.
+      const canIntervene = wantBrowser && config.interactive && browserUsed < maxBrowser && !stop;
+      if (!canIntervene) { if (!stop) stop = { code: resp.code, reason: resp.reason, url, retryAfter: resp.retryAfter }; return; }
+      // else fall through to the browser block below.
+    } else
     if (resp.code === STATUS.NETWORK_ERROR) {
       report.networkErrors++;
       lastFailCode = STATUS.NETWORK_ERROR;
@@ -163,7 +167,7 @@ export async function runScrape(config) {
     }
     if (!raw) {
       raw = preProduct;
-      if (!raw && (nb || resp.code === STATUS.JAVASCRIPT_REQUIRED)) {
+      if (!raw && (nb || resp.code === STATUS.JAVASCRIPT_REQUIRED || resp.terminal)) {
         report.browserRequired++;
         if (wantBrowser && browserUsed < maxBrowser && !stop) {
           browserUsed++;
@@ -208,6 +212,12 @@ export async function runScrape(config) {
     else report.toVerify++;
 
     products.push(np);
+    config.onProduct?.(np);
+   } finally {
+    // Mark URL handled (for resume) regardless of outcome. A URL that stopped
+    // the source is NOT marked processed, so resume retries it.
+    if (!stop || stop.url !== url) config.onProcessed?.(url);
+   }
   }, concurrency, () => stop !== null);
 
   if (session && session !== injectedSession) { await session.close(); }

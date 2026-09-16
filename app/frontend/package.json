@@ -11,8 +11,10 @@
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
     "check-i18n": "node scripts/check-i18n.mjs",
     "test:eligibility": "node scripts/check-eligibility.mjs",
-    "test:scraper": "node --test scripts/scraper/__tests__/scraper.test.mjs scripts/scraper/__tests__/robustness.test.mjs",
-    "scrape": "node scripts/scrape.mjs",
+    "test:scraper": "node --test scripts/scraper/__tests__/scraper.test.mjs scripts/scraper/__tests__/robustness.test.mjs scripts/scraper/__tests__/jobstore.test.mjs",
+    "probe": "node scripts/scrape.mjs probe",
+    "scrape": "node scripts/scrape.mjs scrape",
+    "resume": "node scripts/scrape.mjs resume",
     "indexnow": "node scripts/indexnow-submit.mjs"
   },
   "dependencies": {

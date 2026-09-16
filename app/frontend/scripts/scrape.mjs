@@ -1,127 +1,213 @@
 #!/usr/bin/env node
 /**
- * Scraper CLI.
+ * Luna scraper — autonomous CLI (usable without Claude Code).
  *
- *   node scripts/scrape.mjs probe <url>
- *   node scripts/scrape.mjs run --store <slug> --origin <site> [--limit N]
- *        [--product-type food] [--category-slug cafe-the] [--concurrency 4]
- *        [--browser] [--out out.csv]
- *   node scripts/scrape.mjs run --store <slug> --url <productUrl> [--url ...] ...
+ *   pnpm probe  --origin "https://example.com"
+ *   pnpm scrape --origin "https://example.com" [--store S] [--limit N] ...
+ *   pnpm resume --job JOB_ID
  *
- * The scraper NEVER writes to the DB. `run` produces a CSV in the admin-import
- * format; load it in Admin → Produits → Import CSV (preview + draft import).
- * The store must already exist (created in Admin → Magasins); an unknown store
- * stops the job with a clear error.
+ * Produces, under scraper-output/:
+ *   jobs/<id>/     resumable job state (config, discovered, processed, products)
+ *   csv/<id>.csv   admin-import CSV (accepted rows) [+ <id>-to-verify.csv]
+ *   reports/<id>.{json,txt}
+ *
+ * The scraper never writes to the DB. Load the CSV in Admin → Produits → Import
+ * CSV. Ctrl+C stops safely and the job can be resumed. On a CAPTCHA/challenge/
+ * login under the browser (with --intervene), it PAUSES for you to act manually
+ * — no automatic bypass.
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
-import { probeSource, formatProbe } from './scraper/probe.mjs';
-import { runScrape, formatReport } from './scraper/engine.mjs';
+import { loadConfig, outputRoot, REPO_ROOT } from './scraper/config.mjs';
+import { createJob, Job } from './scraper/jobstore.mjs';
+import { Fetcher } from './scraper/http-fetcher.mjs';
+import { discoverProducts } from './scraper/discover.mjs';
+import { runScrape } from './scraper/engine.mjs';
+import { BrowserSession } from './scraper/browser.mjs';
 import { toImportCsv } from './scraper/csv.mjs';
+import { probeSource, formatProbe } from './scraper/probe.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// ── args ─────────────────────────────────────────────────────────────────────
+function parseArgs(argv) {
+  const a = { _: [], url: [] };
+  for (let i = 0; i < argv.length; i++) {
+    const t = argv[i];
+    if (t === '--browser') a.browser = true;
+    else if (t === '--no-browser') a.browser = false;
+    else if (t === '--intervene') a.intervene = true;
+    else if (t.startsWith('--')) { const k = t.slice(2); const v = argv[i + 1]?.startsWith('--') || argv[i + 1] === undefined ? 'true' : argv[++i]; if (k === 'url') a.url.push(v); else a[k] = v; }
+    else a._.push(t);
+  }
+  return a;
+}
+const intOr = (v, d) => (v != null && v !== '' ? parseInt(v, 10) : d);
+
 function loadEnv() {
-  const p = path.resolve(__dirname, '..', '.env.local');
   const env = {};
   try {
-    for (const line of fs.readFileSync(p, 'utf8').split(/\r?\n/)) {
-      const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
-      if (m) env[m[1]] = m[2].replace(/^["']|["']$/g, '');
+    for (const line of fs.readFileSync(path.join(REPO_ROOT, '.env.local'), 'utf8').split(/\r?\n/)) {
+      const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/); if (m) env[m[1]] = m[2].replace(/^["']|["']$/g, '');
     }
-  } catch { /* no env file */ }
+  } catch { /* none */ }
   return env;
 }
-
-function parseArgs(argv) {
-  const args = { _: [], url: [] };
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (a === '--browser') args.browser = true;
-    else if (a === '--no-browser') args['no-browser'] = true;
-    else if (a.startsWith('--')) {
-      const key = a.slice(2);
-      const val = argv[++i];
-      if (key === 'url') args.url.push(val);
-      else args[key] = val;
-    } else args._.push(a);
-  }
-  return args;
-}
-
-async function assertStoreExists(slug, env) {
-  if (!env.VITE_SUPABASE_URL || !env.VITE_SUPABASE_ANON_KEY) {
-    console.warn('[scrape] Supabase env not found — skipping store existence check (store_slug will be trusted).');
-    return;
-  }
-  const url = `${env.VITE_SUPABASE_URL}/rest/v1/stores?slug=eq.${encodeURIComponent(slug)}&select=slug,is_active`;
-  const res = await fetch(url, { headers: { apikey: env.VITE_SUPABASE_ANON_KEY, Authorization: `Bearer ${env.VITE_SUPABASE_ANON_KEY}` } });
+async function assertStore(slug) {
+  const env = loadEnv();
+  if (!env.VITE_SUPABASE_URL || !env.VITE_SUPABASE_ANON_KEY) { console.warn('[scrape] Supabase env not found — store existence not checked.'); return; }
+  const res = await fetch(`${env.VITE_SUPABASE_URL}/rest/v1/stores?slug=eq.${encodeURIComponent(slug)}&select=slug`, { headers: { apikey: env.VITE_SUPABASE_ANON_KEY, Authorization: `Bearer ${env.VITE_SUPABASE_ANON_KEY}` } });
   if (!res.ok) throw new Error(`store check failed: HTTP ${res.status}`);
-  const rows = await res.json();
-  if (!rows.length) throw new Error(`Unknown store: ${slug} — create it first in Admin → Magasins. No store is ever auto-created.`);
+  if (!(await res.json()).length) throw new Error(`Unknown store: ${slug} — create it in Admin → Magasins first (no store is auto-created).`);
 }
 
+const ask = (q) => new Promise((resolve) => { const rl = readline.createInterface({ input: process.stdin, output: process.stdout }); rl.question(q, (ans) => { rl.close(); resolve(ans); }); });
+
+// ── shared run helper (scrape + resume) ──────────────────────────────────────
+function fmtDur(ms) { const s = Math.round(ms / 1000); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; }
+
+function printReport(rep, csvPath) {
+  const d = rep.discovery || {};
+  console.log(`\nSCRAPING\nSource : ${rep.store || '(unassigned)'}   status: ${rep.status}\n`);
+  console.log(`Discovery\n  method : ${d.method || 'provided URLs'}\n  URLs   : ${rep.discovered}${d.pagesCrawled ? `  (crawled ${d.pagesCrawled} pages)` : ''}\n`);
+  console.log(`Extraction\n  Produits   : ${rep.detected}\n  Complets   : ${rep.detected - rep.incomplete}\n  Incomplets : ${rep.incomplete}\n`);
+  console.log(`Éligibilité\n  Acceptés    : ${rep.accepted}\n  Exclus      : ${rep.excluded}\n  À vérifier  : ${rep.toVerify}\n`);
+  console.log(`Browser\n  Pages HTTP    : ${rep.fetched}\n  Pages Browser : ${rep.browserUsed || 0}${rep.playwrightAvailable ? '' : ' (Playwright absent)'}\n`);
+  console.log(`Erreurs : ${rep.networkErrors + rep.parseErrors}   (network ${rep.networkErrors}, parse ${rep.parseErrors})`);
+  if (rep.blocked) console.log(`\n⚠ SOURCE STOPPED: ${rep.blocked.code} — ${rep.blocked.reason}\n  remaining: ${rep.remaining} URL(s) → resumable`);
+  console.log(`\nDurée : ${fmtDur(rep.durationMs)}`);
+  if (csvPath) console.log(`CSV   : ${csvPath}`);
+}
+
+async function executeJob(job, cfg, { origin, urls, store, productType, categorySlug, lang, browser, intervene }) {
+  const fetcher = new Fetcher({ timeoutMs: cfg.timeoutMs, retries: cfg.retries, minDelayMs: cfg.rateLimitMs });
+
+  // Discovery (only if not already discovered — resume reuses saved list).
+  if (!job.discovered.length) {
+    job.setStatus('discovering');
+    if (origin) {
+      process.stdout.write('Discovery…\r');
+      const disc = await discoverProducts(fetcher, origin, { maxProducts: cfg.maxProducts, maxPages: cfg.maxPages, maxDepth: cfg.maxDepth });
+      job.setDiscovered(disc.urls);
+      console.log(`Discovery : ${disc.report.method} — ${disc.urls.length} product URLs (${disc.report.pagesCrawled} pages crawled)`);
+      if (disc.report.stopped) console.log(`  ⚠ discovery stopped: ${disc.report.stopped.code} — ${disc.report.stopped.reason}`);
+    } else {
+      job.setDiscovered(urls);
+      console.log(`Discovery : ${urls.length} provided URL(s)`);
+    }
+  } else {
+    console.log(`Resuming : ${job.remaining().length} of ${job.discovered.length} URL(s) left`);
+  }
+
+  // Optional persistent, headful browser session for manual intervention.
+  let browserSession = null;
+  if (browser !== false && intervene) {
+    const profileDir = path.join(outputRoot(cfg), '.browser-profile');
+    fs.mkdirSync(profileDir, { recursive: true });
+    browserSession = new BrowserSession({
+      headless: false, userDataDir: profileDir, userAgent: fetcher.userAgent,
+      onIntervention: async ({ url, code, reason }) => {
+        console.log(`\n============================================\nINTERVENTION REQUISE\nURL    : ${url}\nRAISON : ${code} — ${reason}\nLe navigateur reste ouvert : effectue l'action manuellement (résous le CAPTCHA / connecte-toi),\npuis appuie sur ENTER pour reprendre. (Aucun contournement automatique.)\n============================================`);
+        await ask('ENTER pour reprendre > ');
+        return 'retry';
+      },
+    });
+  }
+
+  job.setStatus('running');
+  const remaining = job.remaining();
+  let lastFlush = Date.now();
+  const flushMaybe = () => { if (Date.now() - lastFlush > 1500) { job.flush(); lastFlush = Date.now(); } };
+
+  const { report } = await runScrape({
+    store: { slug: store || '' },
+    urls: remaining,
+    concurrency: cfg.workers, maxBrowser: cfg.maxBrowser, breaker: cfg.breaker,
+    defaultProductType: productType || null, categorySlug: categorySlug || null, lang: lang || 'fr',
+    useBrowser: browser === false ? false : undefined,
+    interactive: !!intervene,
+    browserSession,
+    onProduct: (np) => { job.addProduct(np); flushMaybe(); },
+    onProcessed: (url) => { job.markProcessed(url); flushMaybe(); },
+    onProgress: (n, t) => process.stdout.write(`\r  fetched ${n}/${t}   `),
+  });
+  process.stdout.write('\r');
+  if (browserSession) await browserSession.close();
+  job.flush();
+
+  // Outputs: CSV (accepted) + to-verify CSV + reports. products.json already saved.
+  const accepted = job.products.filter((p) => p.__eligibility?.status === 'accepted');
+  const toVerify = job.products.filter((p) => p.__eligibility?.status === 'to_verify');
+  fs.writeFileSync(job.paths.csv, toImportCsv(accepted, { storeSlug: store, categorySlug }), 'utf8');
+  if (toVerify.length) fs.writeFileSync(job.paths.csv.replace(/\.csv$/, '-to-verify.csv'), toImportCsv(toVerify, { storeSlug: store, categorySlug }), 'utf8');
+  fs.writeFileSync(job.paths.reportJson, JSON.stringify(report, null, 2));
+
+  report.store = store || job.job.meta?.store || '(unassigned)';
+  job.setStatus(report.blocked ? `stopped:${report.blocked.code}` : 'done', { report: { ...report, resumeUrls: undefined } });
+  printReport(report, job.paths.csv);
+  fs.writeFileSync(job.paths.reportTxt, `Job ${job.id}\n${JSON.stringify(report, null, 2)}`);
+  console.log(`\nJob    : ${job.id}\nResume : pnpm resume --job ${job.id}`);
+  if (!store) console.log('Note   : no --store set → store_slug is blank in the CSV; set it before importing.');
+}
+
+// ── main ─────────────────────────────────────────────────────────────────────
 async function main() {
-  const [cmd, ...rest] = process.argv.slice(2);
+  const [mode, ...rest] = process.argv.slice(2);
   const args = parseArgs(rest);
 
-  if (cmd === 'probe') {
-    const url = args._[0] || args.url[0] || args.origin;
-    if (!url) { console.error('usage: scrape.mjs probe <url>'); process.exit(2); }
-    const result = await probeSource(url);
-    console.log('\n' + formatProbe(result) + '\n');
+  if (mode === 'probe') {
+    const url = args.origin || args._[0] || args.url[0];
+    if (!url) { console.error('usage: pnpm probe --origin <url>'); process.exit(2); }
+    console.log(formatProbe(await probeSource(url)) + '\n');
     return;
   }
 
-  if (cmd === 'run') {
-    if (!args.store) { console.error('run: --store <slug> is required'); process.exit(2); }
-    if (!args.origin && args.url.length === 0) { console.error('run: provide --origin <site> or one/more --url <productUrl>'); process.exit(2); }
-    const env = loadEnv();
-    await assertStoreExists(args.store, env); // throws on unknown store → controlled stop
+  const cfg = loadConfig({
+    maxProducts: intOr(args.limit ?? args['max-products'], undefined),
+    maxPages: intOr(args['max-pages'], undefined),
+    maxDepth: intOr(args['max-depth'], undefined),
+    workers: intOr(args.workers, undefined),
+    maxBrowser: intOr(args['max-browser'], undefined),
+    browser: args.browser,
+  });
 
-    const { products, report } = await runScrape({
-      store: { slug: args.store },
-      origin: args.origin,
-      urls: args.url.length ? args.url : undefined,
-      limit: args.limit ? parseInt(args.limit, 10) : undefined,
-      concurrency: args.concurrency ? parseInt(args.concurrency, 10) : undefined,
-      maxPages: args['max-pages'] ? parseInt(args['max-pages'], 10) : undefined,
-      maxDepth: args['max-depth'] ? parseInt(args['max-depth'], 10) : undefined,
-      maxBrowser: args['max-browser'] ? parseInt(args['max-browser'], 10) : undefined,
-      defaultProductType: args['product-type'] || null,
-      categorySlug: args['category-slug'] || null,
-      lang: args.lang === 'en' ? 'en' : 'fr',
-      useBrowser: args['no-browser'] ? false : undefined, // auto-on when Playwright is installed
-      onProgress: (n, t) => process.stdout.write(`\r  fetched ${n}/${t}   `),
-    });
-    process.stdout.write('\r');
-    console.log('\n' + formatReport(report) + '\n');
-
-    // Only ACCEPTED rows are worth importing as-is; to-verify/excluded are shown for review.
-    const accepted = products.filter((p) => p.__eligibility?.status === 'accepted');
-    const toVerify = products.filter((p) => p.__eligibility?.status === 'to_verify');
-    if (report.notes.length) console.log('notes:\n  - ' + report.notes.join('\n  - ') + '\n');
-    if (report.errors.length) console.log(`first errors:\n  - ${report.errors.slice(0, 5).join('\n  - ')}\n`);
-
-    if (args.out) {
-      const csv = toImportCsv(accepted, { storeSlug: args.store, categorySlug: args['category-slug'] });
-      fs.writeFileSync(args.out, csv, 'utf8');
-      console.log(`Wrote ${accepted.length} ACCEPTED rows → ${args.out}`);
-      if (toVerify.length) {
-        const tvOut = args.out.replace(/\.csv$/i, '') + '-a-verifier.csv';
-        fs.writeFileSync(tvOut, toImportCsv(toVerify, { storeSlug: args.store, categorySlug: args['category-slug'] }), 'utf8');
-        console.log(`Wrote ${toVerify.length} TO-VERIFY rows → ${tvOut}`);
-      }
-      console.log('Next: load the ACCEPTED CSV in Admin → Produits → Import CSV (preview + draft import). Fill category_slug there if empty.');
-    } else {
-      console.log('(no --out given; re-run with --out file.csv to write the admin-import CSV)');
-    }
+  if (mode === 'scrape') {
+    if (!args.origin && args.url.length === 0) { console.error('usage: pnpm scrape --origin <url> | --url <productUrl> ...'); process.exit(2); }
+    if (args.store) await assertStore(args.store);
+    const meta = { origin: args.origin || null, store: args.store || null, productType: args['product-type'] || null, categorySlug: args['category-slug'] || null, lang: args.lang || 'fr' };
+    const { id } = createJob(cfg, meta);
+    const job = new Job(cfg, id);
+    console.log(`Job ${id} started.  (Ctrl+C stops safely → pnpm resume --job ${id})`);
+    installSigint(job);
+    await executeJob(job, cfg, { origin: meta.origin, urls: args.url, store: meta.store, productType: meta.productType, categorySlug: meta.categorySlug, lang: meta.lang, browser: args.browser, intervene: args.intervene });
     return;
   }
 
-  console.error('usage:\n  scrape.mjs probe <url>\n  scrape.mjs run --store <slug> --origin <site> [--limit N] [--product-type food] [--category-slug X] [--out file.csv]');
+  if (mode === 'resume') {
+    const id = args.job || args._[0];
+    if (!id) { console.error('usage: pnpm resume --job <JOB_ID>'); process.exit(2); }
+    const job = new Job(cfg, id);
+    const m = job.job.meta || {};
+    console.log(`Resuming job ${id} (origin: ${m.origin || 'provided URLs'})`);
+    installSigint(job);
+    await executeJob(job, cfg, { origin: null, urls: [], store: m.store, productType: m.productType, categorySlug: m.categorySlug, lang: m.lang, browser: args.browser, intervene: args.intervene });
+    return;
+  }
+
+  console.error('usage:\n  pnpm probe  --origin <url>\n  pnpm scrape --origin <url> [--store S] [--limit N] [--max-pages N] [--max-depth N] [--workers N] [--browser|--no-browser] [--intervene] [--product-type food] [--category-slug X]\n  pnpm resume --job <JOB_ID>');
   process.exit(2);
+}
+
+let sigintArmed = false;
+function installSigint(job) {
+  if (sigintArmed) return; sigintArmed = true;
+  process.on('SIGINT', () => {
+    try { job.flush(); job.setStatus('interrupted'); } catch { /* ignore */ }
+    console.log(`\n\n⏸ Interrupted. Progress saved.\nResume with: pnpm resume --job ${job.id}\n`);
+    process.exit(130);
+  });
 }
 
 main().catch((e) => { console.error('\n[scrape] error:', e.message); process.exit(1); });

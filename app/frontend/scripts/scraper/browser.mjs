@@ -22,19 +22,29 @@ export async function browserAvailable() {
  * many renders (fast), closed once at the end of a run.
  */
 export class BrowserSession {
+  /** @param {{ headless?:boolean, userAgent?:string, userDataDir?:string,
+   *            onIntervention?:(info:{url:string,code:string,reason:string,page:object})=>Promise<'retry'|'skip'>}} [opts] */
   constructor(opts = {}) { this.opts = opts; this._browser = null; this._ctx = null; }
 
   async _ensure() {
     if (this._ctx) return this._ctx;
     if (!(await browserAvailable())) throw new Error('playwright not installed');
-    this._browser = await _pw.chromium.launch({ headless: true });
-    this._ctx = await this._browser.newContext({ userAgent: this.opts.userAgent });
+    const headless = this.opts.headless !== false;
+    if (this.opts.userDataDir) {
+      // Persistent profile → keeps cookies/logins across pages and jobs.
+      this._ctx = await _pw.chromium.launchPersistentContext(this.opts.userDataDir, { headless, userAgent: this.opts.userAgent });
+    } else {
+      this._browser = await _pw.chromium.launch({ headless });
+      this._ctx = await this._browser.newContext({ userAgent: this.opts.userAgent });
+    }
     return this._ctx;
   }
 
   /**
    * Render one URL. Waits for a useful signal (JSON-LD / Product), not a fixed
-   * sleep. Returns rendered HTML + a block classification of what came back.
+   * sleep. If a protection/login is detected AND an onIntervention handler is
+   * set, it PAUSES for a human to act manually (no bypass), then re-reads the
+   * page. Returns rendered HTML + a block classification.
    * @returns {Promise<{ html:string|null, status:number, block:object|null, error:string|null }>}
    */
   async render(url, { timeoutMs = 30000, waitFor } = {}) {
@@ -43,12 +53,19 @@ export class BrowserSession {
     const page = await ctx.newPage();
     try {
       const resp = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: timeoutMs });
-      try {
-        await page.waitForSelector(waitFor || 'script[type="application/ld+json"], [itemtype*="Product"]', { timeout: 8000 });
-      } catch { /* proceed with whatever rendered */ }
-      const html = await page.content();
-      const status = resp ? resp.status() : 200;
-      const block = classifyResponse({ status, url: page.url(), requestedUrl: url, body: html });
+      try { await page.waitForSelector(waitFor || 'script[type="application/ld+json"], [itemtype*="Product"]', { timeout: 8000 }); } catch { /* proceed */ }
+      let status = resp ? resp.status() : 200;
+      let html = await page.content();
+      let block = classifyResponse({ status, url: page.url(), requestedUrl: url, body: html });
+
+      // Manual intervention loop (CAPTCHA / challenge / login / consent).
+      for (let round = 0; block.terminal && this.opts.onIntervention && round < 3; round++) {
+        const decision = await this.opts.onIntervention({ url, code: block.code, reason: block.reason, page });
+        if (decision === 'skip') break;
+        try { await page.reload({ waitUntil: 'domcontentloaded', timeout: timeoutMs }); } catch { /* keep current */ }
+        html = await page.content();
+        block = classifyResponse({ status: 200, url: page.url(), requestedUrl: url, body: html });
+      }
       return { html, status, block, error: null };
     } catch (e) {
       return { html: null, status: 0, block: classifyResponse({ status: 0, error: e?.name === 'TimeoutError' ? 'timeout' : (e?.message || 'render error') }), error: e?.message || String(e) };
