@@ -22,7 +22,7 @@ pnpm scrape --origin "https://example.com" --store my-store --product-type food 
   --category-slug cafe-the --limit 500 --max-pages 150 --max-depth 3 --workers 4
 ```
 - `--store` must already exist in **Admin → Magasins** (unknown store = error, never auto-created). Omit it to scrape without a store (the CSV's `store_slug` stays blank; fill it before importing).
-- Discovery order: sitemap → categories/listings → pagination → product URLs.
+- Discovery order: sitemap → categories/listings → pagination → product URLs. If HTTP finds **no** products (CSR site), a browser-discovery fallback renders the listing (incl. "load more" / infinite scroll) to collect product links, then extracts them via the normal pipeline. Disable with `--no-browser`.
 - Output (printed at the end):
   - CSV → `scraper-output/csv/<JOB_ID>.csv` (+ `-to-verify.csv`)
   - Report → `scraper-output/reports/<JOB_ID>.{json,txt}`

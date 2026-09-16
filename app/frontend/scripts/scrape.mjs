@@ -25,7 +25,7 @@ import { createJob, Job } from './scraper/jobstore.mjs';
 import { Fetcher } from './scraper/http-fetcher.mjs';
 import { discoverProducts } from './scraper/discover.mjs';
 import { runScrape } from './scraper/engine.mjs';
-import { BrowserSession } from './scraper/browser.mjs';
+import { BrowserSession, browserAvailable } from './scraper/browser.mjs';
 import { toImportCsv } from './scraper/csv.mjs';
 import { probeSource, formatProbe } from './scraper/probe.mjs';
 
@@ -71,7 +71,7 @@ function fmtDur(ms) { const s = Math.round(ms / 1000); return `${String(Math.flo
 function printReport(rep, csvPath) {
   const d = rep.discovery || {};
   console.log(`\nSCRAPING\nSource : ${rep.store || '(unassigned)'}   status: ${rep.status}\n`);
-  console.log(`Discovery\n  method : ${d.method || 'provided URLs'}\n  URLs   : ${rep.discovered}${d.pagesCrawled ? `  (crawled ${d.pagesCrawled} pages)` : ''}\n`);
+  console.log(`Discovery\n  method       : ${d.method || 'provided URLs'}\n  URLs (HTTP)  : ${d.httpProductUrls ?? rep.discovered}\n  URLs (browser): ${d.browserProductUrls ?? 0}\n  URLs (total) : ${rep.discovered}\n  pages        : ${d.pagesCrawled ?? 0} HTTP + ${d.browserPagesRendered ?? 0} browser\n`);
   console.log(`Extraction\n  Produits   : ${rep.detected}\n  Complets   : ${rep.detected - rep.incomplete}\n  Incomplets : ${rep.incomplete}\n`);
   console.log(`Éligibilité\n  Acceptés    : ${rep.accepted}\n  Exclus      : ${rep.excluded}\n  À vérifier  : ${rep.toVerify}\n`);
   console.log(`Browser\n  Pages HTTP    : ${rep.fetched}\n  Pages Browser : ${rep.browserUsed || 0}${rep.playwrightAvailable ? '' : ' (Playwright absent)'}\n`);
@@ -84,14 +84,34 @@ function printReport(rep, csvPath) {
 async function executeJob(job, cfg, { origin, urls, store, productType, categorySlug, lang, browser, intervene }) {
   const fetcher = new Fetcher({ timeoutMs: cfg.timeoutMs, retries: cfg.retries, minDelayMs: cfg.rateLimitMs });
 
+  // One lazy, shared browser session (discovery + extraction). Headful +
+  // persistent profile only when --intervene (manual CAPTCHA/login handling).
+  const browserEnabled = browser !== false;
+  const onIntervention = intervene ? async ({ url, code, reason }) => {
+    console.log(`\n============================================\nINTERVENTION REQUISE\nURL    : ${url}\nRAISON : ${code} — ${reason}\nLe navigateur reste ouvert : agis manuellement (résous le CAPTCHA / connecte-toi),\npuis appuie sur ENTER pour reprendre. (Aucun contournement automatique.)\n============================================`);
+    await ask('ENTER pour reprendre > ');
+    return 'retry';
+  } : undefined;
+  let _bs = null, _bsTried = false;
+  const getBrowser = async () => {
+    if (_bsTried) return _bs;
+    _bsTried = true;
+    if (!browserEnabled || !(await browserAvailable())) return null;
+    const profileDir = path.join(outputRoot(cfg), '.browser-profile');
+    if (intervene) fs.mkdirSync(profileDir, { recursive: true });
+    _bs = new BrowserSession({ headless: !intervene, userDataDir: intervene ? profileDir : undefined, userAgent: fetcher.userAgent, onIntervention });
+    return _bs;
+  };
+
   // Discovery (only if not already discovered — resume reuses saved list).
+  let discReport = null;
   if (!job.discovered.length) {
     job.setStatus('discovering');
     if (origin) {
       process.stdout.write('Discovery…\r');
-      const disc = await discoverProducts(fetcher, origin, { maxProducts: cfg.maxProducts, maxPages: cfg.maxPages, maxDepth: cfg.maxDepth });
-      job.setDiscovered(disc.urls);
-      console.log(`Discovery : ${disc.report.method} — ${disc.urls.length} product URLs (${disc.report.pagesCrawled} pages crawled)`);
+      const disc = await discoverProducts(fetcher, origin, { maxProducts: cfg.maxProducts, maxPages: cfg.maxPages, maxDepth: cfg.maxDepth, maxBrowserPages: cfg.maxBrowser, getBrowser });
+      job.setDiscovered(disc.urls); discReport = disc.report;
+      console.log(`Discovery : ${disc.report.method} — ${disc.urls.length} product URLs (HTTP ${disc.report.httpProductUrls}, browser ${disc.report.browserProductUrls}; ${disc.report.pagesCrawled} HTTP pages, ${disc.report.browserPagesRendered} browser pages)`);
       if (disc.report.stopped) console.log(`  ⚠ discovery stopped: ${disc.report.stopped.code} — ${disc.report.stopped.reason}`);
     } else {
       job.setDiscovered(urls);
@@ -99,21 +119,6 @@ async function executeJob(job, cfg, { origin, urls, store, productType, category
     }
   } else {
     console.log(`Resuming : ${job.remaining().length} of ${job.discovered.length} URL(s) left`);
-  }
-
-  // Optional persistent, headful browser session for manual intervention.
-  let browserSession = null;
-  if (browser !== false && intervene) {
-    const profileDir = path.join(outputRoot(cfg), '.browser-profile');
-    fs.mkdirSync(profileDir, { recursive: true });
-    browserSession = new BrowserSession({
-      headless: false, userDataDir: profileDir, userAgent: fetcher.userAgent,
-      onIntervention: async ({ url, code, reason }) => {
-        console.log(`\n============================================\nINTERVENTION REQUISE\nURL    : ${url}\nRAISON : ${code} — ${reason}\nLe navigateur reste ouvert : effectue l'action manuellement (résous le CAPTCHA / connecte-toi),\npuis appuie sur ENTER pour reprendre. (Aucun contournement automatique.)\n============================================`);
-        await ask('ENTER pour reprendre > ');
-        return 'retry';
-      },
-    });
   }
 
   job.setStatus('running');
@@ -128,13 +133,14 @@ async function executeJob(job, cfg, { origin, urls, store, productType, category
     defaultProductType: productType || null, categorySlug: categorySlug || null, lang: lang || 'fr',
     useBrowser: browser === false ? false : undefined,
     interactive: !!intervene,
-    browserSession,
+    getBrowserSession: getBrowser,
     onProduct: (np) => { job.addProduct(np); flushMaybe(); },
     onProcessed: (url) => { job.markProcessed(url); flushMaybe(); },
     onProgress: (n, t) => process.stdout.write(`\r  fetched ${n}/${t}   `),
   });
   process.stdout.write('\r');
-  if (browserSession) await browserSession.close();
+  if (_bs) await _bs.close();
+  if (discReport) report.discovery = discReport;
   job.flush();
 
   // Outputs: CSV (accepted) + to-verify CSV + reports. products.json already saved.

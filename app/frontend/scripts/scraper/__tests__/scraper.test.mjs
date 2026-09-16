@@ -248,6 +248,52 @@ test('discovery stops on a challenge during crawl (no infinite loop)', async () 
   assert.ok(report.stopped && report.stopped.code);
 });
 
+// ── browser-discovery fallback (CSR) ─────────────────────────────────────────
+const fakeBrowser = (map) => ({ calls: 0, async collectLinks(url) { this.calls++; return map[url] || { links: [], blocked: null }; } });
+
+test('A: HTTP finds products → browser-discovery NOT used', async () => {
+  const f = new DiscMock({ 'https://shop.be/': page(['/product/a']) });
+  const fb = fakeBrowser({});
+  const { urls, report } = await discoverProducts(f, 'https://shop.be/', { getBrowser: async () => fb });
+  assert.equal(fb.calls, 0);
+  assert.equal(report.method, 'crawl');
+  assert.ok(urls.some((u) => u.endsWith('/product/a')));
+});
+
+test('B: CSR (HTTP finds 0) → browser-discovery finds products after render', async () => {
+  const f = new DiscMock({ 'https://csr.shop/': page([]) }); // no links in initial HTML
+  const fb = fakeBrowser({ 'https://csr.shop/': { links: ['https://csr.shop/product/a', 'https://csr.shop/product/b'], blocked: null } });
+  const { urls, report } = await discoverProducts(f, 'https://csr.shop/', { getBrowser: async () => fb });
+  assert.equal(fb.calls, 1);
+  assert.equal(report.method, 'browser');
+  assert.equal(report.httpProductUrls, 0);
+  assert.equal(report.browserProductUrls, 2);
+  assert.deepEqual(urls.map((u) => new URL(u).pathname).sort(), ['/product/a', '/product/b']);
+});
+
+test('C/E: browser-discovery (load-more results) respects max-products', async () => {
+  const many = Array.from({ length: 50 }, (_, i) => `https://csr.shop/product/p${i}`);
+  const f = new DiscMock({ 'https://csr.shop/': page([]) });
+  const fb = fakeBrowser({ 'https://csr.shop/': { links: many, blocked: null } });
+  const { urls } = await discoverProducts(f, 'https://csr.shop/', { maxProducts: 10, getBrowser: async () => fb });
+  assert.equal(urls.length, 10);
+});
+
+test('D: HTTP + browser results are deduplicated (tracking/trailing variants)', async () => {
+  const f = new DiscMock({ 'https://csr.shop/': page([]) });
+  const fb = fakeBrowser({ 'https://csr.shop/': { links: ['https://csr.shop/product/a?utm_source=x', 'https://csr.shop/product/a/', 'https://csr.shop/product/b'], blocked: null } });
+  const { urls } = await discoverProducts(f, 'https://csr.shop/', { getBrowser: async () => fb });
+  assert.equal(urls.length, 2); // a (deduped) + b
+});
+
+test('F: browser-discovery challenge → stop, no products, no bypass', async () => {
+  const f = new DiscMock({ 'https://csr.shop/': page([]) });
+  const fb = fakeBrowser({ 'https://csr.shop/': { links: [], blocked: { code: 'BOT_CHALLENGE', reason: 'cf' } } });
+  const { urls, report } = await discoverProducts(f, 'https://csr.shop/', { getBrowser: async () => fb });
+  assert.equal(urls.length, 0);
+  assert.ok(report.stopped && report.stopped.code === 'BOT_CHALLENGE');
+});
+
 // ── robustness: invalid page yields nothing, never throws ─────────────────────
 test('extract on junk HTML returns no product, no throw', () => {
   const { product, needsBrowser: nb } = extractProduct('<html><body>oops</body></html>', 'https://s/x');

@@ -28,7 +28,7 @@ scripts/scraper/
   normalize.mjs      RawProduct → NormalizedProduct (identity: GTIN→SKU→MPN→URL; never invents codes)
   dedup: url-utils.dedupKey + engine identity key
   pagination.mjs     page=/p=/offset/rel=next with loop + repeat guards
-  discover.mjs       AUTO discovery: sitemap → categories/listings → pagination → product URLs (product-oriented, guardrails)
+  discover.mjs       AUTO discovery: sitemap → categories/listings → pagination → product URLs; browser-discovery fallback (CSR: renders listing + load-more/scroll) when HTTP finds 0
   detect.mjs         centralised protection/anomaly classifier (challenge/captcha/rate-limit/…)
   browser.mjs        Playwright fallback (installed): BrowserSession, CSR-only, capped, protection-aware
   probe.mjs          source auto-analysis (SOURCE ANALYSIS report)

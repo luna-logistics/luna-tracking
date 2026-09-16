@@ -41,7 +41,8 @@ function extractLinks(html, baseUrl) {
 /**
  * @param {import('./http-fetcher.mjs').Fetcher} fetcher
  * @param {string} shopUrl
- * @param {{ maxProducts?:number, maxPages?:number, maxDepth?:number, sitemapMin?:number }} [opts]
+ * @param {{ maxProducts?:number, maxPages?:number, maxDepth?:number, sitemapMin?:number,
+ *          getBrowser?:()=>Promise<object|null>, maxBrowserPages?:number }} [opts]
  * @returns {Promise<{ urls:string[], report:object }>}
  */
 export async function discoverProducts(fetcher, shopUrl, opts = {}) {
@@ -50,19 +51,21 @@ export async function discoverProducts(fetcher, shopUrl, opts = {}) {
   const maxPages = opts.maxPages ?? 150;
   const maxDepth = opts.maxDepth ?? 3;
   const sitemapMin = opts.sitemapMin ?? 5;
-  const report = { method: null, pagesCrawled: 0, listingsCrawled: 0, productUrls: 0, notes: [], stopped: null };
-  const products = new Set();
+  const report = { method: null, httpProductUrls: 0, browserProductUrls: 0, pagesCrawled: 0, listingsCrawled: 0, browserPagesRendered: 0, productUrls: 0, notes: [], stopped: null };
+  // Keyed by canonical dedupKey so HTTP + browser results never duplicate.
+  const products = new Map();
+  const addProduct = (u) => { const k = dedupKey(u); if (!products.has(k)) products.set(k, u); };
 
   // ── 1) Sitemaps (preferred) ─────────────────────────────────────────────
   const robotsRes = await fetcher.get(`${origin}/robots.txt`);
   const robots = robotsRes.ok ? parseRobots(robotsRes.body) : null;
   const sm = await discoverFromSitemaps(fetcher, origin, { max: maxProducts, hint: robots?.sitemaps || [] });
   report.notes.push(...sm.notes);
-  for (const u of sm.urls) { if (!SKIP_RE.test(u)) products.add(u); if (products.size >= maxProducts) break; }
+  for (const u of sm.urls) { if (!SKIP_RE.test(u)) addProduct(u); if (products.size >= maxProducts) break; }
   if (products.size >= sitemapMin) {
     report.method = 'sitemap';
     report.productUrls = products.size;
-    return { urls: [...products].slice(0, maxProducts), report };
+    return { urls: [...products.values()].slice(0, maxProducts), report };
   }
 
   // ── 2) Crawl categories/listings → pagination → product URLs ────────────
@@ -86,7 +89,7 @@ export async function discoverProducts(fetcher, shopUrl, opts = {}) {
       if (!sameHost(link, origin) || ASSET_RE.test(link)) continue;
       const k = dedupKey(link);
       if (PRODUCT_RE.test(link)) {                    // product detected first (slug may contain a section word)
-        products.add(link);
+        addProduct(link);
         if (products.size >= maxProducts) break;
         continue;
       }
@@ -108,6 +111,40 @@ export async function discoverProducts(fetcher, shopUrl, opts = {}) {
     else noNewStreak = 0;
   }
   if (report.pagesCrawled >= maxPages) report.notes.push(`crawl hit maxPages=${maxPages}`);
+  report.httpProductUrls = products.size;
+
+  // ── 3) Browser-discovery fallback (CSR) ─────────────────────────────────
+  // Fires only when HTTP found NO products AND a browser is available. Renders
+  // the entry page (+ JS pagination / load-more) and rendered listing pages
+  // (depth-limited) to collect product links, then feeds the SAME pipeline.
+  if (products.size === 0 && opts.getBrowser) {
+    const bs = await opts.getBrowser();
+    if (bs) {
+      const maxBrowserPages = opts.maxBrowserPages ?? 10;
+      report.notes.push('HTTP discovery found 0 products → browser-discovery (CSR fallback)');
+      const visited = new Set([dedupKey(shopUrl)]);
+      const queue = [{ url: shopUrl, depth: 0 }];
+      while (queue.length && products.size < maxProducts && report.browserPagesRendered < maxBrowserPages) {
+        const { url, depth } = queue.shift();
+        const { links, blocked } = await bs.collectLinks(url);
+        report.browserPagesRendered++;
+        if (blocked) { report.stopped = { code: blocked.code, reason: `${blocked.reason} (browser-discovery)`, url }; break; }
+        for (const link of links) {
+          if (!sameHost(link, origin) || ASSET_RE.test(link)) continue;
+          const k = dedupKey(link);
+          if (PRODUCT_RE.test(link)) { addProduct(link); if (products.size >= maxProducts) break; continue; }
+          if (SECTION_RE.test(link)) continue;
+          if (!visited.has(k) && depth < maxDepth && report.browserPagesRendered + queue.length < maxBrowserPages) {
+            if (PAGE_RE.test(link)) { visited.add(k); queue.push({ url: link, depth }); }
+            else if (LISTING_RE.test(link)) { visited.add(k); queue.push({ url: link, depth: depth + 1 }); }
+          }
+        }
+      }
+      report.browserProductUrls = products.size - report.httpProductUrls;
+      report.method = report.method === 'sitemap' ? 'sitemap+browser' : (report.httpProductUrls ? 'crawl+browser' : 'browser');
+    }
+  }
+
   report.productUrls = products.size;
-  return { urls: [...products].slice(0, maxProducts), report };
+  return { urls: [...products.values()].slice(0, maxProducts), report };
 }

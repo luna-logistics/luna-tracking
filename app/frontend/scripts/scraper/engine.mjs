@@ -118,11 +118,19 @@ export async function runScrape(config) {
   // Auto-on when Playwright is installed unless explicitly disabled. A session
   // can be injected (config.browserSession) for testing.
   const injectedSession = config.browserSession || null;
-  const wantBrowser = config.useBrowser !== false && (!!injectedSession || await browserAvailable());
+  const sessionFactory = config.getBrowserSession || null; // shared with discovery
+  const wantBrowser = config.useBrowser !== false && (!!injectedSession || !!sessionFactory || await browserAvailable());
   const maxBrowser = config.maxBrowser ?? 40;
   let browserUsed = 0;
   let session = null;
-  report.playwrightAvailable = !!injectedSession || await browserAvailable();
+  const acquireSession = async () => {
+    if (session) return session;
+    if (injectedSession) { session = injectedSession; return session; }
+    if (sessionFactory) { session = await sessionFactory(); return session; } // may be null
+    session = new BrowserSession({ userAgent: fetcher.userAgent });
+    return session;
+  };
+  report.playwrightAvailable = !!injectedSession || !!sessionFactory || await browserAvailable();
 
   const processed = await pool(unique, async (url) => {
    try {
@@ -169,10 +177,10 @@ export async function runScrape(config) {
       raw = preProduct;
       if (!raw && (nb || resp.code === STATUS.JAVASCRIPT_REQUIRED || resp.terminal)) {
         report.browserRequired++;
-        if (wantBrowser && browserUsed < maxBrowser && !stop) {
+        const s = (wantBrowser && browserUsed < maxBrowser && !stop) ? await acquireSession() : null;
+        if (s) {
           browserUsed++;
-          if (!session) session = injectedSession || new BrowserSession({ userAgent: fetcher.userAgent });
-          const rendered = await session.render(url);
+          const rendered = await s.render(url);
           if (rendered.block && rendered.block.terminal) {
             // Protection detected under the browser too → stop cleanly, no bypass.
             if (!stop) stop = { code: rendered.block.code, reason: `${rendered.block.reason} (under browser)`, url, retryAfter: rendered.block.retryAfter };
@@ -220,7 +228,9 @@ export async function runScrape(config) {
    }
   }, concurrency, () => stop !== null);
 
-  if (session && session !== injectedSession) { await session.close(); }
+  // Close only a session we created ourselves (injected/factory sessions are
+  // owned by the caller, e.g. the CLI reuses one across discovery + extraction).
+  if (session && !injectedSession && !sessionFactory) { await session.close(); }
   report.browserUsed = browserUsed;
 
   if (stop) {

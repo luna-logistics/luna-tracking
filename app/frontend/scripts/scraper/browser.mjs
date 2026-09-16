@@ -74,6 +74,58 @@ export class BrowserSession {
     }
   }
 
+  /**
+   * Render a listing/catalogue page and return every anchor href present after
+   * JS runs — including content revealed by "Load more" buttons and infinite
+   * scroll. Waits on DOM/network signals (anchor-count growth, networkidle),
+   * never fixed sleeps. Classification of the links stays in discover.mjs (no
+   * parallel product logic here). Honours the intervention handler.
+   * @returns {Promise<{ links:string[], blocked:object|null, error:string|null }>}
+   */
+  async collectLinks(url, { timeoutMs = 30000, maxScrolls = 12 } = {}) {
+    let ctx;
+    try { ctx = await this._ensure(); } catch (e) { return { links: [], blocked: null, error: e.message }; }
+    const page = await ctx.newPage();
+    try {
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: timeoutMs });
+      try { await page.waitForLoadState('networkidle', { timeout: 8000 }); } catch { /* proceed */ }
+
+      // Protection detection + optional manual intervention (no bypass).
+      let block = classifyResponse({ status: 200, url: page.url(), requestedUrl: url, body: await page.content() });
+      for (let round = 0; block.terminal && this.opts.onIntervention && round < 3; round++) {
+        const d = await this.opts.onIntervention({ url, code: block.code, reason: block.reason, page });
+        if (d === 'skip') break;
+        try { await page.reload({ waitUntil: 'domcontentloaded', timeout: timeoutMs }); } catch { /* keep */ }
+        block = classifyResponse({ status: 200, url: page.url(), requestedUrl: url, body: await page.content() });
+      }
+      if (block.terminal) return { links: [], blocked: { code: block.code, reason: block.reason }, error: null };
+
+      // Load-more / infinite-scroll loop, bounded, driven by anchor-count growth.
+      const LOAD_MORE = /load more|charger plus|voir plus|afficher plus|show more|plus de produits|see more|more products/i;
+      for (let i = 0; i < maxScrolls; i++) {
+        const before = await page.evaluate(() => document.querySelectorAll('a[href]').length);
+        const clicked = await page.evaluate((rxSrc) => {
+          const rx = new RegExp(rxSrc, 'i');
+          const el = [...document.querySelectorAll('button, a, [role="button"]')].find((b) => rx.test((b.textContent || '').trim()));
+          if (el) { el.click(); return true; }
+          return false;
+        }, LOAD_MORE.source);
+        if (!clicked) await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+        try { await page.waitForFunction((n) => document.querySelectorAll('a[href]').length > n, { timeout: 5000 }, before); }
+        catch { if (i > 0) break; } // no growth after a real attempt → done
+        const after = await page.evaluate(() => document.querySelectorAll('a[href]').length);
+        if (after <= before && i > 0) break;
+      }
+
+      const links = await page.evaluate(() => [...document.querySelectorAll('a[href]')].map((a) => a.href));
+      return { links: [...new Set(links)], blocked: null, error: null };
+    } catch (e) {
+      return { links: [], blocked: null, error: e?.message || String(e) };
+    } finally {
+      try { await page.close(); } catch { /* ignore */ }
+    }
+  }
+
   async close() {
     try { if (this._ctx) await this._ctx.close(); } catch { /* ignore */ }
     try { if (this._browser) await this._browser.close(); } catch { /* ignore */ }
