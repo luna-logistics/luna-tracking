@@ -1,7 +1,7 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  LayoutDashboard, MapPin, Package, ShoppingCart, Boxes,
+  LayoutDashboard, MapPin, Package, Store, ShoppingCart, Boxes,
   KeyRound, FileText, Newspaper, UserCog, LogOut, ExternalLink, FilePlus,
   MessageSquare,
 } from 'lucide-react';
@@ -31,6 +31,7 @@ export function AdminShell() {
     { to: '/admin',                        label: t('admin.sidebar_dashboard'),       icon: LayoutDashboard, permission: 'always' },
     { to: '/admin/destinations',           label: t('admin.sidebar_cities'),          icon: MapPin,          permission: 'destinations' },
     { to: '/admin/produits',               label: t('admin.sidebar_products'),        icon: Package,         permission: 'products' },
+    { to: '/admin/magasins',               label: t('admin.sidebar_stores'),          icon: Store,           permission: 'products' },
     { to: '/admin/commandes',              label: t('admin.sidebar_orders'),          icon: ShoppingCart,    permission: 'orders' },
     { to: '/admin/demandes-reexpedition',  label: t('admin.sidebar_forwarding'),      icon: Boxes,           permission: 'forwarding' },
     { to: '/admin/auth-sociale',           label: t('admin.sidebar_auth_providers'),  icon: KeyRound,        permission: 'auth_providers' },

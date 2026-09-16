@@ -73,6 +73,7 @@ const AdminShell = lazy(() => import('@/components/AdminShell').then((m) => ({ d
 const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'));
 const AdminCities = lazy(() => import('@/pages/AdminCities'));
 const AdminProducts = lazy(() => import('@/pages/AdminProducts'));
+const AdminStores = lazy(() => import('@/pages/AdminStores'));
 const AdminOrders = lazy(() => import('@/pages/AdminOrders'));
 const AdminForwardingRequests = lazy(() => import('@/pages/AdminForwardingRequests'));
 const AdminAuthProviders = lazy(() => import('@/pages/AdminAuthProviders'));
@@ -257,6 +258,7 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/destinations" element={<AdminCities />} />
             <Route path="/admin/produits" element={<AdminProducts />} />
+            <Route path="/admin/magasins" element={<AdminStores />} />
             <Route path="/admin/commandes" element={<AdminOrders />} />
             <Route path="/admin/demandes-reexpedition" element={<AdminForwardingRequests />} />
             <Route path="/admin/auth-sociale" element={<AdminAuthProviders />} />

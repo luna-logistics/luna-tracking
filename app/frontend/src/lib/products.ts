@@ -120,6 +120,19 @@ export async function fetchStores(): Promise<Store[]> {
   return (data ?? []) as Store[];
 }
 
+export async function upsertStore(s: Omit<Store, 'id'> & { id?: string }): Promise<Store> {
+  const { data, error } = await supabase.from('stores').upsert(s).select().single();
+  if (error) throw error;
+  return data as Store;
+}
+
+/** Stores are never deleted from the UI (products FK is on delete restrict) —
+ *  only activated/deactivated. */
+export async function toggleStoreActive(id: string, next: boolean) {
+  const { error } = await supabase.from('stores').update({ is_active: next }).eq('id', id);
+  if (error) throw error;
+}
+
 export type ProductSourceInput = {
   product_id: string;
   source_url: string | null;

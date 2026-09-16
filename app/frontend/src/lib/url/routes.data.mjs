@@ -45,6 +45,7 @@ export const ROUTES = {
   admin:           { indexable: false, bilingual: false, fr: '/admin',              en: '/admin' },
   adminCities:     { indexable: false, bilingual: false, fr: '/admin/destinations', en: '/admin/destinations' },
   adminProducts:   { indexable: false, bilingual: false, fr: '/admin/produits',     en: '/admin/produits' },
+  adminStores:     { indexable: false, bilingual: false, fr: '/admin/magasins',     en: '/admin/magasins' },
   adminOrders:     { indexable: false, bilingual: false, fr: '/admin/commandes',    en: '/admin/commandes' },
   adminForwarding: { indexable: false, bilingual: false, fr: '/admin/demandes-reexpedition', en: '/admin/demandes-reexpedition' },
   adminAuthProviders: { indexable: false, bilingual: false, fr: '/admin/auth-sociale', en: '/admin/auth-sociale' },
