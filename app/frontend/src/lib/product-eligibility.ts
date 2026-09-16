@@ -41,6 +41,10 @@ export interface EligibilityResult {
   matched: string[];
   /** Informational — alcohol is allowed, this never affects `status`. */
   is_alcoholic: boolean;
+  /** Informational — does the product need refrigeration?
+   *  true = a cold signal, false = an ambient signal, null = unknown.
+   *  Never affects `status` (used e.g. for ham, which is accepted anyway). */
+  requires_cold_chain: boolean | null;
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -240,6 +244,15 @@ const AMBIENT_SIGNALS = ['endroit frais et sec', 'frais et sec', 'endroit sec',
   'a l abri de la lumiere', 'conservation ambiante', 'longue conservation', 'ambient',
   'shelf stable', 'temperature de la piece'];
 
+// [DÉCISION UTILISATEUR] Ham (jambon) is allowed in EVERY form, including
+// cold-chain ones — wholesalers order in volume with refrigerated transport.
+// This exception is ONLY for ham; every other fresh charcuterie (pâté,
+// saucisses fraîches, lardons…) stays excluded. It does not apply to
+// pâté/terrine/mousse/rillettes "de jambon". The cold-chain need is recorded
+// as informational `requires_cold_chain`, never an exclusion.
+const JAMBON_SIGNALS = ['jambon', 'ham'];
+const JAMBON_BLOCKERS = ['pate', 'terrine', 'mousse', 'rillettes'];
+
 /** Rules per product_type. Only `food` is validated. The others exist so
  *  the structure is ready, but have NO rules → their products are
  *  "to_verify" until Luna approves a rule set. */
@@ -406,6 +419,14 @@ function isColdSignal(corpus: Corpus): boolean {
     || !!ruleMatches(COLDCHAIN_RULE, corpus);
 }
 
+/** Informational cold-chain flag: true = needs the fridge, false = ambient
+ *  storage stated, null = no conservation info at all. */
+function coldChainFlag(corpus: Corpus): boolean | null {
+  if (temperatureSignal(corpus.tempText) === 'frozen' || isColdSignal(corpus)) return true;
+  if (hasAny(AMBIENT_SIGNALS, corpus.text, corpus.words)) return false;
+  return null;
+}
+
 /**
  * Food-specific classifier. Precedence:
  *   1. frozen (negative °C or a frozen word)                 → excluded
@@ -417,13 +438,20 @@ function isColdSignal(corpus: Corpus): boolean {
  *   6. a shelf-stable acceptance signal                      → accepted
  *   7. nothing conclusive                                    → to_verify
  */
-function classifyFood(corpus: Corpus, is_alcoholic: boolean): EligibilityResult {
+function classifyFood(corpus: Corpus, is_alcoholic: boolean, requires_cold_chain: boolean | null): EligibilityResult {
   const R = (status: EligibilityStatus, code: string, reason: string, matched: string[] = []): EligibilityResult =>
-    ({ status, code, reason, matched, is_alcoholic });
+    ({ status, code, reason, matched, is_alcoholic, requires_cold_chain });
 
   if (temperatureSignal(corpus.tempText) === 'frozen') return R('excluded', 'excluded_frozen', 'surgelé', ['température négative']);
   const frozenKw = ruleMatches(FROZEN_RULE, corpus);
   if (frozenKw) return R('excluded', 'excluded_frozen', 'surgelé', frozenKw);
+
+  // Ham exception — accepted in every form (even cold-chain), but not
+  // pâté/terrine/mousse/rillettes de jambon. requires_cold_chain carries the
+  // fridge need for the preview.
+  const hasJambon = JAMBON_SIGNALS.some((k) => corpus.productWords.has(k));
+  const jambonBlocked = hasAny(JAMBON_BLOCKERS, corpus.productText, corpus.productWords);
+  if (hasJambon && !jambonBlocked) return R('accepted', 'accept_jambon', 'jambon', ['jambon']);
 
   const cold = isColdSignal(corpus);
 
@@ -462,46 +490,47 @@ function classifyFood(corpus: Corpus, is_alcoholic: boolean): EligibilityResult 
 export function isLunaEligibleProduct(p: NormalizedProduct): EligibilityResult {
   const corpus = buildCorpus(p);
 
-  // is_alcoholic is informational only (alcohol is allowed).
+  // is_alcoholic + requires_cold_chain are informational only (never change status).
   const alcoholMatch = ALCOHOL_KEYWORDS.filter((k) => matchKeyword(k, corpus));
   const is_alcoholic = p.is_alcoholic === true || alcoholMatch.length > 0;
+  const requires_cold_chain = coldChainFlag(corpus);
 
   const type = typeof p.product_type === 'string' ? p.product_type.trim().toLowerCase() : '';
 
   if (!type) {
     return { status: 'to_verify', code: 'to_verify_no_type',
-      reason: 'informations insuffisantes — type de produit manquant', matched: [], is_alcoholic };
+      reason: 'informations insuffisantes — type de produit manquant', matched: [], is_alcoholic, requires_cold_chain };
   }
   // A type Luna hasn't declared at all (the rules map holds every known
   // type, including those with no rules yet).
   if (!Object.prototype.hasOwnProperty.call(ELIGIBILITY_RULES, type)) {
     return { status: 'to_verify', code: 'to_verify_unknown_type',
-      reason: `informations insuffisantes — type de produit inconnu « ${type} »`, matched: [], is_alcoholic };
+      reason: `informations insuffisantes — type de produit inconnu « ${type} »`, matched: [], is_alcoholic, requires_cold_chain };
   }
 
   const rules = ELIGIBILITY_RULES[type];
   if (!rules.hasRules) {
     return { status: 'to_verify', code: 'to_verify_no_rules',
-      reason: `aucune règle validée pour le type « ${type} »`, matched: [], is_alcoholic };
+      reason: `aucune règle validée pour le type « ${type} »`, matched: [], is_alcoholic, requires_cold_chain };
   }
 
-  if (type === 'food') return classifyFood(corpus, is_alcoholic);
+  if (type === 'food') return classifyFood(corpus, is_alcoholic, requires_cold_chain);
 
   // Generic path for any future typed rule set (none today besides food).
   const excluded = firstMatch(rules.exclude, corpus);
   if (excluded) {
     return { status: 'excluded', code: excluded.rule.code,
-      reason: excluded.rule.reason, matched: excluded.matched, is_alcoholic };
+      reason: excluded.rule.reason, matched: excluded.matched, is_alcoholic, requires_cold_chain };
   }
 
   const accepted = firstMatch(rules.accept, corpus);
   if (accepted) {
     return { status: 'accepted', code: accepted.rule.code,
-      reason: accepted.rule.reason, matched: accepted.matched, is_alcoholic };
+      reason: accepted.rule.reason, matched: accepted.matched, is_alcoholic, requires_cold_chain };
   }
 
   return { status: 'to_verify', code: 'to_verify_insufficient',
-    reason: 'informations insuffisantes pour déterminer la conservation', matched: [], is_alcoholic };
+    reason: 'informations insuffisantes pour déterminer la conservation', matched: [], is_alcoholic, requires_cold_chain };
 }
 
 /** Convenience: classify a list, split by status. Order is preserved. */

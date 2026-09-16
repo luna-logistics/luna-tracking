@@ -635,6 +635,9 @@ function CsvImport({ categories, onDone }: { categories: ProductCategory[]; onDo
   const { t } = useTranslation();
   const [rows, setRows] = useState<ImportRow[]>([]);
   const [importing, setImporting] = useState(false);
+  // Safety default: imported products land as drafts (is_active=false) for
+  // manual review before they appear on the Courses page.
+  const [importAsDraft, setImportAsDraft] = useState(true);
 
   const onFile = (file: File) => {
     Papa.parse<Record<string, string>>(file, {
@@ -655,14 +658,19 @@ function CsvImport({ categories, onDone }: { categories: ProductCategory[]; onDo
 
   const doImport = async () => {
     if (importable.length === 0) { toast.info(t('admin.products_import_no_valid')); return; }
+    // Importing as live (not draft) makes products immediately visible —
+    // confirm before doing it.
+    if (!importAsDraft &&
+        !window.confirm(t('admin.products_import_confirm_live', { count: importable.length }))) return;
+    const active = !importAsDraft;
     setImporting(true);
     let ok = 0, skipped = 0;
     for (const r of importable) {
-      try { await upsertProduct(r.data!); ok++; }
+      try { await upsertProduct({ ...r.data!, is_active: active }); ok++; }
       catch { skipped++; }
     }
     setImporting(false);
-    toast.success(t('admin.products_import_summary', { ok, skipped }));
+    toast.success(t(active ? 'admin.products_import_summary_live' : 'admin.products_import_summary_draft', { ok, skipped }));
     setRows([]);
     onDone();
   };
@@ -737,6 +745,9 @@ function CsvImport({ categories, onDone }: { categories: ProductCategory[]; onDo
                       <td className="px-3 py-2 text-slate-600">
                         {hasErr ? <span className="text-red-700">{r.errors.join('; ')}</span> : r.eligibility.reason}
                         {r.eligibility.is_alcoholic && <span className="ml-1 text-slate-400">· alcool</span>}
+                        {r.eligibility.requires_cold_chain === true && <span className="ml-1 text-sky-600">· chaîne du froid</span>}
+                        {!hasErr && r.eligibility.status === 'accepted' && r.eligibility.requires_cold_chain === null &&
+                          <span className="ml-1 text-amber-600">· conservation inconnue</span>}
                       </td>
                       <td className="px-3 py-2">{r.raw.name_fr ?? ''}</td>
                       <td className="px-3 py-2 font-mono text-slate-500">{r.raw.product_type ?? '—'}</td>
@@ -748,7 +759,11 @@ function CsvImport({ categories, onDone }: { categories: ProductCategory[]; onDo
               </tbody>
             </table>
           </div>
-          <div className="mt-4 flex flex-wrap items-center gap-3">
+          <div className="mt-4 flex items-center gap-2">
+            <Switch checked={importAsDraft} onCheckedChange={setImportAsDraft} id="import-draft" />
+            <Label htmlFor="import-draft">{t('admin.products_import_draft_label')}</Label>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
             <Button variant="navy" disabled={importing || importable.length === 0} onClick={doImport}>
               {importing ? t('admin.products_import_importing') : t('admin.products_import_confirm', { count: importable.length })}
             </Button>

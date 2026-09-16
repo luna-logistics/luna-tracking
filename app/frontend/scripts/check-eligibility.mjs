@@ -19,16 +19,19 @@ const SRC = path.resolve(__dirname, '..', 'src/lib/product-eligibility.ts');
 const { isLunaEligibleProduct } = await import(pathToFileURL(SRC).href);
 
 let pass = 0, fail = 0;
-/** @param {string} label @param {object} product @param {string} expectStatus @param {string} [reasonIncludes] */
-function check(label, product, expectStatus, reasonIncludes) {
+/** @param {string} label @param {object} product @param {string} expectStatus
+ *  @param {string} [reasonIncludes] @param {(boolean|null|'skip')} [expectRcc] */
+function check(label, product, expectStatus, reasonIncludes, expectRcc = 'skip') {
   const r = isLunaEligibleProduct(product);
   const okStatus = r.status === expectStatus;
   const okReason = !reasonIncludes || r.reason.toLowerCase().includes(reasonIncludes.toLowerCase());
-  const ok = okStatus && okReason;
+  const okRcc = expectRcc === 'skip' || r.requires_cold_chain === expectRcc;
+  const ok = okStatus && okReason && okRcc;
   if (ok) pass++; else fail++;
   const alc = r.is_alcoholic ? ' [alcool]' : '';
-  console.log(`${ok ? 'OK  ' : 'FAIL'}  ${label.padEnd(46)} → ${r.status.toUpperCase()} — ${r.reason}${alc}`);
-  if (!ok) console.log(`        expected ${expectStatus}${reasonIncludes ? ` / reason~"${reasonIncludes}"` : ''}`);
+  const rcc = r.requires_cold_chain === true ? ' rcc:true' : r.requires_cold_chain === false ? ' rcc:false' : ' rcc:—';
+  console.log(`${ok ? 'OK  ' : 'FAIL'}  ${label.padEnd(42)} → ${r.status.toUpperCase().padEnd(9)}${rcc} — ${r.reason}${alc}`);
+  if (!ok) console.log(`        expected ${expectStatus}${reasonIncludes ? ` / reason~"${reasonIncludes}"` : ''}${expectRcc !== 'skip' ? ` / rcc=${expectRcc}` : ''}`);
 }
 
 const food = (name, extra = {}) => ({ product_type: 'food', name_fr: name, name_en: name, ...extra });
@@ -36,7 +39,7 @@ const food = (name, extra = {}) => ({ product_type: 'food', name_fr: name, name_
 console.log('\n— EXCLUDED (fresh / cold / frozen / bakery / meat) —');
 check('Pain frais boulangerie',       food('Pain frais', { source_category: 'Boulangerie' }), 'excluded', 'boulangerie');
 check('Croissants',                    food('Croissants au beurre'),                            'excluded', 'boulangerie');
-check('Jambon (charcuterie)',          food('Jambon', { source_category: 'Charcuterie' }),      'excluded', 'viande');
+check('Saucisses fraîches',            food('Saucisses fraîches', { source_category: 'Charcuterie' }), 'excluded', 'viande');
 check('Viande hachée fraîche',         food('Viande hachée de boeuf'),                          'excluded', 'viande');
 check('Yaourt nature',                 food('Yaourt nature x4'),                                'excluded', 'laitier');
 check('Pizza surgelée',                food('Pizza surgelée 4 fromages'),                       'excluded', 'surgel');
@@ -76,11 +79,17 @@ check('Glace vanille -18°C',             food('Glace vanille', { source_categor
 check('Œufs x6',                          food('Œufs x6', { source_category: 'Œufs' }), 'to_verify');
 check('Lait UHT ambiant (report)',       food('Lait demi-écrémé UHT', { source_category: 'Produits laitiers', storage_info: 'Avant ouverture, conservation à température ambiante' }), 'accepted');
 
+console.log('\n— JAMBON (accepted in every form; rcc informational) —');
+check('Jambon cuit tranché 0-4°C',       food('Jambon cuit tranché', { source_category: 'Charcuterie', storage_info: 'À conserver entre 0 et 4 °C' }), 'accepted', 'jambon', true);
+check('Jambon sec tranché 0-4°C',        food('Jambon sec tranché', { source_category: 'Charcuterie', storage_info: 'À conserver entre 0 et 4 °C' }), 'accepted', 'jambon', true);
+check('Jambon sec "endroit frais et sec"', food('Jambon sec', { source_category: 'Charcuterie', storage_info: 'À conserver dans un endroit frais et sec' }), 'accepted', 'jambon', false);
+check('Jambon cru affiné (no info)',     food('Jambon cru affiné', { source_category: 'Charcuterie' }), 'accepted', 'jambon', null);
+check('Pâté 0-4°C (unchanged)',          food('Pâté de campagne', { source_category: 'Charcuterie', storage_info: 'À conserver entre 0 et 4 °C' }), 'excluded');
+check('Pâté de jambon 0-4°C',            food('Pâté de jambon', { source_category: 'Charcuterie', storage_info: 'À conserver entre 0 et 4 °C' }), 'excluded');
+check('Lardons fumés (unchanged)',       food('Lardons fumés', { source_category: 'Charcuterie' }), 'excluded', 'viande');
+
 console.log('\n— CURED / DRIED meat & fish (ambient OK, cold wins) —');
 check('Saucisson sec "frais et sec"',    food('Saucisson sec', { source_category: 'Charcuterie', storage_info: 'À conserver dans un endroit frais et sec' }), 'accepted', 'charcuterie');
-check('Jambon sec tranché 0-4°C',        food('Jambon sec tranché', { source_category: 'Charcuterie', storage_info: 'À conserver entre 0 et 4 °C' }), 'excluded', 'froid');
-check('Jambon cru affiné (no info)',     food('Jambon cru affiné', { source_category: 'Charcuterie' }), 'to_verify', 'confirmer');
-check('Jambon cuit tranché',             food('Jambon cuit tranché', { source_category: 'Charcuterie' }), 'excluded', 'charcuterie');
 check('Biltong température ambiante',     food('Biltong boeuf séché', { storage_info: 'À conserver à température ambiante' }), 'accepted');
 check('Morue salée séchée ambiant',      food('Morue salée séchée', { storage_info: 'À conserver dans un endroit frais et sec' }), 'accepted', 'poisson');
 check('Saumon fumé 0-4°C',               food('Saumon fumé', { storage_info: 'À conserver entre 0 et 4 °C' }), 'excluded', 'froid');
