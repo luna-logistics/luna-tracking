@@ -218,6 +218,7 @@
     "preset_move": "Déménagement 3 m³",
     "results_title": "Trois modes, trois prix",
     "results_meta": "Détail du calcul ligne par ligne",
+    "results_empty_title": "Vos trois prix s'affichent ici",
     "config_unavailable_title": "Estimation indisponible",
     "loading": "Chargement des tarifs…",
     "enter_prompt": "Saisissez un poids, des dimensions ou un volume pour voir les trois prix.",

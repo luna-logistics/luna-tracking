@@ -218,6 +218,7 @@
     "preset_move": "Move 3 m³",
     "results_title": "Three modes, three prices",
     "results_meta": "Line-by-line breakdown",
+    "results_empty_title": "Your three prices appear here",
     "config_unavailable_title": "Estimate unavailable",
     "loading": "Loading rates…",
     "enter_prompt": "Enter a weight, dimensions or a volume to see all three prices.",

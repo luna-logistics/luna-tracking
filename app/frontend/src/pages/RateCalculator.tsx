@@ -238,14 +238,14 @@ export default function RateCalculator() {
                 <p style={NOTE}>{t('calc.dims_hint')}</p>
               </div>
 
-              <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 14 }}>
-                <div>
+              <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 14, alignItems: 'end' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                   <label htmlFor="luna-qty" style={LABEL}>{t('calc.field_parcels')}</label>
-                  <input id="luna-qty" inputMode="numeric" placeholder="1" value={parcels} onChange={(e) => setParcels(e.target.value)} style={INPUT} />
+                  <input id="luna-qty" inputMode="numeric" placeholder="1" value={parcels} onChange={(e) => setParcels(e.target.value)} style={{ ...INPUT, marginTop: 'auto' }} />
                 </div>
-                <div>
+                <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                   <label htmlFor="luna-vol" style={LABEL}>{t('calc.field_volume')} <span style={{ fontWeight: 400, color: '#4A5A75' }}>(m³)</span></label>
-                  <input id="luna-vol" inputMode="decimal" placeholder="3" value={volume} onChange={(e) => setVolume(e.target.value)} style={INPUT} />
+                  <input id="luna-vol" inputMode="decimal" placeholder="3" value={volume} onChange={(e) => setVolume(e.target.value)} style={{ ...INPUT, marginTop: 'auto' }} />
                 </div>
               </div>
               <p style={NOTE}>{t('calc.volume_hint')}</p>
@@ -267,14 +267,26 @@ export default function RateCalculator() {
                 <h2 style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-.01em', margin: 0 }}>{t('calc.results_title')}</h2>
                 <span style={{ fontSize: 13.5, color: '#4A5A75' }}>{t('calc.results_meta')}</span>
               </div>
-              <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))' }}>
-                {MODES.map((m, i) => (
-                  <ModeColumn
-                    key={m} mode={m} result={colResult(m)} index={i}
-                    config={config} lang={lang} summaryLines={summaryLines} user={!!user} hasAnyInput={hasAnyInput}
-                  />
-                ))}
-              </div>
+              {config && !hasAnyInput ? (
+                <div style={{ marginTop: 18, border: '1px dashed rgba(32,119,195,.4)', borderRadius: 14, background: '#F4F7FB', padding: 'clamp(28px,4vw,48px) 24px', textAlign: 'center' }}>
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: 18, marginBottom: 14 }}>
+                    <Icon name="plane" color="#2077C3" size={26} />
+                    <Icon name="box" color="#2077C3" size={26} />
+                    <Icon name="ship" color="#2077C3" size={26} />
+                  </div>
+                  <p style={{ margin: 0, fontSize: 16.5, fontWeight: 600, color: '#0D2E6B' }}>{t('calc.results_empty_title')}</p>
+                  <p style={{ margin: '6px auto 0', maxWidth: '44ch', fontSize: 14.5, color: '#4A5A75' }}>{t('calc.enter_prompt')}</p>
+                </div>
+              ) : (
+                <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))' }}>
+                  {MODES.map((m, i) => (
+                    <ModeColumn
+                      key={m} mode={m} result={colResult(m)} index={i}
+                      config={config} lang={lang} summaryLines={summaryLines} user={!!user} hasAnyInput={hasAnyInput}
+                    />
+                  ))}
+                </div>
+              )}
               {config?.effectiveFrom && <p style={{ marginTop: 14, fontSize: 13, color: '#4A5A75' }}>{t('calc.effective_since', { date: config.effectiveFrom })}</p>}
               {config?.vatStatus && <p style={{ marginTop: 4, fontSize: 13, color: '#4A5A75' }}>{config.vatStatus}</p>}
             </div>
