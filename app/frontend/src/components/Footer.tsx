@@ -40,19 +40,15 @@ export function Footer() {
       <div className="bg-luna-ink text-[#B9C9E0]">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-12 grid gap-10 md:grid-cols-3">
           <div>
-            {/* The horizontal logo is authored for a WHITE ground (dark-blue
-                wordmark). On the navy footer its text would disappear —
-                wrap it in a white pill so the contrast holds without
-                needing a second color-flipped export. */}
-            <div className="inline-flex rounded-xl bg-white p-3 shadow-sm mb-4">
-              <img
-                src="/brand/luna-logo-stacked.png"
-                alt={t('brand.name')}
-                className="w-[116px] h-auto block"
-                width={116}
-                height={140}
-              />
-            </div>
+            {/* Navy-ready logo on a transparent ground (keyed from the on-navy
+                artwork), so it sits directly on the footer with no white box. */}
+            <img
+              src="/brand/luna-logo-on-navy.png"
+              alt={t('brand.name')}
+              className="w-[132px] h-auto block mb-4"
+              width={132}
+              height={143}
+            />
             <p className="text-sm text-white/80 leading-relaxed">{t('footer.about_body')}</p>
             <Link to={urlFor('about', lang)} className="mt-3 inline-block text-sm font-medium text-luna-aqua hover:text-white">
               {t('nav.about')} →

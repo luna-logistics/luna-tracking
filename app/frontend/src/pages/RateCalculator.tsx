@@ -1,21 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
-import {
-  Plane, Ship, Package, Calculator, ArrowRight, Info, Clock,
-  CheckCircle2, Loader2, ChevronDown, Ruler, Weight, Boxes,
-} from 'lucide-react';
 import { SEO } from '@/components/SEO';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useContent } from '@/contexts/SiteContentContext';
 import { Ed } from '@/components/Ed';
 import { Block } from '@/components/Block';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/components/ui/sonner';
-import { cn } from '@/lib/utils';
 import { createConversation, sendMessage, guestCreateConversation, writeGuestToken } from '@/lib/support-chat';
 import {
   computeQuote, formatEuros, transitTimeFor,
@@ -26,32 +17,51 @@ import { fetchActivePricingConfig } from '@/lib/pricing/config';
 /**
  * Shipping price calculator — Brussels → Kinshasa (/calculateur).
  *
- * One set of inputs, three prices side by side (express / cargo / sea), each with a
- * line-by-line breakdown so the customer sees HOW the price forms. When a confirmed
- * rule doesn't cover the case, that mode shows a quote request (one click → a
- * support conversation with the entered values attached) — never a guessed price.
- *
- * All business rules come from the active `pricing_config` row; the engine
- * (lib/pricing/engine.ts) does the maths in integer cents. Copy/examples/FAQ are
- * admin-editable through useContent/site_content. This REPLACES the previous
- * generic multi-country calculator on this route (see the handoff report).
+ * Visual system from the Claude Design "Calculateur" project (2026-09-18):
+ * elevated card overlapping the hero, tinted form panel + white results with a
+ * cyan bar and column dividers, numbered "how" list, mode cards with top rules,
+ * example cards, "+"-chevron FAQ. Logic is unchanged: all prices come from the
+ * pure engine over the active pricing_config; quote panels open a support
+ * conversation with the entered values; copy is admin-editable via useContent.
+ * Only the PAGE content is rendered here — the shared Navbar/Footer (and their
+ * logos) come from PublicLayout and are not touched.
  */
 
-const P = 'calculator'; // useContent page key
-
+const P = 'calculator';
 type DestChoice = 'kinshasa' | 'other';
+const MODES: Mode[] = ['express', 'cargo', 'sea'];
+
+const ICON_PATHS: Record<string, string> = {
+  plane: 'M22 2 11 13M22 2l-7 20-4-9-9-4 20-7',
+  box: 'M21 8v8a2 2 0 0 1-1 1.73l-7 4a2 2 0 0 1-2 0l-7-4A2 2 0 0 1 3 16V8a2 2 0 0 1 1-1.73l7-4a2 2 0 0 1 2 0l7 4A2 2 0 0 1 21 8zM3.3 7 12 12l8.7-5M12 22V12',
+  ship: 'M3 19.5a5 5 0 0 0 2.5-1.3 5 5 0 0 1 6 0 5 5 0 0 0 6 0 5 5 0 0 0 .5.4M4.5 17 2.5 10h19l-2 7M12 10V4.5M8.5 7h7',
+};
+const MODE_ICON: Record<Mode, string> = { express: 'plane', cargo: 'box', sea: 'ship' };
+
+function Icon({ name, color = '#2077C3', size = 21 }: { name: string; color?: string; size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.6}
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flex: '0 0 auto' }}>
+      <path d={ICON_PATHS[name]} />
+    </svg>
+  );
+}
 
 const num = (s: string): number | null => {
   if (s == null || s.trim() === '') return null;
-  const n = Number(s);
+  const n = Number(String(s).replace(',', '.'));
   return Number.isFinite(n) && n >= 0 ? n : null;
 };
 const fmtKg = (n: number) => `${Number(n.toFixed(3))}`;
 const fmtM3 = (n: number) => `${Number(n.toFixed(3))}`;
-const MODES: Mode[] = ['express', 'cargo', 'sea'];
-const MODE_ICON = { express: Plane, cargo: Package, sea: Ship } as const;
 
-const ring = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-luna-royal focus-visible:ring-offset-1';
+// Shared inline styles (mirroring the design's exact values).
+const WRAP: React.CSSProperties = { maxWidth: 1200, margin: '0 auto', padding: 'clamp(56px,7vw,96px) clamp(20px,5vw,48px)' };
+const H2: React.CSSProperties = { fontSize: 'clamp(28px,3.2vw,42px)', lineHeight: 1.1, fontWeight: 600, letterSpacing: '-.025em', margin: 0 };
+const LABEL: React.CSSProperties = { display: 'block', fontSize: 14, fontWeight: 600, letterSpacing: '.01em' };
+const INPUT: React.CSSProperties = { marginTop: 8, width: '100%', padding: '12px 14px', border: '1px solid rgba(42,67,128,.24)', borderRadius: 10, background: '#fff', fontSize: 16, fontVariantNumeric: 'tabular-nums' };
+const NOTE: React.CSSProperties = { marginTop: 8, fontSize: 13.5, lineHeight: 1.5, color: '#4A5A75' };
+const HAIR = '1px solid rgba(42,67,128,.14)';
 
 export default function RateCalculator() {
   const { t, i18n } = useTranslation();
@@ -61,29 +71,17 @@ export default function RateCalculator() {
   const metaTitle = useContent(P, 'meta_title', t('calc.meta_title'));
   const metaDescription = useContent(P, 'meta_description', t('calc.meta_description'));
 
-  // FAQ copy resolved ONCE (admin overrides + i18n fallback), so the visible
-  // accordion and the FAQPage JSON-LD are guaranteed identical, word for word.
-  const q_weight = useContent(P, 'q_weight', t('calc.q_weight'));
-  const a_weight = useContent(P, 'a_weight', t('calc.a_weight'));
-  const q_volumetric = useContent(P, 'q_volumetric', t('calc.q_volumetric'));
-  const a_volumetric = useContent(P, 'a_volumetric', t('calc.a_volumetric'));
-  const q_customs = useContent(P, 'q_customs', t('calc.q_customs'));
-  const a_customs = useContent(P, 'a_customs', t('calc.a_customs'));
-  const q_delay = useContent(P, 'q_delay', t('calc.q_delay'));
-  const a_delay = useContent(P, 'a_delay', t('calc.a_delay'));
-  const q_other = useContent(P, 'q_other_dest', t('calc.q_other_dest'));
-  const a_other = useContent(P, 'a_other_dest', t('calc.a_other_dest'));
+  // FAQ resolved once → visible accordion and JSON-LD stay identical.
   const faqItems = [
-    { q: q_weight, a: a_weight },
-    { q: q_volumetric, a: a_volumetric },
-    { q: q_customs, a: a_customs },
-    { q: q_delay, a: a_delay },
-    { q: q_other, a: a_other },
+    { q: useContent(P, 'q_weight', t('calc.q_weight')), a: useContent(P, 'a_weight', t('calc.a_weight')) },
+    { q: useContent(P, 'q_volumetric', t('calc.q_volumetric')), a: useContent(P, 'a_volumetric', t('calc.a_volumetric')) },
+    { q: useContent(P, 'q_customs', t('calc.q_customs')), a: useContent(P, 'a_customs', t('calc.a_customs')) },
+    { q: useContent(P, 'q_delay', t('calc.q_delay')), a: useContent(P, 'a_delay', t('calc.a_delay')) },
+    { q: useContent(P, 'q_other_dest', t('calc.q_other_dest')), a: useContent(P, 'a_other_dest', t('calc.a_other_dest')) },
   ];
 
   const [config, setConfig] = useState<PricingConfig | null>(null);
   const [configError, setConfigError] = useState(false);
-
   const [weight, setWeight] = useState('');
   const [length, setLength] = useState('');
   const [width, setWidth] = useState('');
@@ -111,7 +109,9 @@ export default function RateCalculator() {
 
   const quote = useMemo(() => (config ? computeQuote(input, config) : null), [config, input]);
 
-  // Announce the three results in a live region whenever they change.
+  const hasAnyInput = input.weightKg != null || input.volumeM3 != null
+    || (input.lengthCm != null && input.widthCm != null && input.heightCm != null);
+
   useEffect(() => {
     if (!quote) return;
     const parts = MODES.map((m) => {
@@ -124,17 +124,11 @@ export default function RateCalculator() {
     setLive(parts.length ? t('calc.live_prefix') + ' ' + parts.join(' · ') : '');
   }, [quote, lang, t]);
 
-  const hasAnyInput = input.weightKg != null || input.volumeM3 != null
-    || (input.lengthCm != null && input.widthCm != null && input.heightCm != null);
-
-  // Shipment summary lines, attached to any quote request.
   const summaryLines = useMemo(() => {
     const lines: string[] = [`${t('calc.field_destination')}: ${destination === 'kinshasa' ? 'Kinshasa' : t('calc.dest_other')}`];
     lines.push(`${t('calc.sum_origin')}: Bruxelles`);
     if (input.weightKg != null) lines.push(`${t('calc.field_weight')}: ${fmtKg(input.weightKg)} kg`);
-    if (input.lengthCm != null && input.widthCm != null && input.heightCm != null) {
-      lines.push(`${t('calc.sum_dims')}: ${input.lengthCm} × ${input.widthCm} × ${input.heightCm} cm`);
-    }
+    if (input.lengthCm != null && input.widthCm != null && input.heightCm != null) lines.push(`${t('calc.sum_dims')}: ${input.lengthCm} × ${input.widthCm} × ${input.heightCm} cm`);
     if ((num(parcels) || 1) > 1) lines.push(`${t('calc.field_parcels')}: ${num(parcels)}`);
     if (input.volumeM3 != null) lines.push(`${t('calc.field_volume')}: ${fmtM3(input.volumeM3)} m³`);
     return lines;
@@ -149,96 +143,82 @@ export default function RateCalculator() {
     setParcels('1');
   };
 
-  const container = 'mx-auto max-w-[1220px] px-5 sm:px-8';
-  const H2 = 'text-[clamp(24px,3vw,32px)] font-semibold leading-[1.2] tracking-[-.01em] text-luna-ink';
+  const colResult = (m: Mode): ColState => {
+    if (!config) return { kind: configError ? 'unavailable' : 'loading', mode: m };
+    return (quote ? quote[m] : { kind: 'empty', mode: m }) as ColState;
+  };
 
   return (
-    <div className="text-[17px] text-luna-ink">
+    <div className="luna-calc" style={{ background: '#fff', color: '#0A1650', fontFamily: "'Poppins',system-ui,sans-serif", fontSize: 17, lineHeight: 1.55 }}>
       <SEO title={metaTitle} description={metaDescription} />
       <FaqJsonLd items={faqItems} />
-
-      {/* live region for screen readers */}
+      <style>{CALC_CSS}</style>
       <div aria-live="polite" className="sr-only">{live}</div>
 
       {/* ── Hero ── */}
-      <section style={{ background: 'linear-gradient(135deg,#0A1650 0%,#0D2E6B 62%,#123A7E 100%)' }} className="text-white">
-        <div className={cn(container, 'py-[clamp(40px,6vw,72px)]')}>
-          <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-sm font-medium text-white/90">
-            <Calculator className="h-4 w-4" aria-hidden="true" /> {t('calc.corridor_badge')}
-          </p>
-          <Ed page={P} field="hero_title" as="h1" className="mt-4 block text-[clamp(28px,4.5vw,44px)] font-bold leading-[1.08]">
+      <section style={{ background: 'linear-gradient(135deg,#0A1650 0%,#0D2E6B 62%,#123A7E 100%)', color: '#fff' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: 'clamp(52px,7vw,92px) clamp(20px,5vw,48px) clamp(84px,9vw,120px)' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, padding: '7px 16px', border: '1px solid rgba(31,224,240,.45)', borderRadius: 999, fontSize: 14, fontWeight: 500, color: '#C9F7FC' }}>
+            <span style={{ width: 22, height: 1, background: '#1FE0F0' }} />{t('calc.corridor_badge')}
+          </span>
+          <Ed page={P} field="hero_title" as="h1" className="block mt-[22px] max-w-[16ch] text-[clamp(34px,5vw,60px)] leading-[1.06] font-semibold tracking-[-0.028em]">
             {t('calc.hero_title')}
           </Ed>
-          <Ed page={P} field="hero_intro" as="p" multiline className="mt-3 block max-w-2xl text-[17px] text-white/90">
+          <Ed page={P} field="hero_intro" as="p" multiline className="block mt-5 max-w-[58ch] text-[clamp(17px,1.5vw,20px)] text-[#CBDDF2]">
             {t('calc.hero_intro')}
           </Ed>
         </div>
       </section>
 
-      {/* ── Calculator ── */}
-      <section className="bg-luna-mist">
-        <div className={cn(container, 'py-[clamp(32px,5vw,56px)]')}>
-          {configError && (
-            <div role="alert" className="mb-6 rounded-xl border-2 border-luna-navy/20 bg-white p-4 text-[15px]">
-              {t('calc.config_unavailable')}
-            </div>
-          )}
+      {/* ── Calculator (elevated card overlapping the hero) ── */}
+      <section style={{ background: '#F4F7FB', borderBottom: HAIR }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 clamp(20px,5vw,48px) clamp(56px,7vw,92px)' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', background: '#fff', border: HAIR, borderRadius: 20, boxShadow: '0 26px 60px -30px rgba(10,22,80,.42),0 2px 6px rgba(10,22,80,.05)', overflow: 'hidden', marginTop: -60 }}>
 
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,380px)_1fr] items-start">
-            {/* Inputs — the only elevated object on the page */}
-            <form
-              className="rounded-2xl border border-luna-hair/30 bg-white p-5 sm:p-6 shadow-[0_18px_40px_-24px_rgba(10,22,80,.5)]"
-              onSubmit={(e) => e.preventDefault()}
-              aria-labelledby="calc-form-title"
-            >
-              <h2 id="calc-form-title" className="text-lg font-semibold text-luna-ink">{t('calc.form_title')}</h2>
+            {/* Form */}
+            <form style={{ flex: '1 1 330px', maxWidth: 430, background: '#F8FAFD', borderRight: HAIR, padding: 'clamp(22px,2.4vw,32px)' }} onSubmit={(e) => e.preventDefault()}>
+              <h2 style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-.01em', margin: 0 }}>{t('calc.form_title')}</h2>
+              <p style={{ marginTop: 6, fontSize: 14, color: '#4A5A75' }}>{t('calc.form_hint')}</p>
 
-              <div className="mt-4 space-y-4">
-                <div>
-                  <Label htmlFor="destination" className="text-luna-ink">{t('calc.field_destination')}</Label>
-                  <Select value={destination} onValueChange={(v) => setDestination(v as DestChoice)}>
-                    <SelectTrigger id="destination" className="mt-1.5"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="kinshasa">{t('calc.dest_kinshasa')}</SelectItem>
-                      <SelectItem value="other">{t('calc.dest_other')}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="mt-1 text-[13px] text-luna-body">{t('calc.dest_hint')}</p>
-                </div>
-
-                <div>
-                  <Label htmlFor="weight" className="text-luna-ink">{t('calc.field_weight')} <span className="text-luna-body font-normal">({t('calc.unit_kg')})</span></Label>
-                  <Input id="weight" type="number" inputMode="decimal" min="0" step="0.001" value={weight}
-                    onChange={(e) => setWeight(e.target.value)} placeholder="6" className="mt-1.5" />
-                </div>
-
-                <fieldset>
-                  <legend className="text-sm font-medium text-luna-ink flex items-center gap-1.5"><Ruler className="h-4 w-4 text-luna-sky" aria-hidden="true" />{t('calc.field_dims')} <span className="text-luna-body font-normal">({t('calc.unit_cm')})</span></legend>
-                  <div className="mt-1.5 grid grid-cols-3 gap-2">
-                    <Input aria-label={t('calc.dim_length')} type="number" inputMode="decimal" min="0" step="1" value={length} onChange={(e) => setLength(e.target.value)} placeholder="60" />
-                    <Input aria-label={t('calc.dim_width')} type="number" inputMode="decimal" min="0" step="1" value={width} onChange={(e) => setWidth(e.target.value)} placeholder="40" />
-                    <Input aria-label={t('calc.dim_height')} type="number" inputMode="decimal" min="0" step="1" value={height} onChange={(e) => setHeight(e.target.value)} placeholder="40" />
-                  </div>
-                  <p className="mt-1 text-[13px] text-luna-body">{t('calc.dims_hint')}</p>
-                </fieldset>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label htmlFor="parcels" className="text-luna-ink">{t('calc.field_parcels')}</Label>
-                    <Input id="parcels" type="number" inputMode="numeric" min="1" step="1" value={parcels} onChange={(e) => setParcels(e.target.value)} className="mt-1.5" />
-                  </div>
-                  <div>
-                    <Label htmlFor="volume" className="text-luna-ink">{t('calc.field_volume')} <span className="text-luna-body font-normal">({t('calc.unit_m3')})</span></Label>
-                    <Input id="volume" type="number" inputMode="decimal" min="0" step="0.01" value={volume} onChange={(e) => setVolume(e.target.value)} placeholder="3" className="mt-1.5" />
-                  </div>
-                </div>
-                <p className="text-[13px] text-luna-body">{t('calc.volume_hint')}</p>
+              <div style={{ marginTop: 24 }}>
+                <label htmlFor="luna-dest" style={LABEL}>{t('calc.field_destination')}</label>
+                <select id="luna-dest" value={destination} onChange={(e) => setDestination(e.target.value as DestChoice)} style={INPUT}>
+                  <option value="kinshasa">{t('calc.dest_kinshasa')}</option>
+                  <option value="other">{t('calc.dest_other')}</option>
+                </select>
+                <p style={NOTE}>{t('calc.dest_hint')}</p>
               </div>
 
-              {/* Presets */}
-              <div className="mt-5 border-t border-luna-hair/20 pt-4">
-                <p className="text-sm font-medium text-luna-ink flex items-center gap-1.5"><Boxes className="h-4 w-4 text-luna-sky" aria-hidden="true" />{t('calc.presets_title')}</p>
-                <div className="mt-2 flex flex-wrap gap-2">
+              <div style={{ marginTop: 20 }}>
+                <label htmlFor="luna-weight" style={LABEL}>{t('calc.field_weight')} <span style={{ fontWeight: 400, color: '#4A5A75' }}>(kg)</span></label>
+                <input id="luna-weight" inputMode="decimal" placeholder="6" value={weight} onChange={(e) => setWeight(e.target.value)} style={INPUT} />
+              </div>
+
+              <div style={{ marginTop: 20 }}>
+                <span id="luna-dims-label" style={LABEL}>{t('calc.field_dims')} <span style={{ fontWeight: 400, color: '#4A5A75' }}>(cm)</span></span>
+                <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 8 }} role="group" aria-labelledby="luna-dims-label">
+                  <input aria-label={t('calc.dim_length')} inputMode="numeric" placeholder="60" value={length} onChange={(e) => setLength(e.target.value)} style={{ ...INPUT, marginTop: 0, padding: '12px 10px', textAlign: 'center' }} />
+                  <input aria-label={t('calc.dim_width')} inputMode="numeric" placeholder="40" value={width} onChange={(e) => setWidth(e.target.value)} style={{ ...INPUT, marginTop: 0, padding: '12px 10px', textAlign: 'center' }} />
+                  <input aria-label={t('calc.dim_height')} inputMode="numeric" placeholder="40" value={height} onChange={(e) => setHeight(e.target.value)} style={{ ...INPUT, marginTop: 0, padding: '12px 10px', textAlign: 'center' }} />
+                </div>
+                <p style={NOTE}>{t('calc.dims_hint')}</p>
+              </div>
+
+              <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 14 }}>
+                <div>
+                  <label htmlFor="luna-qty" style={LABEL}>{t('calc.field_parcels')}</label>
+                  <input id="luna-qty" inputMode="numeric" placeholder="1" value={parcels} onChange={(e) => setParcels(e.target.value)} style={INPUT} />
+                </div>
+                <div>
+                  <label htmlFor="luna-vol" style={LABEL}>{t('calc.field_volume')} <span style={{ fontWeight: 400, color: '#4A5A75' }}>(m³)</span></label>
+                  <input id="luna-vol" inputMode="decimal" placeholder="3" value={volume} onChange={(e) => setVolume(e.target.value)} style={INPUT} />
+                </div>
+              </div>
+              <p style={NOTE}>{t('calc.volume_hint')}</p>
+
+              <div style={{ marginTop: 26, paddingTop: 22, borderTop: HAIR }}>
+                <span style={{ display: 'block', fontSize: 12.5, fontWeight: 600, letterSpacing: '.12em', textTransform: 'uppercase', color: '#4A5A75' }}>{t('calc.presets_title')}</span>
+                <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   <PresetBtn label={t('calc.preset_carton_std')} onClick={() => applyPreset({ l: 60, w: 40, h: 40 })} />
                   <PresetBtn label={t('calc.preset_carton_small')} onClick={() => applyPreset({ l: 40, w: 30, h: 30 })} />
                   <PresetBtn label={t('calc.preset_suitcase')} onClick={() => applyPreset({ kg: 23 })} />
@@ -248,46 +228,21 @@ export default function RateCalculator() {
             </form>
 
             {/* Results */}
-            <div>
-              <h2 className="sr-only">{t('calc.results_title')}</h2>
-              {!config ? (
-                <div className="rounded-2xl border border-luna-hair/30 bg-white p-8 text-center text-luna-body">
-                  {configError ? (
-                    <p className="text-[15px]">{t('calc.config_unavailable')}</p>
-                  ) : (
-                    <>
-                      <Loader2 className="mx-auto h-6 w-6 animate-spin text-luna-royal" aria-hidden="true" />
-                      <p className="mt-2">{t('calc.loading')}</p>
-                    </>
-                  )}
-                </div>
-              ) : !hasAnyInput ? (
-                <div className="rounded-2xl border border-dashed border-luna-hair/50 bg-white/60 p-8 text-center text-luna-body">
-                  <Info className="mx-auto h-6 w-6 text-luna-sky" aria-hidden="true" />
-                  <p className="mt-2 text-[15px]">{t('calc.enter_prompt')}</p>
-                </div>
-              ) : (
-                <div className="grid gap-4 sm:grid-cols-3">
-                  {MODES.map((m) => (
-                    <ModeCard
-                      key={m}
-                      mode={m}
-                      result={quote ? quote[m] : { mode: m, kind: 'empty' }}
-                      config={config!}
-                      lang={lang}
-                      summaryLines={summaryLines}
-                      user={!!user}
-                    />
-                  ))}
-                </div>
-              )}
-
-              {config?.effectiveFrom && (
-                <p className="mt-4 text-[13px] text-luna-body">{t('calc.effective_since', { date: config.effectiveFrom })}</p>
-              )}
-              {config?.vatStatus && (
-                <p className="mt-1 text-[13px] text-luna-body">{config.vatStatus}</p>
-              )}
+            <div style={{ flex: '3 1 560px', minWidth: 0, padding: 'clamp(22px,2.4vw,32px)' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                <h2 style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-.01em', margin: 0 }}>{t('calc.results_title')}</h2>
+                <span style={{ fontSize: 13.5, color: '#4A5A75' }}>{t('calc.results_meta')}</span>
+              </div>
+              <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))' }}>
+                {MODES.map((m, i) => (
+                  <ModeColumn
+                    key={m} mode={m} result={colResult(m)} index={i}
+                    config={config} lang={lang} summaryLines={summaryLines} user={!!user} hasAnyInput={hasAnyInput}
+                  />
+                ))}
+              </div>
+              {config?.effectiveFrom && <p style={{ marginTop: 14, fontSize: 13, color: '#4A5A75' }}>{t('calc.effective_since', { date: config.effectiveFrom })}</p>}
+              {config?.vatStatus && <p style={{ marginTop: 4, fontSize: 13, color: '#4A5A75' }}>{config.vatStatus}</p>}
             </div>
           </div>
         </div>
@@ -295,39 +250,48 @@ export default function RateCalculator() {
 
       {/* ── How a freight price is built ── */}
       <Block name="calc-how">
-        <section className="bg-white">
-          <div className={cn(container, 'py-[clamp(40px,6vw,72px)] max-w-3xl')}>
-            <Ed page={P} field="how_title" as="h2" className={cn(H2, 'block')}>{t('calc.how_title')}</Ed>
-            <Ed page={P} field="how_body" as="p" multiline className="mt-4 block text-luna-body leading-relaxed">
-              {t('calc.how_body')}
-            </Ed>
-            <ul className="mt-5 space-y-3 text-[15px]">
-              <li className="flex gap-3"><Weight className="h-5 w-5 shrink-0 text-luna-sky" aria-hidden="true" /><span>{t('calc.how_actual')}</span></li>
-              <li className="flex gap-3"><Ruler className="h-5 w-5 shrink-0 text-luna-sky" aria-hidden="true" /><span>{t('calc.how_volumetric')}</span></li>
-              <li className="flex gap-3"><Info className="h-5 w-5 shrink-0 text-luna-sky" aria-hidden="true" /><span>{t('calc.how_handling')}</span></li>
-            </ul>
-            <p className="mt-5 rounded-xl bg-luna-mist p-4 text-[14px] text-luna-body">{t('calc.customs_note', { fee: config ? formatEuros(config.customsAdminFeeCents ?? 12500, lang) : '' })}</p>
+        <section style={{ background: '#fff' }}>
+          <div style={WRAP}>
+            <div style={{ maxWidth: '70ch' }}>
+              <Ed page={P} field="how_title" as="h2" className="block text-[clamp(28px,3.2vw,42px)] leading-[1.1] font-semibold tracking-[-0.025em]">{t('calc.how_title')}</Ed>
+              <Ed page={P} field="how_body" as="p" multiline className="block mt-[18px] text-[clamp(17px,1.4vw,19px)] text-[#4A5A75]">{t('calc.how_body')}</Ed>
+              <ul style={{ marginTop: 32, listStyle: 'none', padding: 0, margin: '32px 0 0' }}>
+                {[1, 2, 3].map((n) => (
+                  <li key={n} style={{ display: 'flex', gap: 18, padding: '18px 0', borderTop: HAIR }}>
+                    <span style={{ flex: '0 0 auto', fontSize: 13, fontWeight: 600, letterSpacing: '.08em', color: '#2077C3', paddingTop: 4, fontVariantNumeric: 'tabular-nums' }}>{`0${n}`}</span>
+                    <span style={{ minWidth: 0 }}>
+                      <span style={{ display: 'block', fontSize: 17, fontWeight: 600, color: '#0A1650' }}>{t(`calc.how_b${n}_title`)}</span>
+                      <span style={{ display: 'block', marginTop: 4, fontSize: 16.5, color: '#4A5A75' }}>{t(`calc.how_b${n}_body`)}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p style={{ marginTop: 28, padding: '18px 20px', borderLeft: '2px solid #1FA3C9', background: '#F4F7FB', fontSize: 16, lineHeight: 1.55, color: '#0A1650' }}>
+                {t('calc.customs_note', { fee: config ? formatEuros(config.customsAdminFeeCents ?? 12500, lang) : '' })}
+              </p>
+            </div>
           </div>
         </section>
       </Block>
 
-      {/* ── Three modes compared ── */}
+      {/* ── Three modes ── */}
       <Block name="calc-modes">
-        <section className="bg-luna-mist">
-          <div className={cn(container, 'py-[clamp(40px,6vw,72px)]')}>
-            <h2 className={H2}>{t('calc.modes_title')}</h2>
-            <div className="mt-6 grid gap-4 sm:grid-cols-3">
+        <section style={{ background: '#F4F7FB', borderTop: HAIR, borderBottom: HAIR }}>
+          <div style={WRAP}>
+            <h2 style={H2}>{t('calc.modes_title')}</h2>
+            <div style={{ marginTop: 36, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(250px,1fr))', gap: 'clamp(20px,2.5vw,32px)' }}>
               {MODES.map((m) => {
-                const Icon = MODE_ICON[m];
                 const transit = config ? transitTimeFor(config, m) : null;
                 return (
-                  <div key={m} className="rounded-2xl border border-luna-hair/30 bg-white p-5">
-                    <Icon className="h-7 w-7 text-luna-royal" aria-hidden="true" />
-                    <h3 className="mt-3 text-lg font-semibold text-luna-ink">{t(`calc.mode_${m}`)}</h3>
-                    <p className="mt-1.5 text-[15px] text-luna-body">{t(`calc.mode_${m}_suits`)}</p>
-                    <p className="mt-3 text-[14px] font-medium text-luna-ink">{t(`calc.mode_${m}_rate`)}</p>
+                  <div key={m} style={{ paddingTop: 20, borderTop: '2px solid #002F67' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <Icon name={MODE_ICON[m]} color="#002F67" size={22} />
+                      <h3 style={{ fontSize: 19, fontWeight: 600, letterSpacing: '-.01em', color: '#0D2E6B', margin: 0 }}>{t(`calc.mode_${m}`)}</h3>
+                    </div>
+                    <p style={{ marginTop: 12, fontSize: 16.5, color: '#4A5A75' }}>{t(`calc.mode_${m}_suits`)}</p>
+                    <p style={{ marginTop: 16, fontSize: 20, fontWeight: 600, color: '#002F67', fontVariantNumeric: 'tabular-nums' }}>{t(`calc.mode_${m}_rate`)}</p>
                     {transit && (
-                      <p className="mt-1 flex items-center gap-1.5 text-[13px] text-luna-body"><Clock className="h-3.5 w-3.5" aria-hidden="true" />{t('calc.transit_label', { value: transit })}</p>
+                      <p style={{ marginTop: 18, paddingTop: 12, borderTop: '1px dashed rgba(42,67,128,.3)', fontSize: 14.5, color: '#4A5A75' }}>{t('calc.transit_label', { value: transit })}</p>
                     )}
                   </div>
                 );
@@ -340,15 +304,15 @@ export default function RateCalculator() {
       {/* ── Worked examples ── */}
       {config && (
         <Block name="calc-examples">
-          <section className="bg-white">
-            <div className={cn(container, 'py-[clamp(40px,6vw,72px)]')}>
-              <h2 className={H2}>{t('calc.examples_title')}</h2>
-              <p className="mt-3 max-w-2xl text-luna-body">{t('calc.examples_intro')}</p>
-              <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <section style={{ background: '#fff' }}>
+            <div style={WRAP}>
+              <h2 style={H2}>{t('calc.examples_title')}</h2>
+              <p style={{ marginTop: 14, maxWidth: '60ch', fontSize: 17, color: '#4A5A75' }}>{t('calc.examples_intro')}</p>
+              <div style={{ marginTop: 36, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 'clamp(20px,2.4vw,32px)' }}>
                 <WorkedExample titleKey="ex_carton" mode="express" input={{ weightKg: 6, lengthCm: 60, widthCm: 40, heightCm: 40 }} config={config} lang={lang} />
                 <WorkedExample titleKey="ex_express" mode="express" input={{ weightKg: 0.4 }} config={config} lang={lang} />
                 <WorkedExample titleKey="ex_sea" mode="sea" input={{ volumeM3: 3 }} config={config} lang={lang} />
-                <WorkedExample titleKey="ex_suitcase" mode="cargo" input={{ weightKg: 23 }} config={config} lang={lang} />
+                <WorkedExample titleKey="ex_carton_sea" mode="sea" input={{ lengthCm: 60, widthCm: 40, heightCm: 40 }} config={config} lang={lang} />
               </div>
             </div>
           </section>
@@ -356,14 +320,14 @@ export default function RateCalculator() {
       )}
 
       {/* ── What's included (only confirmed entries) ── */}
-      <IncludesBlock config={config} />
+      <IncludesBlock config={config} lang={lang} />
 
       {/* ── FAQ ── */}
       <Block name="calc-faq">
-        <section className="bg-luna-mist">
-          <div className={cn(container, 'py-[clamp(40px,6vw,72px)] max-w-3xl')}>
-            <h2 className={H2}>{t('calc.faq_title')}</h2>
-            <div className="mt-6 divide-y divide-luna-hair/25 rounded-2xl border border-luna-hair/30 bg-white">
+        <section style={{ background: '#F4F7FB', borderTop: HAIR }}>
+          <div style={WRAP}>
+            <h2 style={H2}>{t('calc.faq_title')}</h2>
+            <div style={{ marginTop: 32, maxWidth: 860, borderTop: HAIR }}>
               {faqItems.map((f, i) => <FaqRow key={i} q={f.q} a={f.a} />)}
             </div>
           </div>
@@ -373,58 +337,71 @@ export default function RateCalculator() {
   );
 }
 
-/* ───────────────────────── sub-components ───────────────────────── */
+/* ── column state ── */
+type ColState =
+  | PricedResult
+  | { kind: 'quote'; mode: Mode; reason: QuoteReason }
+  | { kind: 'empty'; mode: Mode }
+  | { kind: 'loading'; mode: Mode }
+  | { kind: 'unavailable'; mode: Mode };
 
 function PresetBtn({ label, onClick }: { label: string; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick}
-      className={cn('rounded-full border border-luna-hair/40 bg-luna-mist px-3 py-1.5 text-[13px] font-medium text-luna-ink hover:border-luna-sky hover:bg-white', ring)}>
+    <button type="button" className="preset" onClick={onClick}
+      style={{ padding: '8px 14px', borderRadius: 999, border: '1px solid rgba(42,67,128,.24)', background: '#fff', color: '#0D2E6B', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
       {label}
     </button>
   );
 }
 
-function ModeCard({ mode, result, config, lang, summaryLines, user }: {
-  mode: Mode; result: ModeResult; config: PricingConfig; lang: 'fr' | 'en'; summaryLines: string[]; user: boolean;
+function ModeColumn({ mode, result, index, config, lang, summaryLines, user, hasAnyInput }: {
+  mode: Mode; result: ColState; index: number; config: PricingConfig | null; lang: 'fr' | 'en';
+  summaryLines: string[]; user: boolean; hasAnyInput: boolean;
 }) {
   const { t } = useTranslation();
-  const Icon = MODE_ICON[mode];
-  const transit = transitTimeFor(config, mode);
+  const transit = config ? transitTimeFor(config, mode) : null;
+  const wrap: React.CSSProperties = { padding: '0 clamp(14px,1.6vw,22px)', borderLeft: index === 0 ? '0' : HAIR, minWidth: 0, marginBottom: 8 };
 
   return (
-    <div className={cn(
-      'flex flex-col rounded-2xl border bg-white p-4 min-w-0',
-      result.kind === 'quote' ? 'border-luna-sky/50' : 'border-luna-hair/30',
-    )}>
-      <div className="flex items-center gap-2">
-        <span className="rounded-lg bg-luna-mist p-2 text-luna-royal"><Icon className="h-5 w-5" aria-hidden="true" /></span>
-        <h3 className="font-semibold text-luna-ink">{t(`calc.mode_${mode}`)}</h3>
+    <div style={wrap}>
+      <div style={{ height: 2, width: 34, background: '#1FE0F0', borderRadius: 2 }} />
+      <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 9 }}>
+        <Icon name={MODE_ICON[mode]} color="#2077C3" size={21} />
+        <h3 style={{ fontSize: 16.5, fontWeight: 600, letterSpacing: '-.01em', color: '#0D2E6B', margin: 0 }}>{t(`calc.mode_${mode}`)}</h3>
       </div>
 
+      {result.kind === 'price' && <PriceBody result={result} lang={lang} transit={transit} />}
+
       {result.kind === 'empty' && (
-        <p className="mt-4 text-[14px] text-luna-body">
-          {mode === 'sea' ? t('calc.empty_sea') : t('calc.empty_air')}
+        <p style={{ marginTop: 16, fontSize: 14.5, lineHeight: 1.5, color: '#4A5A75' }}>
+          {!hasAnyInput ? t('calc.enter_prompt') : mode === 'sea' ? t('calc.empty_sea') : t('calc.empty_air')}
         </p>
       )}
 
-      {result.kind === 'price' && (
-        <>
-          <p className="mt-4 text-[28px] font-bold leading-none text-luna-ink">{formatEuros(result.totalCents, lang)}</p>
-          <p className="mt-1 text-[12px] text-luna-body">{t(`calc.basis_${result.chargeableBasis}`)}</p>
-          <Breakdown result={result} lang={lang} />
-          {transit && <p className="mt-2 flex items-center gap-1.5 text-[12px] text-luna-body"><Clock className="h-3.5 w-3.5" aria-hidden="true" />{t('calc.transit_label', { value: transit })}</p>}
-          <p className="mt-2 text-[11px] text-luna-body">{t('calc.estimate_note')}</p>
-        </>
+      {result.kind === 'loading' && (
+        <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }} className="luna-skel">
+          <span style={{ height: 32, width: '70%', borderRadius: 8, background: '#E4EDF7' }} />
+          <span style={{ height: 12, width: '90%', borderRadius: 6, background: '#EDF2F9' }} />
+          <span style={{ height: 12, width: '60%', borderRadius: 6, background: '#EDF2F9' }} />
+          <span style={{ marginTop: 4, fontSize: 13, color: '#4A5A75' }}>{t('calc.loading')}</span>
+        </div>
+      )}
+
+      {result.kind === 'unavailable' && (
+        <div style={{ marginTop: 16, padding: 14, border: '1px dashed rgba(42,67,128,.3)', borderRadius: 12, background: '#F8FAFD' }}>
+          <p style={{ margin: 0, fontSize: 14.5, fontWeight: 500, color: '#0A1650' }}>{t('calc.config_unavailable_title')}</p>
+          <p style={{ marginTop: 6, fontSize: 13.5, lineHeight: 1.5, color: '#4A5A75' }}>{t('calc.config_unavailable')}</p>
+        </div>
       )}
 
       {result.kind === 'quote' && (
-        <ModeQuotePanel mode={mode} reason={result.reason} summaryLines={summaryLines} lang={lang} user={user} />
+        <QuotePanel mode={mode} reason={result.reason} summaryLines={summaryLines} user={user} />
       )}
     </div>
   );
 }
 
-function Breakdown({ result, lang }: { result: PricedResult; lang: 'fr' | 'en' }) {
+function PriceBody({ result, lang, transit }: { result: PricedResult; lang: 'fr' | 'en'; transit: string | null }) {
   const { t } = useTranslation();
   const detail = (l: PricedResult['lines'][number]): string | null => {
     if (l.key === 'weight') {
@@ -437,101 +414,95 @@ function Breakdown({ result, lang }: { result: PricedResult; lang: 'fr' | 'en' }
     return null;
   };
   return (
-    <dl className="mt-3 space-y-1.5 border-t border-luna-hair/20 pt-3 text-[13px]">
-      {result.volumetricWeightKg != null && (
-        <div className="flex justify-between text-luna-body">
-          <dt>{t('calc.vol_weight')}</dt>
-          <dd>{fmtKg(result.volumetricWeightKg)} kg</dd>
-        </div>
-      )}
-      {result.lines.map((l, i) => (
-        <div key={i} className="flex justify-between gap-2">
-          <dt className="text-luna-body">
-            {t(`calc.line_${l.key}`)}
-            {detail(l) && <span className="block text-[11px] text-luna-body/80">{detail(l)}</span>}
-          </dt>
-          <dd className="whitespace-nowrap font-medium text-luna-ink">{formatEuros(Math.round(l.cents), lang)}</dd>
-        </div>
-      ))}
-    </dl>
+    <div>
+      <p style={{ marginTop: 14, fontSize: 'clamp(30px,3vw,38px)', lineHeight: 1, fontWeight: 600, letterSpacing: '-.03em', color: '#002F67', fontVariantNumeric: 'tabular-nums' }}>{formatEuros(result.totalCents, lang)}</p>
+      <p style={{ marginTop: 8, fontSize: 13.5, fontWeight: 500, color: '#2077C3' }}>{t(`calc.basis_${result.chargeableBasis}`)}</p>
+      <ul style={{ marginTop: 16, paddingTop: 14, borderTop: HAIR, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 11, margin: '16px 0 0' }}>
+        {result.volumetricWeightKg != null && (
+          <li style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
+            <span style={{ fontSize: 14.5, color: '#0A1650' }}>{t('calc.vol_weight')}</span>
+            <span style={{ fontSize: 14.5, color: '#0A1650', fontVariantNumeric: 'tabular-nums' }}>{fmtKg(result.volumetricWeightKg)} kg</span>
+          </li>
+        )}
+        {result.lines.map((l, i) => (
+          <li key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
+            <span style={{ minWidth: 0 }}>
+              <span style={{ display: 'block', fontSize: 14.5, color: '#0A1650' }}>{t(`calc.line_${l.key}`)}</span>
+              {detail(l) && <span style={{ display: 'block', fontSize: 12.5, color: '#4A5A75', fontVariantNumeric: 'tabular-nums' }}>{detail(l)}</span>}
+            </span>
+            <span style={{ fontSize: 14.5, fontWeight: 500, color: '#0A1650', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{formatEuros(Math.round(l.cents), lang)}</span>
+          </li>
+        ))}
+      </ul>
+      <p style={{ marginTop: 16, fontSize: 12.5, color: '#4A5A75' }}>{t('calc.estimate_note')}</p>
+      {transit && <p style={{ marginTop: 6, fontSize: 12.5, color: '#4A5A75' }}>{t('calc.transit_label', { value: transit })}</p>}
+    </div>
   );
 }
 
-function ModeQuotePanel({ mode, reason, summaryLines, lang, user }: {
-  mode: Mode; reason: QuoteReason; summaryLines: string[]; lang: 'fr' | 'en'; user: boolean;
-}) {
+function QuotePanel({ mode, reason, summaryLines, user }: { mode: Mode; reason: QuoteReason; summaryLines: string[]; user: boolean }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const [email, setEmail] = useState('');
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState(false);
+  const [sent, setSent] = useState(false);
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submit = async () => {
     if (!user && (!email.trim() || !name.trim())) return;
     const subject = t('calc.quote_subject', { mode: t(`calc.mode_${mode}`) });
     const body = [
-      t('calc.quote_intro', { mode: t(`calc.mode_${mode}`) }),
-      '',
+      t('calc.quote_intro', { mode: t(`calc.mode_${mode}`) }), '',
       ...summaryLines,
       `${t('calc.quote_reason_label')}: ${t(`calc.quote_reason_${reason}`)}`,
       message.trim() ? `\n${message.trim()}` : null,
     ].filter((x) => x != null).join('\n');
     setBusy(true);
     try {
-      if (user) {
-        const conv = await createConversation(subject);
-        await sendMessage(conv.id, body);
-      } else {
-        const row = await guestCreateConversation({ email: email.trim(), name: name.trim(), subject, body });
-        writeGuestToken(row.guest_token);
-      }
-      setDone(true);
+      if (user) { const conv = await createConversation(subject); await sendMessage(conv.id, body); }
+      else { const row = await guestCreateConversation({ email: email.trim(), name: name.trim(), subject, body }); writeGuestToken(row.guest_token); }
+      setSent(true);
       toast.success(t('calc.quote_success_title'));
-    } catch {
-      toast.error(t('calc.quote_error'));
-    } finally {
-      setBusy(false);
-    }
+    } catch { toast.error(t('calc.quote_error')); }
+    finally { setBusy(false); }
   };
 
-  if (done) {
-    return (
-      <div className="mt-4 rounded-xl border border-luna-sky/40 bg-luna-mist p-3 text-[13px]">
-        <CheckCircle2 className="h-5 w-5 text-luna-royal" aria-hidden="true" />
-        <p className="mt-1 font-medium text-luna-ink">{t('calc.quote_success_title')}</p>
-        <p className="mt-0.5 text-luna-body">{t('calc.quote_success_body')}</p>
-      </div>
-    );
-  }
+  const qLabel: React.CSSProperties = { display: 'block', fontSize: 12.5, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', color: '#4A5A75' };
+  const qInput: React.CSSProperties = { marginTop: 5, width: '100%', padding: '10px 12px', border: '1px solid rgba(42,67,128,.24)', borderRadius: 9, background: '#fff', fontSize: 15, fontWeight: 400, letterSpacing: 'normal', textTransform: 'none', color: '#0A1650' };
 
   return (
-    <div className="mt-4 flex flex-1 flex-col">
-      <p className="text-[13px] font-medium text-luna-ink">{t('calc.quote_title')}</p>
-      <p className="mt-1 text-[12px] text-luna-body">{t(`calc.quote_reason_${reason}`)}</p>
-      {!open ? (
-        <Button type="button" variant="brand" size="sm" className={cn('mt-3 self-start', ring)} onClick={() => setOpen(true)}>
-          {t('calc.quote_cta')} <ArrowRight className="h-4 w-4" />
-        </Button>
+    <div style={{ marginTop: 14, padding: 16, border: '1px solid rgba(32,119,195,.3)', borderRadius: 12, background: '#EFF6FD' }}>
+      <p style={{ margin: 0, fontSize: 15.5, fontWeight: 600, color: '#0D2E6B' }}>{t('calc.quote_title')}</p>
+      <p style={{ marginTop: 6, fontSize: 13.5, lineHeight: 1.5, color: '#4A5A75' }}>{t(`calc.quote_reason_${reason}`)}</p>
+
+      {sent ? (
+        <p style={{ marginTop: 14, padding: '11px 13px', borderRadius: 10, background: '#fff', border: '1px solid rgba(32,119,195,.3)', fontSize: 13.5, color: '#0D2E6B' }}>{t('calc.quote_success_body')}</p>
+      ) : !open ? (
+        <button type="button" className="qbtn" onClick={() => setOpen(true)}
+          style={{ marginTop: 14, width: '100%', padding: '11px 16px', border: 0, borderRadius: 10, background: '#002F67', color: '#fff', fontSize: 15, fontWeight: 500, cursor: 'pointer' }}>
+          {t('calc.quote_cta')}
+        </button>
       ) : (
-        <form onSubmit={submit} className="mt-3 space-y-2">
+        <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
           {!user && (
             <>
-              <Input aria-label={t('calc.quote_name')} placeholder={t('calc.quote_name')} value={name} onChange={(e) => setName(e.target.value)} required />
-              <Input aria-label={t('calc.quote_email')} type="email" placeholder={t('calc.quote_email')} value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <label style={qLabel}>{t('calc.quote_name')}
+                <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('calc.quote_name')} style={qInput} required />
+              </label>
+              <label style={qLabel}>{t('calc.quote_email')}
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('calc.quote_email')} style={qInput} required />
+              </label>
             </>
           )}
-          <textarea
-            aria-label={t('calc.quote_message')} placeholder={t('calc.quote_message')} rows={2} value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            className={cn('w-full rounded-md border border-luna-hair/40 bg-white px-3 py-2 text-[14px]', ring)}
-          />
-          <Button type="submit" variant="navy" size="sm" disabled={busy} className={cn('w-full', ring)}>
-            {busy ? <><Loader2 className="h-4 w-4 animate-spin" />{t('calc.quote_sending')}</> : t('calc.quote_submit')}
-          </Button>
-        </form>
+          <label style={qLabel}>{t('calc.quote_message')}
+            <textarea rows={3} value={message} onChange={(e) => setMessage(e.target.value)} placeholder={t('calc.quote_message')} style={{ ...qInput, resize: 'vertical' }} />
+          </label>
+          <button type="button" onClick={submit} disabled={busy}
+            style={{ padding: '11px 16px', border: 0, borderRadius: 10, background: '#1FE0F0', color: '#002F67', fontSize: 15, fontWeight: 600, cursor: 'pointer', opacity: busy ? 0.7 : 1 }}>
+            {busy ? t('calc.quote_sending') : t('calc.quote_submit')}
+          </button>
+        </div>
       )}
     </div>
   );
@@ -541,41 +512,52 @@ function WorkedExample({ titleKey, mode, input, config, lang }: {
   titleKey: string; mode: Mode; input: Parameters<typeof computeQuote>[0]; config: PricingConfig; lang: 'fr' | 'en';
 }) {
   const { t } = useTranslation();
-  const q = computeQuote(input, config);
-  const r = q[mode];
+  const r = computeQuote(input, config)[mode];
   return (
-    <div className="rounded-2xl border border-luna-hair/30 bg-luna-mist/60 p-5">
-      <h3 className="font-semibold text-luna-ink">{t(`calc.${titleKey}_title`)}</h3>
-      <p className="mt-1 text-[14px] text-luna-body">{t(`calc.${titleKey}_input`)}</p>
-      {r.kind === 'price' ? (
+    <div style={{ padding: '24px 26px', background: '#F8FAFD', border: HAIR, borderRadius: 14 }}>
+      <h3 style={{ fontSize: 18, fontWeight: 600, letterSpacing: '-.01em', color: '#0D2E6B', margin: 0 }}>{t(`calc.${titleKey}_title`)}</h3>
+      <p style={{ marginTop: 8, fontSize: 15.5, lineHeight: 1.5, color: '#4A5A75' }}>{t(`calc.${titleKey}_input`)}</p>
+      {r.kind === 'price' && (
         <>
-          <div className="mt-3"><Breakdown result={r} lang={lang} /></div>
-          <p className="mt-3 text-[15px] font-semibold text-luna-ink">
+          <ul style={{ marginTop: 18, paddingTop: 16, borderTop: HAIR, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 11, margin: '18px 0 0' }}>
+            {r.volumetricWeightKg != null && (
+              <li style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                <span style={{ fontSize: 15, color: '#0A1650' }}>{t('calc.vol_weight')}</span>
+                <span style={{ fontSize: 15, fontVariantNumeric: 'tabular-nums' }}>{fmtKg(r.volumetricWeightKg)} kg</span>
+              </li>
+            )}
+            {r.lines.map((l, i) => (
+              <li key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
+                <span style={{ minWidth: 0, fontSize: 15, color: '#0A1650' }}>{t(`calc.line_${l.key}`)}</span>
+                <span style={{ fontSize: 15, fontWeight: 500, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{formatEuros(Math.round(l.cents), lang)}</span>
+              </li>
+            ))}
+          </ul>
+          <p style={{ marginTop: 18, paddingTop: 14, borderTop: HAIR, fontSize: 17, fontWeight: 600, color: '#002F67', fontVariantNumeric: 'tabular-nums' }}>
             {t(`calc.mode_${mode}`)} — {formatEuros(r.totalCents, lang)}
           </p>
         </>
-      ) : (
-        <p className="mt-3 text-[14px] text-luna-body">{t('calc.quote_title')}</p>
       )}
     </div>
   );
 }
 
-function IncludesBlock({ config }: { config: PricingConfig | null }) {
+function IncludesBlock({ config, lang }: { config: PricingConfig | null; lang: 'fr' | 'en' }) {
   const { t } = useTranslation();
+  void lang;
   const includes = config?.includes ?? null;
   const entries = includes ? Object.entries(includes).filter(([, v]) => v != null && String(v).trim() !== '') : [];
-  if (entries.length === 0) return null; // nothing confirmed → omit the whole block
+  if (entries.length === 0) return null;
   return (
     <Block name="calc-included">
-      <section className="bg-white">
-        <div className="mx-auto max-w-3xl px-5 sm:px-8 py-[clamp(40px,6vw,72px)]">
-          <h2 className="text-[clamp(24px,3vw,32px)] font-semibold text-luna-ink">{t('calc.included_title')}</h2>
-          <ul className="mt-5 space-y-2.5">
+      <section style={{ background: '#F4F7FB', borderTop: HAIR }}>
+        <div style={WRAP}>
+          <h2 style={H2}>{t('calc.included_title')}</h2>
+          <ul style={{ marginTop: 32, listStyle: 'none', padding: 0, margin: '32px 0 0', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: '14px 32px', maxWidth: 900 }}>
             {entries.map(([k, v]) => (
-              <li key={k} className="flex gap-3 text-[15px]">
-                <CheckCircle2 className="h-5 w-5 shrink-0 text-luna-royal" aria-hidden="true" />
-                <span>{String(v)}</span>
+              <li key={k} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0', borderBottom: HAIR }}>
+                <Icon name="ship" color="#1FA3C9" size={18} />
+                <span style={{ fontSize: 15, color: '#0A1650' }}>{String(v)}</span>
               </li>
             ))}
           </ul>
@@ -588,33 +570,32 @@ function IncludesBlock({ config }: { config: PricingConfig | null }) {
 function FaqRow({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <div>
-      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open}
-        className={cn('flex w-full items-center justify-between gap-3 px-5 py-4 text-left', ring)}>
-        <span className="font-medium text-luna-ink">{q}</span>
-        <ChevronDown className={cn('h-5 w-5 shrink-0 text-luna-body transition-transform motion-reduce:transition-none', open && 'rotate-180')} aria-hidden="true" />
+    <div style={{ borderBottom: HAIR }}>
+      <button type="button" className="faq-btn" onClick={() => setOpen((o) => !o)} aria-expanded={open}
+        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, padding: '20px 4px', background: 'transparent', border: 0, textAlign: 'left', cursor: 'pointer', fontSize: 'clamp(17px,1.5vw,19px)', fontWeight: 500, color: '#0D2E6B' }}>
+        <span style={{ minWidth: 0 }}>{q}</span>
+        <span style={{ flex: '0 0 auto', width: 28, height: 28, display: 'grid', placeItems: 'center', border: '1px solid rgba(42,67,128,.24)', borderRadius: 999, fontSize: 18, color: '#2077C3', transform: open ? 'rotate(45deg)' : 'none', transition: 'transform .18s ease' }} className="faq-chev">+</span>
       </button>
-      {open && <p className="px-5 pb-4 -mt-1 text-[15px] text-luna-body leading-relaxed">{a}</p>}
+      {open && <p style={{ padding: '0 4px 24px', maxWidth: '66ch', fontSize: 16.5, color: '#4A5A75', margin: 0 }}>{a}</p>}
     </div>
   );
 }
 
-/** FAQPage JSON-LD, mirrored word-for-word from the visible FAQ (the same resolved
- *  copy is passed in). No Offer/Product data — prices change and stale rich results
- *  are worse than none. */
 function FaqJsonLd({ items }: { items: { q: string; a: string }[] }) {
   const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: items.map((it) => ({
-      '@type': 'Question',
-      name: it.q,
-      acceptedAnswer: { '@type': 'Answer', text: it.a },
-    })),
+    '@context': 'https://schema.org', '@type': 'FAQPage',
+    mainEntity: items.map((it) => ({ '@type': 'Question', name: it.q, acceptedAnswer: { '@type': 'Answer', text: it.a } })),
   };
-  return (
-    <Helmet>
-      <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
-    </Helmet>
-  );
+  return <Helmet><script type="application/ld+json">{JSON.stringify(jsonLd)}</script></Helmet>;
 }
+
+const CALC_CSS = `
+.luna-calc input:focus,.luna-calc select:focus,.luna-calc textarea:focus{outline:2px solid #0D2E6B;outline-offset:1px;border-color:#0D2E6B}
+.luna-calc .preset:hover{border-color:#2077C3;color:#0D2E6B;background:#EAF3FC}
+.luna-calc .preset:focus-visible,.luna-calc .qbtn:focus-visible,.luna-calc .faq-btn:focus-visible{outline:2px solid #0D2E6B;outline-offset:2px}
+.luna-calc .qbtn:hover{background:#0D2E6B}
+.luna-calc .faq-btn:hover{color:#002F67}
+@keyframes lunaSkeleton{0%{opacity:.45}50%{opacity:.9}100%{opacity:.45}}
+.luna-calc .luna-skel{animation:lunaSkeleton 1.6s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.luna-calc .luna-skel{animation:none}.luna-calc .faq-chev{transition:none}}
+`;
