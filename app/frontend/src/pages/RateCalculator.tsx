@@ -210,47 +210,47 @@ export default function RateCalculator() {
           <div style={{ display: 'flex', flexWrap: 'wrap', background: '#fff', border: HAIR, borderRadius: 20, boxShadow: '0 26px 60px -30px rgba(10,22,80,.42),0 2px 6px rgba(10,22,80,.05)', overflow: 'hidden', marginTop: -60 }}>
 
             {/* Form */}
-            <form style={{ flex: '1 1 330px', maxWidth: 430, background: '#F8FAFD', borderRight: HAIR, padding: 'clamp(22px,2.4vw,32px)' }} onSubmit={(e) => e.preventDefault()}>
+            <form style={{ flex: '1 1 440px', maxWidth: 600, background: '#F8FAFD', borderRight: HAIR, padding: 'clamp(22px,2.4vw,32px)' }} onSubmit={(e) => e.preventDefault()}>
               <h2 style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-.01em', margin: 0 }}>{t('calc.form_title')}</h2>
               <p style={{ marginTop: 6, fontSize: 14, color: '#4A5A75' }}>{t('calc.form_hint')}</p>
 
-              <div style={{ marginTop: 24 }}>
-                <label htmlFor="luna-dest" style={LABEL}>{t('calc.field_destination')}</label>
-                <select id="luna-dest" value={destination} onChange={(e) => setDestination(e.target.value as DestChoice)} style={INPUT}>
-                  <option value="kinshasa">{t('calc.dest_kinshasa')}</option>
-                  <option value="other">{t('calc.dest_other')}</option>
-                </select>
-                <p style={NOTE}>{t('calc.dest_hint')}</p>
-              </div>
-
-              <div style={{ marginTop: 20 }}>
-                <label htmlFor="luna-weight" style={LABEL}>{t('calc.field_weight')} <span style={{ fontWeight: 400, color: '#4A5A75' }}>(kg)</span></label>
-                <input id="luna-weight" inputMode="decimal" placeholder="6" value={weight} onChange={(e) => setWeight(e.target.value)} style={INPUT} />
-              </div>
-
-              <div style={{ marginTop: 20 }}>
-                <span id="luna-dims-label" style={LABEL}>{t('calc.field_dims')} <span style={{ fontWeight: 400, color: '#4A5A75' }}>(cm)</span></span>
-                <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 8 }} role="group" aria-labelledby="luna-dims-label">
-                  <input aria-label={t('calc.dim_length')} inputMode="numeric" placeholder="60" value={length} onChange={(e) => setLength(e.target.value)} style={{ ...INPUT, marginTop: 0, padding: '12px 10px', textAlign: 'center' }} />
-                  <input aria-label={t('calc.dim_width')} inputMode="numeric" placeholder="40" value={width} onChange={(e) => setWidth(e.target.value)} style={{ ...INPUT, marginTop: 0, padding: '12px 10px', textAlign: 'center' }} />
-                  <input aria-label={t('calc.dim_height')} inputMode="numeric" placeholder="40" value={height} onChange={(e) => setHeight(e.target.value)} style={{ ...INPUT, marginTop: 0, padding: '12px 10px', textAlign: 'center' }} />
+              <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '18px 16px' }}>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label htmlFor="luna-dest" style={LABEL}>{t('calc.field_destination')}</label>
+                  <select id="luna-dest" value={destination} onChange={(e) => setDestination(e.target.value as DestChoice)} style={INPUT}>
+                    <option value="kinshasa">{t('calc.dest_kinshasa')}</option>
+                    <option value="other">{t('calc.dest_other')}</option>
+                  </select>
+                  <p style={NOTE}>{t('calc.dest_hint')}</p>
                 </div>
-                <p style={NOTE}>{t('calc.dims_hint')}</p>
-              </div>
 
-              <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 14, alignItems: 'end' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <label htmlFor="luna-weight" style={LABEL}>{t('calc.field_weight')} <span style={{ fontWeight: 400, color: '#4A5A75' }}>(kg)</span></label>
+                  <input id="luna-weight" inputMode="decimal" placeholder="6" value={weight} onChange={(e) => setWeight(e.target.value)} style={{ ...INPUT, marginTop: 'auto' }} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <label htmlFor="luna-qty" style={LABEL}>{t('calc.field_parcels')}</label>
                   <input id="luna-qty" inputMode="numeric" placeholder="1" value={parcels} onChange={(e) => setParcels(e.target.value)} style={{ ...INPUT, marginTop: 'auto' }} />
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <span id="luna-dims-label" style={LABEL}>{t('calc.field_dims')} <span style={{ fontWeight: 400, color: '#4A5A75' }}>(cm)</span></span>
+                  <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 8 }} role="group" aria-labelledby="luna-dims-label">
+                    <input aria-label={t('calc.dim_length')} inputMode="numeric" placeholder="60" value={length} onChange={(e) => setLength(e.target.value)} style={{ ...INPUT, marginTop: 0, padding: '12px 10px', textAlign: 'center' }} />
+                    <input aria-label={t('calc.dim_width')} inputMode="numeric" placeholder="40" value={width} onChange={(e) => setWidth(e.target.value)} style={{ ...INPUT, marginTop: 0, padding: '12px 10px', textAlign: 'center' }} />
+                    <input aria-label={t('calc.dim_height')} inputMode="numeric" placeholder="40" value={height} onChange={(e) => setHeight(e.target.value)} style={{ ...INPUT, marginTop: 0, padding: '12px 10px', textAlign: 'center' }} />
+                  </div>
+                  <p style={NOTE}>{t('calc.dims_hint')}</p>
+                </div>
+
+                <div style={{ gridColumn: '1 / -1' }}>
                   <label htmlFor="luna-vol" style={LABEL}>{t('calc.field_volume')} <span style={{ fontWeight: 400, color: '#4A5A75' }}>(m³)</span></label>
-                  <input id="luna-vol" inputMode="decimal" placeholder="3" value={volume} onChange={(e) => setVolume(e.target.value)} style={{ ...INPUT, marginTop: 'auto' }} />
+                  <input id="luna-vol" inputMode="decimal" placeholder="3" value={volume} onChange={(e) => setVolume(e.target.value)} style={INPUT} />
+                  <p style={NOTE}>{t('calc.volume_hint')}</p>
                 </div>
               </div>
-              <p style={NOTE}>{t('calc.volume_hint')}</p>
 
-              <div style={{ marginTop: 26, paddingTop: 22, borderTop: HAIR }}>
+              <div style={{ marginTop: 22, paddingTop: 20, borderTop: HAIR }}>
                 <span style={{ display: 'block', fontSize: 12.5, fontWeight: 600, letterSpacing: '.12em', textTransform: 'uppercase', color: '#4A5A75' }}>{t('calc.presets_title')}</span>
                 <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   <PresetBtn label={t('calc.preset_carton_std')} onClick={() => applyPreset({ l: 60, w: 40, h: 40 })} />
@@ -262,13 +262,13 @@ export default function RateCalculator() {
             </form>
 
             {/* Results */}
-            <div style={{ flex: '3 1 560px', minWidth: 0, padding: 'clamp(22px,2.4vw,32px)' }}>
+            <div style={{ flex: '1.3 1 480px', minWidth: 0, padding: 'clamp(22px,2.4vw,32px)', display: 'flex', flexDirection: 'column' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
                 <h2 style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-.01em', margin: 0 }}>{t('calc.results_title')}</h2>
                 <span style={{ fontSize: 13.5, color: '#4A5A75' }}>{t('calc.results_meta')}</span>
               </div>
               {config && !hasAnyInput ? (
-                <div style={{ marginTop: 18, border: '1px dashed rgba(32,119,195,.4)', borderRadius: 14, background: '#F4F7FB', padding: 'clamp(28px,4vw,48px) 24px', textAlign: 'center' }}>
+                <div style={{ marginTop: 18, flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', border: '1px dashed rgba(32,119,195,.4)', borderRadius: 14, background: '#F4F7FB', padding: 'clamp(28px,4vw,48px) 24px', textAlign: 'center' }}>
                   <div style={{ display: 'flex', justifyContent: 'center', gap: 18, marginBottom: 14 }}>
                     <Icon name="plane" color="#2077C3" size={26} />
                     <Icon name="box" color="#2077C3" size={26} />
