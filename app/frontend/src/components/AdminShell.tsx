@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, MapPin, Package, Store, ShoppingCart, Boxes,
   KeyRound, FileText, Newspaper, UserCog, LogOut, ExternalLink, FilePlus,
-  MessageSquare,
+  MessageSquare, Calculator,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
@@ -36,6 +36,7 @@ export function AdminShell() {
     { to: '/admin/demandes-reexpedition',  label: t('admin.sidebar_forwarding'),      icon: Boxes,           permission: 'forwarding' },
     { to: '/admin/auth-sociale',           label: t('admin.sidebar_auth_providers'),  icon: KeyRound,        permission: 'auth_providers' },
     { to: '/admin/contenus',               label: t('admin.sidebar_content'),         icon: FileText,        permission: 'content' },
+    { to: '/admin/tarifs',                 label: t('admin.sidebar_pricing'),         icon: Calculator,      permission: 'content' },
     { to: '/admin/blog',                   label: t('admin.sidebar_blog'),            icon: Newspaper,       permission: 'blog' },
     { to: '/admin/pages',                  label: t('admin.sidebar_pages'),           icon: FilePlus,        permission: 'pages' },
     { to: '/admin/support',                label: t('admin.sidebar_support'),         icon: MessageSquare,   permission: 'support' },

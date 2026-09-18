@@ -78,6 +78,7 @@ const AdminOrders = lazy(() => import('@/pages/AdminOrders'));
 const AdminForwardingRequests = lazy(() => import('@/pages/AdminForwardingRequests'));
 const AdminAuthProviders = lazy(() => import('@/pages/AdminAuthProviders'));
 const AdminContent = lazy(() => import('@/pages/AdminContent'));
+const AdminPricing = lazy(() => import('@/pages/AdminPricing'));
 const BlogIndex = lazy(() => import('@/pages/BlogIndex'));
 const BlogPost = lazy(() => import('@/pages/BlogPost'));
 const AdminBlog = lazy(() => import('@/pages/AdminBlog'));
@@ -263,6 +264,7 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
             <Route path="/admin/demandes-reexpedition" element={<AdminForwardingRequests />} />
             <Route path="/admin/auth-sociale" element={<AdminAuthProviders />} />
             <Route path="/admin/contenus" element={<AdminContent />} />
+            <Route path="/admin/tarifs" element={<AdminPricing />} />
             <Route path="/admin/blog" element={<AdminBlog />} />
             <Route path="/admin/blog/nouveau" element={<AdminBlogForm />} />
             <Route path="/admin/blog/:id" element={<AdminBlogForm />} />

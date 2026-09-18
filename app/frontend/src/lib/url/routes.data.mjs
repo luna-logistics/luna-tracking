@@ -50,6 +50,7 @@ export const ROUTES = {
   adminForwarding: { indexable: false, bilingual: false, fr: '/admin/demandes-reexpedition', en: '/admin/demandes-reexpedition' },
   adminAuthProviders: { indexable: false, bilingual: false, fr: '/admin/auth-sociale', en: '/admin/auth-sociale' },
   adminContent: { indexable: false, bilingual: false, fr: '/admin/contenus', en: '/admin/contenus' },
+  adminPricing: { indexable: false, bilingual: false, fr: '/admin/tarifs',   en: '/admin/tarifs' },
   blogIndex:    { indexable: true,  bilingual: true,  fr: '/blog',            en: '/blog' },
   adminBlog:    { indexable: false, bilingual: false, fr: '/admin/blog',      en: '/admin/blog' },
   adminCollaborators: { indexable: false, bilingual: false, fr: '/admin/collaborateurs', en: '/admin/collaborateurs' },

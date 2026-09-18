@@ -1,13 +1,21 @@
 packages:
   - '.'
 
-allowBuilds:
-  esbuild: true
-  sharp: true
-  workerd: true
-
+# Native toolchain deps that must run their build scripts.
 onlyBuiltDependencies:
   - '@swc/core'
   - esbuild
   - sharp
   - workerd
+
+# Explicit per-dependency build decision (pnpm 10+/11). Deciding every flagged
+# dependency here is what stops ERR_PNPM_IGNORED_BUILDS from failing `pnpm install`
+# and the pre-run check for `pnpm build` / `pnpm test`. electron* are desktop-
+# packaging only and irrelevant to the web build, so they are not built.
+allowBuilds:
+  '@swc/core': true
+  esbuild: true
+  sharp: true
+  workerd: true
+  electron: false
+  electron-winstaller: false
