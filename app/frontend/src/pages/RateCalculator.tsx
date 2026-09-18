@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
 import { SEO } from '@/components/SEO';
+import { urlFor, blogPostUrl } from '@/lib/url/routes';
 import { useContent } from '@/contexts/SiteContentContext';
 import { Ed } from '@/components/Ed';
 import { Block } from '@/components/Block';
@@ -71,14 +73,46 @@ export default function RateCalculator() {
   const metaTitle = useContent(P, 'meta_title', t('calc.meta_title'));
   const metaDescription = useContent(P, 'meta_description', t('calc.meta_description'));
 
-  // FAQ resolved once → visible accordion and JSON-LD stay identical.
-  const faqItems = [
-    { q: useContent(P, 'q_weight', t('calc.q_weight')), a: useContent(P, 'a_weight', t('calc.a_weight')) },
-    { q: useContent(P, 'q_volumetric', t('calc.q_volumetric')), a: useContent(P, 'a_volumetric', t('calc.a_volumetric')) },
-    { q: useContent(P, 'q_customs', t('calc.q_customs')), a: useContent(P, 'a_customs', t('calc.a_customs')) },
-    { q: useContent(P, 'q_delay', t('calc.q_delay')), a: useContent(P, 'a_delay', t('calc.a_delay')) },
-    { q: useContent(P, 'q_other_dest', t('calc.q_other_dest')), a: useContent(P, 'a_other_dest', t('calc.a_other_dest')) },
+  // FAQ — freight/transport Q&A. Each answer may carry ONE internal link (split
+  // text + <Link>, since the project has no <Trans>). FaqJsonLd is fed the
+  // plain-text version so the FAQPage schema always matches the visible answer.
+  const BLOG = {
+    send: { fr: 'envoyer-colis-belgique-kinshasa', en: 'send-parcel-belgium-kinshasa' },
+    volweight: { fr: 'calcul-poids-volumetrique-colis', en: 'calculate-volumetric-weight-chargeable-weight' },
+    airsea: { fr: 'fret-aerien-ou-maritime-choisir', en: 'air-or-sea-freight-how-to-choose' },
+    incoterms: { fr: 'incoterms-dap-ddp-frais-transport-international', en: 'incoterms-dap-vs-ddp-international-shipping-costs' },
+  };
+  const blogHref = (b: { fr: string; en: string }) => blogPostUrl(lang === 'fr' ? b.fr : b.en, lang);
+  const FAQ_DEFS: { k: string; link?: { href: string; labelKey: string } }[] = [
+    { k: 'how_send', link: { href: blogHref(BLOG.send), labelKey: 'l_how_send' } },
+    { k: 'price_calc' },
+    { k: 'weight' },
+    { k: 'volumetric' },
+    { k: 'volume_calc', link: { href: blogHref(BLOG.volweight), labelKey: 'l_volume_calc' } },
+    { k: 'air_vs_sea', link: { href: blogHref(BLOG.airsea), labelKey: 'l_air_vs_sea' } },
+    { k: 'when_air' },
+    { k: 'when_sea' },
+    { k: 'multi' },
+    { k: 'bulky', link: { href: urlFor('pricing', lang), labelKey: 'l_bulky' } },
+    { k: 'pallet', link: { href: urlFor('pricing', lang), labelKey: 'l_pallet' } },
+    { k: 'container', link: { href: urlFor('forwarding', lang), labelKey: 'l_container' } },
+    { k: 'customs', link: { href: blogHref(BLOG.incoterms), labelKey: 'l_customs' } },
+    { k: 'delay' },
+    { k: 'deliver_kin' },
+    { k: 'other_dest', link: { href: urlFor('pricing', lang), labelKey: 'l_other_dest' } },
+    { k: 'devis', link: { href: urlFor('pricing', lang), labelKey: 'l_devis' } },
   ];
+  const faq = FAQ_DEFS.map(({ k, link }) => {
+    const aRaw = t(`calc.a_${k}`);
+    const label = link ? t(`calc.${link.labelKey}`) : null;
+    return {
+      q: t(`calc.q_${k}`),
+      aRaw,
+      link: link && label ? { href: link.href, label } : null,
+      aText: label ? `${aRaw} ${label}` : aRaw,
+    };
+  });
+  const faqJsonLd = faq.map((f) => ({ q: f.q, a: f.aText }));
 
   const [config, setConfig] = useState<PricingConfig | null>(null);
   const [configError, setConfigError] = useState(false);
@@ -151,7 +185,7 @@ export default function RateCalculator() {
   return (
     <div className="luna-calc" style={{ background: '#fff', color: '#0A1650', fontFamily: "'Poppins',system-ui,sans-serif", fontSize: 17, lineHeight: 1.55 }}>
       <SEO title={metaTitle} description={metaDescription} />
-      <FaqJsonLd items={faqItems} />
+      <FaqJsonLd items={faqJsonLd} />
       <style>{CALC_CSS}</style>
       <div aria-live="polite" className="sr-only">{live}</div>
 
@@ -283,7 +317,7 @@ export default function RateCalculator() {
               {MODES.map((m) => {
                 const transit = config ? transitTimeFor(config, m) : null;
                 return (
-                  <div key={m} style={{ paddingTop: 20, borderTop: '2px solid #002F67' }}>
+                  <div key={m} style={{ padding: 22, background: '#EAF3FC', border: '1px solid rgba(32,119,195,.28)', borderTop: '3px solid #0D2E6B', borderRadius: 14, boxShadow: '0 12px 26px -20px rgba(10,22,80,.4)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <Icon name={MODE_ICON[m]} color="#002F67" size={22} />
                       <h3 style={{ fontSize: 19, fontWeight: 600, letterSpacing: '-.01em', color: '#0D2E6B', margin: 0 }}>{t(`calc.mode_${m}`)}</h3>
@@ -327,9 +361,14 @@ export default function RateCalculator() {
         <section style={{ background: '#F4F7FB', borderTop: HAIR }}>
           <div style={WRAP}>
             <h2 style={H2}>{t('calc.faq_title')}</h2>
-            <div style={{ marginTop: 32, maxWidth: 860, borderTop: HAIR }}>
-              {faqItems.map((f, i) => <FaqRow key={i} q={f.q} a={f.a} />)}
+            <p style={{ marginTop: 14, maxWidth: '70ch', fontSize: 17, color: '#4A5A75' }}>{t('calc.faq_intro')}</p>
+            <div style={{ marginTop: 28, maxWidth: 860, borderTop: HAIR }}>
+              {faq.map((f, i) => <FaqRow key={i} q={f.q} a={answerNode(f.aRaw, f.link)} />)}
             </div>
+            <p style={{ marginTop: 24, maxWidth: '70ch', fontSize: 15, color: '#4A5A75' }}>
+              {t('calc.faq_more_lead')}{' '}
+              <Link to={urlFor('blogIndex', lang)} className="faq-link" style={FAQ_LINK}>{t('calc.faq_more_link')}</Link>.
+            </p>
           </div>
         </section>
       </Block>
@@ -514,7 +553,7 @@ function WorkedExample({ titleKey, mode, input, config, lang }: {
   const { t } = useTranslation();
   const r = computeQuote(input, config)[mode];
   return (
-    <div style={{ padding: '24px 26px', background: '#F8FAFD', border: HAIR, borderRadius: 14 }}>
+    <div style={{ padding: '24px 26px', background: '#EAF3FC', border: '1px solid rgba(32,119,195,.28)', borderTop: '3px solid #1FA3C9', borderRadius: 14, boxShadow: '0 12px 26px -20px rgba(10,22,80,.4)' }}>
       <h3 style={{ fontSize: 18, fontWeight: 600, letterSpacing: '-.01em', color: '#0D2E6B', margin: 0 }}>{t(`calc.${titleKey}_title`)}</h3>
       <p style={{ marginTop: 8, fontSize: 15.5, lineHeight: 1.5, color: '#4A5A75' }}>{t(`calc.${titleKey}_input`)}</p>
       {r.kind === 'price' && (
@@ -567,7 +606,29 @@ function IncludesBlock({ config, lang }: { config: PricingConfig | null; lang: '
   );
 }
 
-function FaqRow({ q, a }: { q: string; a: string }) {
+const FAQ_LINK: React.CSSProperties = { color: '#2077C3', fontWeight: 500, textDecoration: 'none' };
+const FAQ_P: React.CSSProperties = { fontSize: 16.5, lineHeight: 1.6, color: '#4A5A75', margin: 0 };
+
+/** Build a FAQ answer as paragraphs (split on blank lines), with an optional
+ *  internal <Link> appended to the last paragraph (split-text pattern, no <Trans>). */
+function answerNode(aRaw: string, link: { href: string; label: string } | null): React.ReactNode {
+  const paras = aRaw.split('\n\n');
+  return (
+    <>
+      {paras.map((p, i) => {
+        const last = i === paras.length - 1;
+        return (
+          <p key={i} style={{ ...FAQ_P, marginTop: i ? '0.75em' : 0 }}>
+            {p}
+            {last && link ? <>{' '}<Link to={link.href} className="faq-link" style={FAQ_LINK}>{link.label}</Link></> : null}
+          </p>
+        );
+      })}
+    </>
+  );
+}
+
+function FaqRow({ q, a }: { q: string; a: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
     <div style={{ borderBottom: HAIR }}>
@@ -576,7 +637,7 @@ function FaqRow({ q, a }: { q: string; a: string }) {
         <span style={{ minWidth: 0 }}>{q}</span>
         <span style={{ flex: '0 0 auto', width: 28, height: 28, display: 'grid', placeItems: 'center', border: '1px solid rgba(42,67,128,.24)', borderRadius: 999, fontSize: 18, color: '#2077C3', transform: open ? 'rotate(45deg)' : 'none', transition: 'transform .18s ease' }} className="faq-chev">+</span>
       </button>
-      {open && <p style={{ padding: '0 4px 24px', maxWidth: '66ch', fontSize: 16.5, color: '#4A5A75', margin: 0 }}>{a}</p>}
+      {open && <div style={{ padding: '0 4px 24px', maxWidth: '66ch' }}>{a}</div>}
     </div>
   );
 }
@@ -595,6 +656,7 @@ const CALC_CSS = `
 .luna-calc .preset:focus-visible,.luna-calc .qbtn:focus-visible,.luna-calc .faq-btn:focus-visible{outline:2px solid #0D2E6B;outline-offset:2px}
 .luna-calc .qbtn:hover{background:#0D2E6B}
 .luna-calc .faq-btn:hover{color:#002F67}
+.luna-calc .faq-link:hover{text-decoration:underline;color:#0D2E6B}
 @keyframes lunaSkeleton{0%{opacity:.45}50%{opacity:.9}100%{opacity:.45}}
 .luna-calc .luna-skel{animation:lunaSkeleton 1.6s ease-in-out infinite}
 @media (prefers-reduced-motion:reduce){.luna-calc .luna-skel{animation:none}.luna-calc .faq-chev{transition:none}}
