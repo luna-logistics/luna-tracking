@@ -1,0 +1,42 @@
+/**
+ * ISO 3166-1 alpha-2 country codes (officially assigned, 249). Names are NOT
+ * stored here: they come from the browser's Intl.DisplayNames in the visitor's
+ * language, so FR/EN (and any future locale) stay correct without a table to
+ * maintain. Storage stays the 2-letter code (DB CHECK: length 2, upper-case).
+ */
+export const COUNTRY_CODES = [
+  'AD','AE','AF','AG','AI','AL','AM','AO','AQ','AR','AS','AT','AU','AW','AX','AZ',
+  'BA','BB','BD','BE','BF','BG','BH','BI','BJ','BL','BM','BN','BO','BQ','BR','BS','BT','BV','BW','BY','BZ',
+  'CA','CC','CD','CF','CG','CH','CI','CK','CL','CM','CN','CO','CR','CU','CV','CW','CX','CY','CZ',
+  'DE','DJ','DK','DM','DO','DZ','EC','EE','EG','EH','ER','ES','ET',
+  'FI','FJ','FK','FM','FO','FR','GA','GB','GD','GE','GF','GG','GH','GI','GL','GM','GN','GP','GQ','GR','GS','GT','GU','GW','GY',
+  'HK','HM','HN','HR','HT','HU','ID','IE','IL','IM','IN','IO','IQ','IR','IS','IT',
+  'JE','JM','JO','JP','KE','KG','KH','KI','KM','KN','KP','KR','KW','KY','KZ',
+  'LA','LB','LC','LI','LK','LR','LS','LT','LU','LV','LY',
+  'MA','MC','MD','ME','MF','MG','MH','MK','ML','MM','MN','MO','MP','MQ','MR','MS','MT','MU','MV','MW','MX','MY','MZ',
+  'NA','NC','NE','NF','NG','NI','NL','NO','NP','NR','NU','NZ','OM',
+  'PA','PE','PF','PG','PH','PK','PL','PM','PN','PR','PS','PT','PW','PY','QA','RE','RO','RS','RU','RW',
+  'SA','SB','SC','SD','SE','SG','SH','SI','SJ','SK','SL','SM','SN','SO','SR','SS','ST','SV','SX','SY','SZ',
+  'TC','TD','TF','TG','TH','TJ','TK','TL','TM','TN','TO','TR','TT','TV','TW','TZ',
+  'UA','UG','UM','US','UY','UZ','VA','VC','VE','VG','VI','VN','VU','WF','WS','YE','YT','ZA','ZM','ZW',
+] as const;
+
+const cache = new Map<string, Intl.DisplayNames | null>();
+function displayNames(lang: string): Intl.DisplayNames | null {
+  if (!cache.has(lang)) {
+    try { cache.set(lang, new Intl.DisplayNames([lang], { type: 'region' })); }
+    catch { cache.set(lang, null); }
+  }
+  return cache.get(lang) ?? null;
+}
+
+/** Localised country name, falling back to the code itself. */
+export function countryName(code: string, lang: string): string {
+  try { return displayNames(lang)?.of(code.toUpperCase()) ?? code.toUpperCase(); }
+  catch { return code.toUpperCase(); }
+}
+
+/** Accent/case-insensitive match used by the type-to-filter picker. */
+export function normalizeForSearch(s: string): string {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+}

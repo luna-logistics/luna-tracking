@@ -12,9 +12,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@/components/ui/sonner';
 import { useBusiness } from '@/contexts/BusinessContext';
 import {
-  fetchShipment, upsertShipment, saveTemplate, fetchTemplates,
-  emptyShipment, type ShipmentInput,
+  fetchShipment, upsertShipment, saveTemplate, fetchTemplates, fetchPackages, saveShipmentPackages,
+  emptyShipment, emptyPackingLine, type ShipmentInput, type PackingLine,
 } from '@/lib/shipments';
+import { CountrySelect } from '@/components/CountrySelect';
+import { IncotermSelect } from '@/components/IncotermSelect';
+import { PackingListEditor } from '@/components/PackingListEditor';
 import {
   SHIPMENT_STATUSES, SHIPMENT_DIRECTIONS, SHIPMENT_MODES,
   type ShipmentStatus, type ShipmentDirection, type ShipmentMode,
@@ -48,6 +51,10 @@ export default function BusinessShipmentForm() {
   const [savingTpl, setSavingTpl] = useState(false);
   const [customers, setCustomers] = useState<BusinessCustomer[]>([]);
   const [f, setF] = useState<ShipmentInput>(() => emptyShipment(current?.currency ?? 'EUR'));
+  const [lines, setLines] = useState<PackingLine[]>(() => (isNew ? [emptyPackingLine()] : []));
+  // Set after the first successful shipment save, so a retry (e.g. the packing
+  // list failed to save) updates that shipment instead of creating a second one.
+  const [savedId, setSavedId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!current) return;
@@ -58,18 +65,26 @@ export default function BusinessShipmentForm() {
       if (tplId) {
         void fetchTemplates(current.id).then((tpls) => {
           const tpl = tpls.find((x) => x.id === tplId);
-          if (tpl) setF((p) => ({ ...p, ...tpl.data, status: 'draft' }));
+          if (tpl) {
+            const { packages, ...data } = tpl.data;
+            setF((p) => ({ ...p, ...data, status: 'draft' }));
+            if (packages?.length) setLines(packages.map((l) => ({ ...l, id: undefined })));
+          }
         });
       }
       setLoading(false);
       return;
     }
 
-    fetchShipment(id!).then((s) => {
+    Promise.all([fetchShipment(id!), fetchPackages(id!)]).then(([s, pkgs]) => {
       if (s) {
         const { id: _id, business_id: _bid, reference: _ref, created_by: _cb, created_at: _ca, updated_at: _ua, ...rest } = s;
         setF(rest);
       }
+      setLines(pkgs.map((p) => ({
+        id: p.id, package_type: p.package_type, quantity: p.quantity,
+        length_cm: p.length_cm, width_cm: p.width_cm, height_cm: p.height_cm, weight_kg: p.weight_kg,
+      })));
       setLoading(false);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -102,7 +117,11 @@ export default function BusinessShipmentForm() {
     if (!current) return;
     setSaving(true);
     try {
-      const saved = await upsertShipment(current.id, { id: isNew ? undefined : id, ...f });
+      const saved = await upsertShipment(current.id, { ...f, id: savedId ?? (isNew ? undefined : id) });
+      setSavedId(saved.id);
+      // Blank lines (no dimension, no weight) are just unused rows — skip them.
+      const filled = lines.filter((l) => l.weight_kg != null || l.length_cm != null || l.width_cm != null || l.height_cm != null);
+      await saveShipmentPackages(saved.id, filled);
       toast.success(t('business_shipment_form.saved'));
       navigate(`../${saved.id}`, { relative: 'path', replace: true });
     } catch (err) {
@@ -119,8 +138,9 @@ export default function BusinessShipmentForm() {
       // Strip fields that shouldn't persist in a template.
       const { status: _s, actual_pickup: _ap, actual_delivery: _ad,
               estimated_pickup: _ep, estimated_delivery: _ed,
-              tracking_number: _tn, ...tplData } = f;
-      await saveTemplate(current.id, name, null, tplData);
+              tracking_number: _tn, total_weight_kg: _tw, total_volume_m3: _tv, ...tplData } = f;
+      const packages = lines.map(({ id: _pid, ...l }) => l);
+      await saveTemplate(current.id, name, null, { ...tplData, packages });
       toast.success(t('business_shipment_form.template_saved'));
     } catch (err) {
       toast.error(errorMessage(err, t('common.error_generic')));
@@ -201,9 +221,8 @@ export default function BusinessShipmentForm() {
                 </SelectContent>
               </Select>
             </Field>
-            <Field label={t('business_shipment_form.field_incoterm')} hint={t('business_shipment_form.field_incoterm_hint')}>
-              <Input value={f.incoterm ?? ''} onChange={(e) => setStr('incoterm')(e.target.value.toUpperCase().slice(0, 5))}
-                className="uppercase font-mono" placeholder="DAP" disabled={!canWrite} />
+            <Field label={t('business_shipment_form.field_incoterm')} htmlFor="shipment-incoterm">
+              <IncotermSelect id="shipment-incoterm" value={f.incoterm} onChange={(v) => set('incoterm', v)} mode={f.mode} disabled={!canWrite} />
             </Field>
           </div>
         </Card>
@@ -223,32 +242,22 @@ export default function BusinessShipmentForm() {
               <Input value={f.tracking_number ?? ''} onChange={(e) => setStr('tracking_number')(e.target.value)} disabled={!canWrite} />
             </Field>
           </div>
-          <div className="grid gap-4 sm:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <Field label={t('business_shipment_form.field_estimated_pickup')}>
               <Input type="date" value={f.estimated_pickup ?? ''} onChange={(e) => setStr('estimated_pickup')(e.target.value)} disabled={!canWrite} />
-            </Field>
-            <Field label={t('business_shipment_form.field_actual_pickup')}>
-              <Input type="date" value={f.actual_pickup ?? ''} onChange={(e) => setStr('actual_pickup')(e.target.value)} disabled={!canWrite} />
             </Field>
             <Field label={t('business_shipment_form.field_estimated_delivery')}>
               <Input type="date" value={f.estimated_delivery ?? ''} onChange={(e) => setStr('estimated_delivery')(e.target.value)} disabled={!canWrite} />
             </Field>
-            <Field label={t('business_shipment_form.field_actual_delivery')}>
-              <Input type="date" value={f.actual_delivery ?? ''} onChange={(e) => setStr('actual_delivery')(e.target.value)} disabled={!canWrite} />
-            </Field>
           </div>
         </Card>
 
+        <Card title={t('business_shipment_form.section_packages')} hint={t('business_shipment_form.section_packages_hint')}>
+          <PackingListEditor lines={lines} onChange={setLines} disabled={!canWrite} />
+        </Card>
+
         <Card title={t('business_shipment_form.section_totals')} hint={t('business_shipment_form.section_totals_hint')}>
-          <div className="grid gap-4 sm:grid-cols-4">
-            <Field label={t('business_shipment_form.field_weight_kg')}>
-              <Input type="number" step="0.001" value={f.total_weight_kg ?? ''}
-                onChange={(e) => set('total_weight_kg', e.target.value === '' ? null : Number(e.target.value))} disabled={!canWrite} />
-            </Field>
-            <Field label={t('business_shipment_form.field_volume_m3')}>
-              <Input type="number" step="0.0001" value={f.total_volume_m3 ?? ''}
-                onChange={(e) => set('total_volume_m3', e.target.value === '' ? null : Number(e.target.value))} disabled={!canWrite} />
-            </Field>
+          <div className="grid gap-4 sm:grid-cols-2">
             <Field label={t('business_shipment_form.field_goods_value')}>
               <Input type="number" step="0.01" value={f.goods_value ?? ''}
                 onChange={(e) => set('goods_value', e.target.value === '' ? null : Number(e.target.value))} disabled={!canWrite} />
@@ -307,21 +316,21 @@ function AddressCard({
       <Field label={t('business_shipment_form.field_addr_line2')}>
         <Input value={g('address_line2')} onChange={(e) => setStr(k('address_line2'))(e.target.value)} disabled={disabled} />
       </Field>
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <Field label={t('business_shipment_form.field_addr_postal')}>
           <Input value={g('postal_code')} onChange={(e) => setStr(k('postal_code'))(e.target.value)} disabled={disabled} />
         </Field>
-        <div className="sm:col-span-1">
+        <div>
           <Field label={t('business_shipment_form.field_addr_city')}>
             <Input value={g('city')} onChange={(e) => setStr(k('city'))(e.target.value)} disabled={disabled} />
           </Field>
         </div>
-        <Field label={t('business_shipment_form.field_addr_country')}>
-          <Input minLength={2} maxLength={2} value={g('country')} onChange={(e) => {
-            const v = e.target.value.toUpperCase().slice(0, 2);
-            set(k('country'), (v || null) as ShipmentInput[keyof ShipmentInput]);
-          }} className="font-mono uppercase" disabled={disabled} />
+        <div className="sm:col-span-2">
+        <Field label={t('business_shipment_form.field_addr_country')} htmlFor={`${prefix}-country`}>
+          <CountrySelect id={`${prefix}-country`} value={g('country') || null} disabled={disabled}
+            onChange={(code) => set(k('country'), code as ShipmentInput[keyof ShipmentInput])} />
         </Field>
+        </div>
       </div>
     </Card>
   );
@@ -339,14 +348,20 @@ function Card({ title, hint, children }: { title: React.ReactNode; hint?: string
   );
 }
 
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+/** `info` = one sentence behind an ⓘ tooltip; `hint` = one always-visible
+ *  sentence under the input (readable on touch screens). */
+function Field({ label, info, hint, htmlFor, children }: {
+  label: string; info?: string; hint?: string; htmlFor?: string; children: React.ReactNode;
+}) {
+  const { t } = useTranslation();
   return (
     <div>
-      <Label className="text-luna-navy text-xs uppercase tracking-wide inline-flex items-center gap-1">
+      <Label htmlFor={htmlFor} className="text-luna-navy text-xs uppercase tracking-wide inline-flex items-center gap-1">
         {label}
-        {hint && <InfoHint text={hint} />}
+        {info && <InfoHint text={info} label={t('common.more_info')} />}
       </Label>
       <div className="mt-1.5">{children}</div>
+      {hint && <p className="mt-1 text-[11px] leading-snug text-slate-500">{hint}</p>}
     </div>
   );
 }

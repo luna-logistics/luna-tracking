@@ -20,7 +20,7 @@ import { useBusiness } from '@/contexts/BusinessContext';
 import {
   fetchShipment, fetchPackages, fetchCharges,
   upsertPackage, deletePackage, upsertCharge, deleteCharge,
-  updateShipmentStatus, sumBillable, computePackageTotals,
+  updateShipmentStatus, sumBillable, computePackageTotals, PACKAGE_TYPES, type PackageType,
   setTrackingEnabled, rotateTrackingToken,
   type Shipment, type ShipmentPackage, type ShipmentCharge, type ChargeKind,
 } from '@/lib/shipments';
@@ -37,7 +37,6 @@ import { fetchCustomer, type BusinessCustomer } from '@/lib/customers';
 import { draftInvoiceFromShipment } from '@/lib/invoices';
 import { InfoHint } from '@/components/InfoHint';
 import { fetchShipmentMargin, type Margin } from '@/lib/expenses';
-import { supabase } from '@/lib/supabase';
 import {
   SHIPMENT_PIPELINE, SHIPMENT_STATUSES, type ShipmentStatus,
 } from '@/lib/shipment-status';
@@ -368,26 +367,10 @@ function PackagesTab({
 }) {
   const { t } = useTranslation();
   const [editing, setEditing] = useState<ShipmentPackage | 'new' | null>(null);
-  const [adopting, setAdopting] = useState(false);
 
+  // The shipment's total weight / volume are recomputed server-side from
+  // these lines (shipment_packages_rollup trigger) — nothing to "adopt".
   const totals = computePackageTotals(packages);
-
-  const adopt = async () => {
-    setAdopting(true);
-    try {
-      const { error } = await supabase.from('shipments').update({
-        total_weight_kg: totals.weight_kg,
-        total_volume_m3: totals.volume_m3,
-      }).eq('id', shipmentId);
-      if (error) throw error;
-      toast.success(t('business_shipment_detail.package_totals_adopted'));
-      await onChanged();
-    } catch (err) {
-      toast.error(errorMessage(err, t('common.error_generic')));
-    } finally {
-      setAdopting(false);
-    }
-  };
 
   return (
     <div>
@@ -408,12 +391,6 @@ function PackagesTab({
           )}
         </div>
         <div className="flex items-center gap-2">
-          {canWrite && !editing && packages.length > 0 && (
-            <Button size="sm" variant="outline" onClick={adopt} disabled={adopting} title={t('business_shipment_detail.package_totals_adopt_hint')}>
-              {adopting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-              {t('business_shipment_detail.package_totals_adopt')}
-            </Button>
-          )}
           {canWrite && !editing && (
             <Button size="sm" variant="navy" onClick={() => setEditing('new')}>
               <Plus className="h-4 w-4" />
@@ -439,6 +416,7 @@ function PackagesTab({
             <thead className="bg-slate-50 text-luna-navy">
               <tr>
                 <th className="text-left px-4 py-2 font-semibold">#</th>
+                <th className="text-left px-4 py-2 font-semibold">{t('business_shipment_form.pkg_type')}</th>
                 <th className="text-left px-4 py-2 font-semibold">{t('business_shipment_detail.pkg_desc')}</th>
                 <th className="text-right px-4 py-2 font-semibold">{t('business_shipment_detail.pkg_qty')}</th>
                 <th className="text-right px-4 py-2 font-semibold">{t('business_shipment_detail.pkg_weight')}</th>
@@ -452,6 +430,7 @@ function PackagesTab({
               {packages.map((p) => (
                 <tr key={p.id}>
                   <td className="px-4 py-2 text-slate-500">{p.package_index}</td>
+                  <td className="px-4 py-2">{t(`business_shipment_form.pkg_type_${p.package_type}`)}</td>
                   <td className="px-4 py-2">{p.description ?? '—'}</td>
                   <td className="px-4 py-2 text-right">{p.quantity}</td>
                   <td className="px-4 py-2 text-right">{p.weight_kg ? `${p.weight_kg} kg` : '—'}</td>
@@ -497,6 +476,7 @@ function PackageForm({
   const { t } = useTranslation();
   const [f, setF] = useState({
     package_index: pkg?.package_index ?? nextIndex,
+    package_type: (pkg?.package_type ?? 'carton') as PackageType,
     description: pkg?.description ?? '',
     quantity: pkg?.quantity ?? 1,
     weight_kg: pkg?.weight_kg ?? null as number | null,
@@ -517,7 +497,7 @@ function PackageForm({
       try {
         await upsertPackage(shipmentId, {
           id: pkg?.id,
-          package_index: f.package_index, quantity: f.quantity,
+          package_index: f.package_index, package_type: f.package_type, quantity: f.quantity,
           description: f.description || null,
           weight_kg: f.weight_kg, length_cm: f.length_cm, width_cm: f.width_cm, height_cm: f.height_cm,
           contents_value: f.contents_value, contents_currency: f.contents_currency,
@@ -528,8 +508,14 @@ function PackageForm({
       } catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
       finally { setBusy(false); }
     }} className="mb-6 rounded-2xl border-2 border-luna-blue/30 bg-white p-5 space-y-3">
-      <div className="grid gap-3 sm:grid-cols-[80px_1fr_100px]">
+      <div className="grid gap-3 sm:grid-cols-[80px_140px_1fr_100px]">
         <Field label="#"><Input type="number" min={1} value={f.package_index} onChange={(e) => setF((p) => ({ ...p, package_index: Number(e.target.value) }))} /></Field>
+        <Field label={t('business_shipment_form.pkg_type')}>
+          <Select value={f.package_type} onValueChange={(v) => setF((p) => ({ ...p, package_type: v as PackageType }))}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>{PACKAGE_TYPES.map((pt) => <SelectItem key={pt} value={pt}>{t(`business_shipment_form.pkg_type_${pt}`)}</SelectItem>)}</SelectContent>
+          </Select>
+        </Field>
         <Field label={t('business_shipment_detail.pkg_desc')}><Input value={f.description} onChange={(e) => setF((p) => ({ ...p, description: e.target.value }))} /></Field>
         <Field label={t('business_shipment_detail.pkg_qty')}><Input type="number" min={1} value={f.quantity} onChange={(e) => setF((p) => ({ ...p, quantity: Number(e.target.value) }))} /></Field>
       </div>

@@ -43,10 +43,15 @@ export type Shipment = {
   updated_at: string;
 };
 
+/** Package kinds on a packing list (DB CHECK mirrors this). */
+export const PACKAGE_TYPES = ['carton', 'paquet', 'palette'] as const;
+export type PackageType = typeof PACKAGE_TYPES[number];
+
 export type ShipmentPackage = {
   id: string;
   shipment_id: string;
   package_index: number;
+  package_type: PackageType;
   description: string | null;
   quantity: number;
   weight_kg: number | null;
@@ -82,11 +87,14 @@ export type ShipmentTemplate = {
   business_id: string;
   name: string;
   description: string | null;
-  data: Partial<ShipmentInput>;    // stored as JSONB
+  data: TemplateData;              // stored as JSONB
   created_by: string | null;
   created_at: string;
   updated_at: string;
 };
+
+/** Template payload: the shipment fields + its packing list (without ids). */
+export type TemplateData = Partial<ShipmentInput> & { packages?: PackingLine[] };
 
 export type ShipmentInput = Omit<
   Shipment,
@@ -177,6 +185,37 @@ export async function upsertPackage(shipmentId: string, input: PackageInput) {
   return data as ShipmentPackage;
 }
 
+/** One editable line of the shipment form's packing list. `weight_kg` is the
+ *  weight of ONE package; the line counts `quantity` identical packages. */
+export type PackingLine = {
+  id?: string;
+  package_type: PackageType;
+  length_cm: number | null;
+  width_cm: number | null;
+  height_cm: number | null;
+  weight_kg: number | null;
+  quantity: number;
+};
+
+export function emptyPackingLine(): PackingLine {
+  return { package_type: 'carton', length_cm: null, width_cm: null, height_cm: null, weight_kg: null, quantity: 1 };
+}
+
+/** Volume of a line in m³ (L×l×H cm → m³ × quantity), or null without all 3 dims. */
+export function lineVolumeM3(l: Pick<PackingLine, 'length_cm' | 'width_cm' | 'height_cm' | 'quantity'>): number | null {
+  if (l.length_cm == null || l.width_cm == null || l.height_cm == null) return null;
+  return (l.length_cm * l.width_cm * l.height_cm / 1_000_000) * (l.quantity || 1);
+}
+
+/** Save the form's packing list in one call: updates existing lines by id
+ *  (only these fields — HS code / value / marks from the detail page are
+ *  kept), inserts new ones, deletes removed ones. The shipment's total
+ *  weight / volume are recomputed server-side from the result. */
+export async function saveShipmentPackages(shipmentId: string, lines: PackingLine[]): Promise<void> {
+  const { error } = await supabase.rpc('save_shipment_packages', { p_shipment: shipmentId, p_lines: lines });
+  if (error) throw error;
+}
+
 export async function deletePackage(id: string) {
   const { error } = await supabase.from('shipment_packages').delete().eq('id', id);
   if (error) throw error;
@@ -227,7 +266,9 @@ export type PackageTotals = {
   volume_partial: boolean;       // true if some packages lack dimensions
 };
 
-export function computePackageTotals(packages: ShipmentPackage[]): PackageTotals {
+export function computePackageTotals(
+  packages: Pick<ShipmentPackage, 'quantity' | 'weight_kg' | 'length_cm' | 'width_cm' | 'height_cm'>[],
+): PackageTotals {
   let count = 0;
   let weight = 0;
   let volume = 0;
@@ -263,7 +304,7 @@ export async function fetchTemplates(businessId: string): Promise<ShipmentTempla
   return (data ?? []) as ShipmentTemplate[];
 }
 
-export async function saveTemplate(businessId: string, name: string, description: string | null, data: Partial<ShipmentInput>) {
+export async function saveTemplate(businessId: string, name: string, description: string | null, data: TemplateData) {
   const { data: { user } } = await supabase.auth.getUser();
   const { data: row, error } = await supabase.from('shipment_templates')
     .insert({ business_id: businessId, name: name.trim(), description, data, created_by: user?.id ?? null })

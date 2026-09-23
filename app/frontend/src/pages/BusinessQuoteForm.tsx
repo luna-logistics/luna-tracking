@@ -23,6 +23,7 @@ import { SHIPMENT_DIRECTIONS, SHIPMENT_MODES } from '@/lib/shipment-status';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 import { InfoHint } from '@/components/InfoHint';
+import { CountrySelect } from '@/components/CountrySelect';
 
 /**
  * Quote form. Full pricing panel with cost / customer price / platform
@@ -169,16 +170,16 @@ export default function BusinessQuoteForm() {
 
           <Section title={t('business_quote_form.section_route')}>
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label={t('business_quote_form.field_origin_country')}>
-                <Input maxLength={2} value={f.origin_country ?? ''} className="uppercase font-mono"
-                  onChange={(e) => setF((p) => ({ ...p, origin_country: e.target.value.toUpperCase().slice(0, 2) || null }))} />
+              <Field label={t('business_quote_form.field_origin_country')} htmlFor="quote-origin-country">
+                <CountrySelect id="quote-origin-country" value={f.origin_country}
+                  onChange={(code) => setF((p) => ({ ...p, origin_country: code }))} />
               </Field>
               <Field label={t('business_quote_form.field_origin_city')}>
                 <Input value={f.origin_city ?? ''} onChange={(e) => setF((p) => ({ ...p, origin_city: e.target.value || null }))} />
               </Field>
-              <Field label={t('business_quote_form.field_dest_country')}>
-                <Input maxLength={2} value={f.destination_country ?? ''} className="uppercase font-mono"
-                  onChange={(e) => setF((p) => ({ ...p, destination_country: e.target.value.toUpperCase().slice(0, 2) || null }))} />
+              <Field label={t('business_quote_form.field_dest_country')} htmlFor="quote-dest-country">
+                <CountrySelect id="quote-dest-country" value={f.destination_country}
+                  onChange={(code) => setF((p) => ({ ...p, destination_country: code }))} />
               </Field>
               <Field label={t('business_quote_form.field_dest_city')}>
                 <Input value={f.destination_city ?? ''} onChange={(e) => setF((p) => ({ ...p, destination_city: e.target.value || null }))} />
@@ -368,11 +369,11 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 /** `hint` = one always-visible sentence under the input (readable on touch
  *  screens); `info` = the same kind of sentence behind an ⓘ tooltip. */
-function Field({ label, hint, info, children }: { label: string; hint?: string; info?: string; children: React.ReactNode }) {
+function Field({ label, hint, info, htmlFor, children }: { label: string; hint?: string; info?: string; htmlFor?: string; children: React.ReactNode }) {
   const { t } = useTranslation();
   return (
     <div>
-      <Label className="text-luna-navy text-xs uppercase tracking-wide inline-flex items-center gap-1.5">
+      <Label htmlFor={htmlFor} className="text-luna-navy text-xs uppercase tracking-wide inline-flex items-center gap-1.5">
         {label}
         {info && <InfoHint text={info} label={t('common.more_info')} />}
       </Label>
