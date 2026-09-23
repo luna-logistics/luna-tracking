@@ -22,8 +22,8 @@ const RESEND_KEY   = Deno.env.get('RESEND_API_KEY') ?? '';
 const FROM_FALLBACK = 'Luna Support <support@lunatrackinglogistics.com>';
 const SITE_URL     = Deno.env.get('SITE_URL') ?? 'https://lunatrackinglogistics.com';
 
-type Kind = 'support_message' | 'forwarding_request' | 'order';
-const KINDS: Kind[] = ['support_message', 'forwarding_request', 'order'];
+type Kind = 'support_message' | 'forwarding_request' | 'order' | 'client_reply';
+const KINDS: Kind[] = ['support_message', 'forwarding_request', 'order', 'client_reply'];
 
 const cors = {
   'Access-Control-Allow-Origin':  '*',
@@ -50,7 +50,46 @@ type Mail = {
   notifyEmail: string; fromAddress: string; enabled: boolean;
   /** Addresses to leave off this round (the staff member who replied). */
   exclude?: string[];
+  /** Client-facing message: rendered with the customer layout, not the office one. */
+  client?: { greeting: string; intro: string; preview: string; enNote: string; footer: string };
+  /** Several reply-to addresses (client e-mails: replies reach the office list). */
+  replyToList?: string[];
 };
+
+function renderClientHtml(m: Mail): string {
+  const c = m.client!;
+  return `<!doctype html>
+<html><body style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#0f172a">
+  <div style="background:#0b1f3a;color:white;padding:20px;border-radius:12px 12px 0 0">
+    <p style="margin:0;font-weight:700;font-size:18px">${escapeHtml(m.heading)}</p>
+    <p style="margin:4px 0 0;font-size:13px;opacity:0.85">Luna Tracking Logistics</p>
+  </div>
+  <div style="border:1px solid #e2e8f0;border-top:0;padding:20px;border-radius:0 0 12px 12px;background:white">
+    <p style="margin:0 0 12px">${escapeHtml(c.greeting)}</p>
+    <p style="margin:0 0 12px">${escapeHtml(c.intro)}</p>
+    <div style="background:#f8fafc;border-left:3px solid #0b1f3a;padding:12px 16px;border-radius:6px;white-space:pre-wrap;margin-bottom:20px">${escapeHtml(c.preview)}</div>
+    <a href="${m.cta.url}" style="display:inline-block;background:#0b1f3a;color:white;text-decoration:none;padding:10px 20px;border-radius:8px;font-weight:600">${escapeHtml(m.cta.label)}</a>
+    <p style="margin:20px 0 0;font-size:13px;color:#475569">${escapeHtml(c.enNote)}</p>
+    <p style="margin:16px 0 0;font-size:12px;color:#94a3b8">${escapeHtml(c.footer)}</p>
+  </div>
+</body></html>`;
+}
+
+function renderClientText(m: Mail): string {
+  const c = m.client!;
+  return `${c.greeting}
+
+${c.intro}
+
+« ${c.preview} »
+
+${m.cta.label} : ${m.cta.url}
+
+${c.enNote}
+
+${c.footer}
+`;
+}
 
 function renderHtml(m: Mail): string {
   const rows = m.rows
@@ -80,6 +119,49 @@ function renderText(m: Mail): string {
 
 // deno-lint-ignore no-explicit-any
 async function buildMail(db: any, kind: Kind, id: string): Promise<Mail | null> {
+  if (kind === 'client_reply') {
+    // The client learns that the team answered. Guest → one-click link with
+    // their guest_token (read at app start, then stripped from the URL);
+    // logged-in client → their account's conversation view (login required).
+    // Only a short preview of the reply — never the client's own messages.
+    const { data, error } = await db.rpc('get_support_message_for_notify', { p_id: id });
+    if (error) throw new Error(`rpc_failed: ${error.message}`);
+    if (!data) return null;
+    const d = data as {
+      conversation_id: string; subject: string | null; body: string; is_guest: boolean;
+      guest_token: string | null; client_account_type: string | null; sender_role: string;
+      client_email: string | null; sender_name: string | null; notify_email: string; from_address: string;
+    };
+    if (d.sender_role !== 'admin' || !d.client_email) return null;
+    const url = d.is_guest
+      ? (d.guest_token ? `${SITE_URL}/#conversation=${d.guest_token}` : `${SITE_URL}/contact`)
+      : `${SITE_URL}${d.client_account_type === 'business' ? '/entreprise/support' : '/compte/support'}?c=${d.conversation_id}`;
+    const flat = d.body.replace(/\s+/g, ' ').trim();
+    const preview = flat.length > 300 ? flat.slice(0, 300).trimEnd() + '…' : flat;
+    const topic = d.subject ? `« ${d.subject} »` : 'votre demande';
+    return {
+      subject: 'Nouvelle réponse à votre demande — Luna Tracking Logistics',
+      heading: 'Vous avez reçu une réponse',
+      replyTo: null,
+      replyToList: d.notify_email.split(',').map((s) => s.trim()).filter(Boolean),
+      rows: [],
+      body: null,
+      cta: { label: d.is_guest ? 'Lire et répondre' : 'Lire et répondre depuis mon compte', url },
+      notifyEmail: d.client_email,
+      fromAddress: d.from_address,
+      enabled: true,
+      client: {
+        greeting: d.sender_name ? `Bonjour ${d.sender_name},` : 'Bonjour,',
+        intro: `L'équipe Luna Tracking Logistics a répondu à ${topic}. Aperçu :`,
+        preview,
+        enNote: d.is_guest
+          ? 'EN — Our team has replied to your request. Use the button above to read the full answer and reply.'
+          : 'EN — Our team has replied to your request. Sign in with the button above to read the full answer and reply.',
+        footer: 'Vous recevez cet e-mail car vous avez contacté Luna Tracking Logistics via notre site.',
+      },
+    };
+  }
+
   if (kind === 'support_message') {
     const { data, error } = await db.rpc('get_support_message_for_notify', { p_id: id });
     if (error) throw new Error(`rpc_failed: ${error.message}`);
@@ -244,10 +326,10 @@ Deno.serve(async (req) => {
     body: JSON.stringify({
       from: mail.fromAddress.trim() || FROM_FALLBACK,
       to: recipients,
-      reply_to: mail.replyTo ?? undefined,
+      reply_to: mail.replyToList?.length ? mail.replyToList : (mail.replyTo ?? undefined),
       subject: mail.subject,
-      html: renderHtml(mail),
-      text: renderText(mail),
+      html: mail.client ? renderClientHtml(mail) : renderHtml(mail),
+      text: mail.client ? renderClientText(mail) : renderText(mail),
       tags: [{ name: 'category', value: kind }],
     }),
   });

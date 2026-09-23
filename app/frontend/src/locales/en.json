@@ -678,6 +678,7 @@
     "log_col_status": "Status",
     "log_col_actions": "Actions",
     "log_kind_support_message": "Message / quote",
+    "log_kind_client_reply": "Reply to client",
     "log_kind_forwarding_request": "Forwarding",
     "log_kind_order": "Shop & Ship order",
     "log_retry": "Resend",

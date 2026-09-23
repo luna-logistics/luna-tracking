@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 
 export const OFFICE_NOTIFICATION_STATUSES = ['pending', 'sending', 'sent', 'skipped', 'failed'] as const;
 export type OfficeNotificationStatus = (typeof OFFICE_NOTIFICATION_STATUSES)[number];
-export type OfficeNotificationKind = 'support_message' | 'forwarding_request' | 'order';
+export type OfficeNotificationKind = 'support_message' | 'forwarding_request' | 'order' | 'client_reply';
 
 export type OfficeNotification = {
   id: string;

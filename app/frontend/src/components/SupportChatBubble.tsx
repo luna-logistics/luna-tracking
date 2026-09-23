@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/sonner';
+import { BUBBLE_OPEN_KEY } from '@/lib/guest-token';
 import { useAuth } from '@/contexts/AuthContext';
 import { errorMessage, submitErrorKey } from '@/lib/errors';
 import { FormShield, useFormShield } from '@/components/FormShield';
@@ -35,7 +36,7 @@ const HIDDEN_PREFIXES = [
   '/auth/callback',
 ];
 
-const OPEN_STORAGE_KEY = 'luna.support.bubble_open';
+const OPEN_STORAGE_KEY = BUBBLE_OPEN_KEY;
 
 export function SupportChatBubble() {
   const { pathname } = useLocation();

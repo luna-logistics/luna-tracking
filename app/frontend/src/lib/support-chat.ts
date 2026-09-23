@@ -201,16 +201,7 @@ export type GuestConversationView = {
   messages: Array<Pick<SupportMessage, 'id' | 'sender_role' | 'body' | 'created_at' | 'read_at'>>;
 };
 
-const GUEST_KEY = 'luna.support.guest_token';
-export function readGuestToken(): string | null {
-  try { return localStorage.getItem(GUEST_KEY); } catch { return null; }
-}
-export function writeGuestToken(token: string | null): void {
-  try {
-    if (token) localStorage.setItem(GUEST_KEY, token);
-    else localStorage.removeItem(GUEST_KEY);
-  } catch { /* private-mode / no storage: silently ignore */ }
-}
+export { readGuestToken, writeGuestToken } from '@/lib/guest-token';
 
 /** Rejections (rate_limited, captcha_failed, invalid_email…) come back as
  *  `error` on the row rather than as a DB exception — so the attempt still

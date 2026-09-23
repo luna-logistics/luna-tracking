@@ -678,6 +678,7 @@
     "log_col_status": "Statut",
     "log_col_actions": "Actions",
     "log_kind_support_message": "Message / devis",
+    "log_kind_client_reply": "Réponse au client",
     "log_kind_forwarding_request": "Réexpédition",
     "log_kind_order": "Commande Achat & envoi",
     "log_retry": "Renvoyer",

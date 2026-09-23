@@ -26,7 +26,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
     );
   }
   if (!user) {
-    return <Navigate to={urlFor('login', lang)} state={{ from: location.pathname }} replace />;
+    return <Navigate to={urlFor('login', lang)} state={{ from: location.pathname + location.search }} replace />;
   }
   return <>{children}</>;
 }

@@ -78,7 +78,8 @@ export function trackPageView(path: string, title: string): void {
   if (!analyticsEnabled || !window.gtag) return;
   window.gtag('event', 'page_view', {
     page_path: path,
-    page_location: window.location.href,
+    // Never the hash: it can carry a guest support token.
+    page_location: window.location.origin + window.location.pathname + window.location.search,
     page_title: title,
   });
 }

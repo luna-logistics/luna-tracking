@@ -29,7 +29,11 @@ export default function SupportChat() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [rows, setRows] = useState<ConversationSummary[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // `?c=` deep link (reply e-mails): open that conversation; RLS decides
+  // whether it is theirs — a foreign id simply shows nothing.
+  const [selectedId, setSelectedId] = useState<string | null>(
+    () => new URLSearchParams(window.location.search).get('c'),
+  );
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);

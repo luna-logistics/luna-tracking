@@ -7,6 +7,7 @@ import '@fontsource/poppins/latin-600.css';
 import '@fontsource/poppins/latin-700.css';
 import './index.css';
 import { allIndexableUrls } from '@/lib/url/routes';
+import { captureGuestLinkFromHash } from '@/lib/guest-token';
 
 // Recover from stale-SPA-client failures: an old tab clicking a lazy chunk that
 // no longer exists on the server (new deployment landed) auto-reloads once so
@@ -43,6 +44,9 @@ function isPrerenderedUrl(pathname: string): boolean {
 if (!isPrerenderedUrl(window.location.pathname)) {
   stripFallbackSeoTags();
 }
+
+// Guest reply links (/#conversation=<token>): keep the token, drop the hash.
+captureGuestLinkFromHash();
 
 // Boot i18n before mount. For FR visitors this resolves synchronously
 // on the next microtask; for `/en/*` visitors we wait for the ~30-80 ms
