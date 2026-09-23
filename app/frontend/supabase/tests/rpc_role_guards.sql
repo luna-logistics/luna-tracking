@@ -2,8 +2,9 @@
 -- non-members and anonymous callers, and still work for real members.
 --
 -- Covers the 10 RPCs fixed on 2026-09-23/24 (NULL-unsafe
--- `business_role() NOT IN` guards) + a sweep that fails if ANY public
--- SECURITY DEFINER function still contains that guard shape.
+-- `business_role() NOT IN` guards), the admin-only user directory and
+-- support soft-delete, + a sweep that fails if ANY public SECURITY DEFINER
+-- function still contains that guard shape.
 --
 -- Run: Supabase SQL editor, or `psql "$DB_URL" -f supabase/tests/rpc_role_guards.sql`.
 -- It ALWAYS rolls back: the block ends by raising either
@@ -85,6 +86,22 @@ begin
   exception when insufficient_privilege then ok := array_append(ok, ('rotate_webhook_secret: anon blocked')::text); end;
   begin perform public.draft_invoice_from_shipment(sid); bad := array_append(bad, ('draft_invoice_from_shipment: ANON ALLOWED')::text);
   exception when insufficient_privilege then ok := array_append(ok, ('draft_invoice_from_shipment: anon blocked')::text); end;
+  reset role;
+
+  ------------------------------------- admin-only directories / support admin
+  -- admin_list_users exposes auth.users e-mails; admin_delete_support_conversation
+  -- soft-deletes a thread. Both: staff with the right section only.
+  perform set_config('request.jwt.claims', json_build_object('sub', stranger, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  begin perform public.admin_list_users(); bad := array_append(bad, ('admin_list_users: NON-ADMIN ALLOWED')::text);
+  exception when insufficient_privilege then ok := array_append(ok, ('admin_list_users: non-admin blocked')::text); end;
+  begin perform public.admin_delete_support_conversation('00000000-0000-0000-0000-000000000000'); bad := array_append(bad, ('admin_delete_support_conversation: NON-ADMIN ALLOWED')::text);
+  exception when insufficient_privilege then ok := array_append(ok, ('admin_delete_support_conversation: non-admin blocked')::text); end;
+  reset role;
+  perform set_config('request.jwt.claims', '{"role":"anon"}', true);
+  set local role anon;
+  begin perform public.admin_list_users(); bad := array_append(bad, ('admin_list_users: ANON ALLOWED')::text);
+  exception when insufficient_privilege then ok := array_append(ok, ('admin_list_users: anon blocked')::text); end;
   reset role;
 
   ------------------------------------------------ sweep: no NULL-unsafe guards

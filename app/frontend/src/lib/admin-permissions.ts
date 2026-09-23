@@ -66,6 +66,27 @@ export async function fetchAdminsWithEmail(): Promise<AdminRow[]> {
   }));
 }
 
+/** A registered account as the admin user directory shows it. E-mails come
+ *  from auth.users through admin_list_users() — allowed only to admins with
+ *  the 'admins' section; everyone else gets "forbidden". */
+export type DirectoryUser = {
+  user_id: string;
+  email: string;
+  full_name: string | null;
+  account_type: string | null;
+  created_at: string;
+  last_sign_in_at: string | null;
+  email_confirmed: boolean;
+  is_admin: boolean;
+  admin_via: 'platform' | 'collaborator' | null;
+};
+
+export async function adminListUsers(search: string): Promise<DirectoryUser[]> {
+  const { data, error } = await supabase.rpc('admin_list_users', { p_search: search.trim() || null, p_limit: 200 });
+  if (error) throw error;
+  return (data ?? []) as DirectoryUser[];
+}
+
 /** Grant admin rights to an existing signed-up user by email. */
 export async function addAdminByEmail(email: string, permissions: PermissionsMap): Promise<{ ok: true } | { ok: false; reason: 'no_user' | 'other'; detail?: string }> {
   const { data: userId, error: rpcErr } = await supabase.rpc('user_id_for_email', { p_email: email.trim().toLowerCase() });

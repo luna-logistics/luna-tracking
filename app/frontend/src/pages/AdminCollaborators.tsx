@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { UserPlus, Trash2, Save, Info } from 'lucide-react';
+import { UserPlus, Trash2, Save, Info, Search, ShieldCheck } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,8 +8,8 @@ import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/sonner';
 import {
   ADMIN_PERMISSIONS, hasPermission,
-  fetchAdminsWithEmail, addAdminByEmail, updateAdminPermissions, removeAdmin,
-  type AdminRow, type AdminPermission, type PermissionsMap,
+  fetchAdminsWithEmail, addAdminByEmail, updateAdminPermissions, removeAdmin, adminListUsers,
+  type AdminRow, type DirectoryUser, type AdminPermission, type PermissionsMap,
 } from '@/lib/admin-permissions';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -32,6 +32,18 @@ export default function AdminCollaborators() {
   const [email, setEmail] = useState('');
   const [newPerms, setNewPerms] = useState<PermissionsMap>({});
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const inviteRef = useRef<HTMLDivElement>(null);
+  const inviteInputRef = useRef<HTMLInputElement>(null);
+
+  // "Promouvoir admin" from the user directory: prefill the invite form so the
+  // permissions are chosen deliberately before anything is granted.
+  const promote = (target: string) => {
+    setEmail(target);
+    setNewPerms({});
+    inviteRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    window.setTimeout(() => inviteInputRef.current?.focus(), 350);
+    toast.info(t('admin_collaborators.users_promote_hint'));
+  };
 
   const reload = async () => {
     setLoading(true);
@@ -84,12 +96,12 @@ export default function AdminCollaborators() {
       </div>
 
       {/* Invite form */}
-      <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5">
+      <div ref={inviteRef} className="mt-6 rounded-2xl border border-slate-200 bg-white p-5">
         <h2 className="text-lg font-semibold text-luna-navy">{t('admin_collaborators.invite_title')}</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
           <div>
             <Label htmlFor="invite-email">{t('admin_collaborators.invite_email')}</Label>
-            <Input id="invite-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+            <Input id="invite-email" ref={inviteInputRef} type="email" value={email} onChange={(e) => setEmail(e.target.value)}
               placeholder="collaborateur@example.com" className="mt-1.5" />
           </div>
           <Button variant="navy" disabled={pendingId === '__new__' || !email.trim()} onClick={onInvite}>
@@ -124,7 +136,102 @@ export default function AdminCollaborators() {
           </div>
         )}
       </div>
+
+      <UsersDirectory onPromote={promote} />
     </>
+  );
+}
+
+/** Every registered account with its e-mail — search by e-mail or name, then
+ *  promote. Data from admin_list_users() (admins with the 'admins' section only). */
+function UsersDirectory({ onPromote }: { onPromote: (email: string) => void }) {
+  const { t, i18n } = useTranslation();
+  const [q, setQ] = useState('');
+  const [rows, setRows] = useState<DirectoryUser[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const locale = i18n.language === 'en' ? 'en-GB' : 'fr-BE';
+
+  useEffect(() => {
+    let alive = true;
+    const h = window.setTimeout(() => {
+      adminListUsers(q)
+        .then((r) => { if (alive) { setRows(r); setError(null); } })
+        .catch((err) => { if (alive) setError(errorMessage(err, t('common.error_generic'))); });
+    }, 250);
+    return () => { alive = false; window.clearTimeout(h); };
+  }, [q, t]);
+
+  const date = (v: string | null) => (v ? new Date(v).toLocaleDateString(locale) : t('admin_collaborators.users_never'));
+
+  return (
+    <section className="mt-10">
+      <h2 className="text-lg font-semibold text-luna-navy">{t('admin_collaborators.users_title')}</h2>
+      <p className="mt-1 text-sm text-slate-600 max-w-3xl">{t('admin_collaborators.users_intro')}</p>
+      <div className="relative mt-3 max-w-md">
+        <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('admin_collaborators.users_search')}
+          aria-label={t('admin_collaborators.users_search')} className="pl-8" />
+      </div>
+
+      {error && (
+        <p role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>
+      )}
+      {!error && rows === null && <div className="py-8 text-center text-slate-500">{t('common.loading')}</div>}
+      {!error && rows !== null && rows.length === 0 && (
+        <div className="mt-3 rounded-2xl border border-slate-200 bg-white py-8 text-center text-slate-500">
+          {t('admin_collaborators.users_empty')}
+        </div>
+      )}
+      {!error && rows !== null && rows.length > 0 && (
+        <div className="mt-3 overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+              <tr>
+                <th scope="col" className="px-4 py-2 font-semibold">{t('admin_collaborators.users_col_user')}</th>
+                <th scope="col" className="px-4 py-2 font-semibold hidden md:table-cell">{t('admin_collaborators.users_col_type')}</th>
+                <th scope="col" className="px-4 py-2 font-semibold hidden md:table-cell">{t('admin_collaborators.users_col_created')}</th>
+                <th scope="col" className="px-4 py-2 font-semibold hidden lg:table-cell">{t('admin_collaborators.users_col_last_login')}</th>
+                <th scope="col" className="px-4 py-2 font-semibold text-right">{t('admin_collaborators.users_col_role')}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {rows.map((u) => (
+                <tr key={u.user_id}>
+                  <td className="px-4 py-2.5 align-top">
+                    <div className="font-medium text-luna-navy break-all">{u.email}</div>
+                    <div className="text-xs text-slate-500">
+                      {u.full_name || '—'}
+                      {!u.email_confirmed && <span className="ml-2 text-amber-700">{t('admin_collaborators.users_unconfirmed')}</span>}
+                    </div>
+                  </td>
+                  <td className="px-4 py-2.5 align-top hidden md:table-cell text-slate-600">
+                    {u.account_type ? t(`admin_collaborators.users_type_${u.account_type}`, { defaultValue: u.account_type }) : '—'}
+                  </td>
+                  <td className="px-4 py-2.5 align-top hidden md:table-cell text-slate-600">{date(u.created_at)}</td>
+                  <td className="px-4 py-2.5 align-top hidden lg:table-cell text-slate-600">{date(u.last_sign_in_at)}</td>
+                  <td className="px-4 py-2.5 align-top text-right">
+                    {u.is_admin ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-luna-cyan/20 px-2 py-0.5 text-xs font-semibold text-luna-navy">
+                        <ShieldCheck className="h-3 w-3" aria-hidden="true" />
+                        {t(u.admin_via === 'platform' ? 'admin_collaborators.users_admin_platform' : 'admin_collaborators.users_admin_collab')}
+                      </span>
+                    ) : (
+                      <Button size="sm" variant="outline" onClick={() => onPromote(u.email)} disabled={!u.email_confirmed}
+                        title={u.email_confirmed ? undefined : t('admin_collaborators.users_unconfirmed_help')}>
+                        <UserPlus className="h-3.5 w-3.5" />{t('admin_collaborators.users_promote')}
+                      </Button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {rows.length >= 200 && (
+            <p className="px-4 py-2 text-xs text-slate-500 border-t border-slate-100">{t('admin_collaborators.users_capped')}</p>
+          )}
+        </div>
+      )}
+    </section>
   );
 }
 
