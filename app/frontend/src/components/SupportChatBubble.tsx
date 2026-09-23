@@ -16,7 +16,7 @@ import {
   fetchMessages, sendMessage, markConversationRead,
   subscribeToMessages, subscribeToConversations, fetchUnreadCount,
   guestCreateConversation, guestSendMessage, guestFetchConversation, guestMarkRead,
-  readGuestToken, writeGuestToken, onUnreadChanged,
+  readGuestToken, writeGuestToken, onUnreadChanged, onPageShown,
   type SupportMessage, type GuestConversationView, type SupportAccessMode,
 } from '@/lib/support-chat';
 /**
@@ -199,9 +199,11 @@ function AuthedBubbleBody() {
     if (!convId) return;
     const unsub = subscribeToMessages(convId, (m) => {
       setMessages((prev) => prev.some((x) => x.id === m.id) ? prev : [...prev, m]);
-      if (m.sender_role === 'admin') void markConversationRead(convId);
+      if (m.sender_role === 'admin' && document.visibilityState === 'visible') void markConversationRead(convId);
     });
-    return unsub;
+    // A reply that landed while the tab was hidden is read on return.
+    const offShown = onPageShown(() => void markConversationRead(convId));
+    return () => { unsub(); offShown(); };
   }, [convId]);
 
   // Also react to convo status flips (admin closes it) — refetches.
@@ -317,8 +319,15 @@ function GuestBubbleBody() {
   const unreadReplies = conv?.messages.filter((m) => m.sender_role === 'admin' && !m.read_at).length ?? 0;
   useEffect(() => {
     const token = readGuestToken();
-    if (!token || unreadReplies === 0 || document.visibilityState !== 'visible') return;
-    void guestMarkRead(token);
+    if (!token || unreadReplies === 0) return;
+    const mark = () => {
+      void guestMarkRead(token).then((n) => {
+        if (n > 0) void guestFetchConversation(token).then((c) => { if (c) setConv(c); });
+      });
+    };
+    // Visible now → read now; opened in a background tab → read on return.
+    if (document.visibilityState === 'visible') mark();
+    return onPageShown(mark);
   }, [unreadReplies, conv?.id]);
 
   const start = async (e: React.FormEvent) => {

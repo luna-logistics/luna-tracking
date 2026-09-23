@@ -12,7 +12,7 @@ import { OfficeNotificationLog } from '@/components/OfficeNotificationLog';
 import {
   fetchConversationsStrict, setConversationStatus, adminDeleteConversation, adminRestoreConversation,
   fetchMessages, sendMessage, markConversationRead,
-  subscribeToMessages, subscribeToConversations,
+  subscribeToMessages, subscribeToConversations, onPageShown,
   fetchAccessMode, setAccessMode, SUPPORT_ACCESS_MODES,
   fetchNotifyConfig, saveNotifyConfig,
   type ConversationSummary, type SupportMessage, type ConversationStatus,
@@ -111,7 +111,11 @@ export default function AdminSupport() {
         void markConversationRead(selectedId).then(() => void reload());
       }
     });
-    return () => { cancelled = true; unsub(); };
+    // Client messages that arrived while the tab was hidden are read on return.
+    const offShown = onPageShown(() => {
+      void markConversationRead(selectedId).then((n) => { if (n > 0) void reload(); });
+    });
+    return () => { cancelled = true; unsub(); offShown(); };
   }, [selectedId]);
 
   const selected = useMemo(() => rows.find((r) => r.id === selectedId) ?? null, [rows, selectedId]);

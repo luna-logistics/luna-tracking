@@ -138,6 +138,15 @@ export async function adminRestoreConversation(id: string): Promise<void> {
   announceUnreadChanged();
 }
 
+/** Call `cb` each time the page comes back into view. A message that arrived
+ *  while the tab was in the background counts as read only once the person
+ *  actually returns to it — so every open conversation view re-marks then. */
+export function onPageShown(cb: () => void): () => void {
+  const run = () => { if (document.visibilityState === 'visible') cb(); };
+  document.addEventListener('visibilitychange', run);
+  return () => document.removeEventListener('visibilitychange', run);
+}
+
 // Every unread badge (dashboard sidebars, chat bubble) re-reads the server
 // count when a conversation is marked read or deleted in this tab — Realtime
 // only reports new messages, never a read.

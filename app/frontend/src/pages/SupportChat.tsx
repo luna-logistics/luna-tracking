@@ -11,7 +11,7 @@ import { ChatMessageInput } from '@/components/ChatMessageInput';
 import {
   fetchConversations, createConversation, setConversationStatus,
   fetchMessages, sendMessage, markConversationRead,
-  subscribeToMessages, subscribeToConversations,
+  subscribeToMessages, onPageShown, subscribeToConversations,
   type ConversationSummary, type SupportMessage, type ConversationStatus,
 } from '@/lib/support-chat';
 import { useAuth } from '@/contexts/AuthContext';
@@ -70,7 +70,11 @@ export default function SupportChat() {
         void markConversationRead(selectedId).then(() => void reloadList());
       }
     });
-    return () => { cancelled = true; unsub(); };
+    // Replies that arrived while the tab was hidden are read on return.
+    const offShown = onPageShown(() => {
+      void markConversationRead(selectedId).then((n) => { if (n > 0) void reloadList(); });
+    });
+    return () => { cancelled = true; unsub(); offShown(); };
   }, [selectedId]);
 
   const selected = useMemo(() => rows.find((r) => r.id === selectedId) ?? null, [rows, selectedId]);
