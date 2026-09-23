@@ -52,13 +52,13 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-40 w-full bg-luna-ink border-b border-luna-aqua/20">
-      <div className="mx-auto flex max-w-[1220px] flex-nowrap items-center gap-x-3 px-5 sm:px-8 py-2.5">
+      <div className="mx-auto flex max-w-[1220px] flex-nowrap items-center gap-x-2 px-3 py-1.5 sm:gap-x-3 sm:px-8 lg:px-5 lg:py-2.5">
         {/* Logo — far left */}
         <Link to={urlFor('home', lang)} className="flex-none flex items-center gap-2.5" aria-label={t('brand.name')}>
-          <img src="/brand/luna-icon.png" alt="" aria-hidden="true" className="block h-11 w-auto" width={44} height={44} />
+          <img src="/brand/luna-icon.png" alt="" aria-hidden="true" className="block h-[30px] w-auto lg:h-11" width={44} height={44} />
           <span className="block leading-none">
-            <span className="block text-[22px] font-semibold tracking-[0.055em] bg-luna-wordmark bg-clip-text text-transparent">LUNA</span>
-            <span className="mt-1 block text-[11px] font-medium tracking-[0.05em] text-luna-aqua whitespace-nowrap">Tracking Logistics</span>
+            <span className="block text-[16px] font-semibold tracking-[0.055em] bg-luna-wordmark bg-clip-text text-transparent lg:text-[22px]">LUNA</span>
+            <span className="mt-[2px] block text-[8.5px] font-medium tracking-[0.05em] text-luna-aqua whitespace-nowrap lg:mt-1 lg:text-[11px]">Tracking Logistics</span>
           </span>
         </Link>
 
@@ -72,7 +72,7 @@ export function Navbar() {
         </nav>
 
         {/* Right cluster — far right, always inline */}
-        <div className="ml-auto navfull:ml-0 flex flex-none items-center gap-2">
+        <div className="ml-auto navfull:ml-0 flex flex-none items-center gap-1.5 sm:gap-2">
           <LanguageSwitcher variant="dark" />
 
           {user ? (
@@ -84,7 +84,7 @@ export function Navbar() {
                   title={editMode ? t('edit_mode.exit') : t('edit_mode.enter')}
                   aria-label={editMode ? t('edit_mode.exit') : t('edit_mode.enter')}
                   className={cn(
-                    'inline-flex h-10 w-10 items-center justify-center rounded-lg border transition-colors',
+                    'inline-flex h-9 w-9 items-center justify-center rounded-lg border transition-colors lg:h-10 lg:w-10',
                     editMode
                       ? 'bg-luna-aqua border-luna-aqua text-luna-ink'
                       : 'border-luna-hair text-luna-aqua hover:bg-luna-sky/20',
@@ -97,7 +97,7 @@ export function Navbar() {
                 <Link
                   to="/admin"
                   title={t('nav.admin')}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-luna-hair text-luna-aqua hover:bg-luna-sky/20"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-luna-hair text-luna-aqua hover:bg-luna-sky/20 lg:h-10 lg:w-10"
                 >
                   <LayoutDashboard className="h-4 w-4" />
                 </Link>
@@ -114,7 +114,7 @@ export function Navbar() {
                 onClick={() => signOut()}
                 title={t('nav.logout')}
                 aria-label={t('nav.logout')}
-                className="hidden sm:inline-flex h-10 w-10 items-center justify-center rounded-lg border border-luna-hair text-[#B9C9E0] hover:text-white hover:bg-luna-sky/20"
+                className="hidden sm:inline-flex h-9 w-9 items-center justify-center rounded-lg border border-luna-hair text-[#B9C9E0] hover:text-white hover:bg-luna-sky/20 lg:h-10 lg:w-10"
               >
                 <LogOut className="h-4 w-4" />
               </button>
@@ -125,7 +125,7 @@ export function Navbar() {
               className="inline-flex items-center gap-2 rounded-lg border border-luna-sky px-3 py-2 text-[13px] font-medium text-white hover:bg-luna-sky/20 whitespace-nowrap"
             >
               <UserCircle className="h-[18px] w-[18px] text-luna-aqua" />
-              {t('nav.account')}
+              <span className="hidden sm:inline">{t('nav.account')}</span>
             </Link>
           )}
 
@@ -135,7 +135,7 @@ export function Navbar() {
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
             aria-label="Menu"
-            className="navfull:hidden inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-luna-sky text-luna-aqua hover:bg-luna-sky/20"
+            className="navfull:hidden inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-luna-sky text-luna-aqua hover:bg-luna-sky/20 lg:h-10 lg:w-10"
           >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -144,8 +144,8 @@ export function Navbar() {
 
       {/* Mobile dropdown — below navfull */}
       {open && (
-        <nav className="navfull:hidden border-t border-luna-hair bg-luna-ink px-5 sm:px-8 py-4">
-          <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))' }}>
+        <nav className="navfull:hidden border-t border-luna-hair bg-luna-ink px-4 sm:px-8 py-3 lg:px-5 lg:py-4">
+          <div className="grid grid-cols-2 gap-1.5 lg:gap-2">
             {links.map((l) => (
               <Link
                 key={l.to}
@@ -153,7 +153,7 @@ export function Navbar() {
                 onClick={() => setOpen(false)}
                 aria-current={isActive(l.to) ? 'page' : undefined}
                 className={cn(
-                  'px-4 py-3 rounded-lg text-[13px] transition-colors border',
+                  'px-3 py-2.5 rounded-lg text-[12.5px] transition-colors border lg:px-4 lg:py-3 lg:text-[13px]',
                   isActive(l.to)
                     ? 'bg-luna-aqua border-luna-aqua text-luna-ink font-semibold'
                     : 'bg-luna-royal border-luna-hair text-[#E4EDF9] font-medium',
