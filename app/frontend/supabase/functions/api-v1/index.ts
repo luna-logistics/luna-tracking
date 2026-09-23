@@ -120,9 +120,9 @@ const OPENAPI_SPEC = {
       ShipmentSummary: { type: 'object', properties: {
         id: { type: 'string', format: 'uuid' },
         reference: { type: 'string', examples: ['SHP-2026-00042'] },
-        status: { type: 'string', enum: ['draft','quoted','booked','received','in_transit','customs','delivered','cancelled'] },
+        status: { type: 'string', enum: ['draft','confirmed','pickup','in_transit','customs','delivered','cancelled'] },
         direction: { type: 'string', enum: ['export','import','domestic'] },
-        mode: { type: 'string', enum: ['air','sea','road','rail','multi'] },
+        mode: { type: 'string', enum: ['air','sea','road'] },
         currency: { type: 'string' },
         origin_city: { type: 'string', nullable: true },
         origin_country: { type: 'string', nullable: true },
@@ -145,7 +145,7 @@ const OPENAPI_SPEC = {
       Rate: { type: 'object', properties: {
         provider_code: { type: 'string' },
         provider_name: { type: 'string' },
-        service_mode: { type: 'string', enum: ['air','sea','road','rail','multi'] },
+        service_mode: { type: 'string', enum: ['air','sea','road'] },
         currency: { type: 'string' },
         customer_price: { type: 'number' },
         transit_days_min: { type: 'integer', nullable: true },
@@ -233,7 +233,7 @@ const OPENAPI_SPEC = {
       parameters: [
         { name: 'origin',      in: 'query', required: true, schema: { type: 'string', minLength: 2, maxLength: 2 }, description: 'ISO 3166-1 alpha-2 country code.' },
         { name: 'destination', in: 'query', required: true, schema: { type: 'string', minLength: 2, maxLength: 2 } },
-        { name: 'mode',        in: 'query', schema: { type: 'string', enum: ['air','sea','road','rail','multi'] } },
+        { name: 'mode',        in: 'query', schema: { type: 'string', enum: ['air','sea','road'] } },
         { name: 'weight_kg',   in: 'query', schema: { type: 'number', minimum: 0 } },
         { name: 'volume_m3',   in: 'query', schema: { type: 'number', minimum: 0 } },
       ],
@@ -538,7 +538,7 @@ const rates: Handler = async (ctx) => {
 
   if (!origin || origin.length !== 2) return fail('missing_param', 'origin (2-letter ISO country code) is required', 400);
   if (!destination || destination.length !== 2) return fail('missing_param', 'destination (2-letter ISO country code) is required', 400);
-  if (mode && !['air','sea','road','rail','multi'].includes(mode)) return fail('bad_mode', 'mode must be one of air, sea, road, rail, multi', 400);
+  if (mode && !['air','sea','road'].includes(mode)) return fail('bad_mode', 'mode must be one of air, sea, road', 400);
   if (!Number.isFinite(weight) || weight < 0) return fail('bad_weight', 'weight_kg must be a non-negative number', 400);
   if (!Number.isFinite(volume) || volume < 0) return fail('bad_volume', 'volume_m3 must be a non-negative number', 400);
   if (weight === 0 && volume === 0) return fail('missing_param', 'weight_kg or volume_m3 must be > 0', 400);

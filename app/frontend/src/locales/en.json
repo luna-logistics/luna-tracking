@@ -1175,9 +1175,8 @@
   },
   "shipment_status": {
     "draft": "Draft",
-    "quoted": "Quoted",
-    "booked": "Booked",
-    "received": "Received",
+    "confirmed": "Confirmed",
+    "pickup": "Pickup",
     "in_transit": "In transit",
     "customs": "Customs",
     "delivered": "Delivered",

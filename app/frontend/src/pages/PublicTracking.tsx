@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Package, ArrowRight, CheckCircle2, Circle, MapPin, Loader2 } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { supabase } from '@/lib/supabase';
-import { SHIPMENT_PIPELINE, type ShipmentStatus } from '@/lib/shipment-status';
+import { pipelineFor, type ShipmentStatus } from '@/lib/shipment-status';
 import { ShipmentStatusBadge } from '@/components/ShipmentStatusBadge';
 import { cn } from '@/lib/utils';
 
@@ -99,7 +99,7 @@ export default function PublicTracking() {
                 </div>
                 <ShipmentStatusBadge status={shipment.status} />
               </div>
-              <PublicPipeline status={shipment.status} />
+              <PublicPipeline status={shipment.status} history={shipment.events.map((e) => e.to_status)} />
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -191,7 +191,7 @@ export default function PublicTracking() {
   );
 }
 
-function PublicPipeline({ status }: { status: ShipmentStatus }) {
+function PublicPipeline({ status, history = [] }: { status: ShipmentStatus; history?: (ShipmentStatus | null)[] }) {
   const { t } = useTranslation();
   if (status === 'cancelled') {
     return (
@@ -200,11 +200,12 @@ function PublicPipeline({ status }: { status: ShipmentStatus }) {
       </div>
     );
   }
-  const currentIdx = SHIPMENT_PIPELINE.indexOf(status);
+  const steps = pipelineFor(status, history);
+  const currentIdx = steps.indexOf(status);
   return (
     <div className="mt-4 overflow-x-auto">
       <ol className="flex items-center gap-2 min-w-max">
-        {SHIPMENT_PIPELINE.map((s, i) => {
+        {steps.map((s, i) => {
           const done = i <= currentIdx;
           const active = i === currentIdx;
           return (
@@ -217,7 +218,7 @@ function PublicPipeline({ status }: { status: ShipmentStatus }) {
                 {done ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Circle className="h-3.5 w-3.5" />}
                 {t(`shipment_status.${s}`)}
               </div>
-              {i < SHIPMENT_PIPELINE.length - 1 && <ArrowRight className="h-3 w-3 mx-1 text-slate-300 shrink-0" />}
+              {i < steps.length - 1 && <ArrowRight className="h-3 w-3 mx-1 text-slate-300 shrink-0" />}
             </li>
           );
         })}

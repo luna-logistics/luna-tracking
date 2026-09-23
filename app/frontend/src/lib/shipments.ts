@@ -141,9 +141,10 @@ export async function upsertShipment(businessId: string, input: ShipmentInput): 
 }
 
 export async function updateShipmentStatus(id: string, status: ShipmentStatus) {
-  const patch: Record<string, unknown> = { status };
-  if (status === 'delivered' && !patch.actual_delivery) patch.actual_delivery = new Date().toISOString().slice(0, 10);
-  const { error } = await supabase.from('shipments').update(patch).eq('id', id);
+  // actual_pickup / actual_delivery are stamped server-side from the status
+  // (shipments_status_rules trigger), which also refuses cancelling a
+  // delivered shipment.
+  const { error } = await supabase.from('shipments').update({ status }).eq('id', id);
   if (error) throw error;
 }
 

@@ -19,7 +19,7 @@ import { CountrySelect } from '@/components/CountrySelect';
 import { IncotermSelect } from '@/components/IncotermSelect';
 import { PackingListEditor } from '@/components/PackingListEditor';
 import {
-  SHIPMENT_STATUSES, SHIPMENT_DIRECTIONS, SHIPMENT_MODES,
+  selectableStatuses, SHIPMENT_DIRECTIONS, SHIPMENT_MODES,
   type ShipmentStatus, type ShipmentDirection, type ShipmentMode,
 } from '@/lib/shipment-status';
 import { fetchCustomers, fetchCustomerAddresses, type BusinessCustomer } from '@/lib/customers';
@@ -193,7 +193,7 @@ export default function BusinessShipmentForm() {
               <Select value={f.status} onValueChange={(v) => set('status', v as ShipmentStatus)} disabled={!canWrite}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {SHIPMENT_STATUSES.map((s) => (
+                  {selectableStatuses(f.status).map((s) => (
                     <SelectItem key={s} value={s}>{t(`shipment_status.${s}`)}</SelectItem>
                   ))}
                 </SelectContent>

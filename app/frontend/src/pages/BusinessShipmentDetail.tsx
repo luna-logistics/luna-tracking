@@ -38,7 +38,7 @@ import { draftInvoiceFromShipment } from '@/lib/invoices';
 import { InfoHint } from '@/components/InfoHint';
 import { fetchShipmentMargin, type Margin } from '@/lib/expenses';
 import {
-  SHIPMENT_PIPELINE, SHIPMENT_STATUSES, type ShipmentStatus,
+  pipelineFor, selectableStatuses, type ShipmentStatus,
 } from '@/lib/shipment-status';
 import { CURRENCIES, type Currency } from '@/lib/businesses';
 import { errorMessage } from '@/lib/errors';
@@ -115,7 +115,7 @@ export default function BusinessShipmentDetail() {
             <Select value={shipment.status} onValueChange={(v) => changeStatus(v as ShipmentStatus)}>
               <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {SHIPMENT_STATUSES.map((s) => (
+                {selectableStatuses(shipment.status).map((s) => (
                   <SelectItem key={s} value={s}>{t(`shipment_status.${s}`)}</SelectItem>
                 ))}
               </SelectContent>
@@ -127,7 +127,7 @@ export default function BusinessShipmentDetail() {
         )}
       </div>
 
-      <Pipeline status={shipment.status} />
+      <Pipeline status={shipment.status} history={events.map((e) => e.to_status)} />
 
       <PublicTrackingCard shipment={shipment} canWrite={canWrite} onChanged={reload} />
 
@@ -166,10 +166,11 @@ export default function BusinessShipmentDetail() {
   );
 }
 
-function Pipeline({ status }: { status: ShipmentStatus }) {
+function Pipeline({ status, history }: { status: ShipmentStatus; history: (ShipmentStatus | null)[] }) {
   const { t } = useTranslation();
   const isCancelled = status === 'cancelled';
-  const currentIdx = SHIPMENT_PIPELINE.indexOf(status);
+  const steps = pipelineFor(status, history);
+  const currentIdx = steps.indexOf(status);
   return (
     <div className={cn(
       'mt-4 rounded-2xl border-2 bg-white p-4 overflow-x-auto',
@@ -181,7 +182,7 @@ function Pipeline({ status }: { status: ShipmentStatus }) {
         </div>
       ) : (
         <ol className="flex items-center gap-2 min-w-max">
-          {SHIPMENT_PIPELINE.map((s, i) => {
+          {steps.map((s, i) => {
             const done = i <= currentIdx;
             const active = i === currentIdx;
             return (
@@ -194,7 +195,7 @@ function Pipeline({ status }: { status: ShipmentStatus }) {
                   {done ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Circle className="h-3.5 w-3.5" />}
                   {t(`shipment_status.${s}`)}
                 </div>
-                {i < SHIPMENT_PIPELINE.length - 1 && <ArrowRight className="h-3 w-3 mx-1 text-slate-300 shrink-0" />}
+                {i < steps.length - 1 && <ArrowRight className="h-3 w-3 mx-1 text-slate-300 shrink-0" />}
               </li>
             );
           })}

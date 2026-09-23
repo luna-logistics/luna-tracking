@@ -1175,9 +1175,8 @@
   },
   "shipment_status": {
     "draft": "Brouillon",
-    "quoted": "Devis",
-    "booked": "Réservée",
-    "received": "Prise en charge",
+    "confirmed": "Confirmée",
+    "pickup": "Enlèvement",
     "in_transit": "En transit",
     "customs": "Douane",
     "delivered": "Livrée",
