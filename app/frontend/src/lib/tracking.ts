@@ -43,6 +43,9 @@ export type TrackingShipment = {
   destination_city: string | null;
   destination_country: string | null;
   events: Array<{ kind: string; to_status: string | null; created_at: string }>;
+  reference?: string | null;
+  tracking_number?: string | null;
+  estimated_delivery?: string | null;
 };
 
 export type TrackingResult =
@@ -122,6 +125,8 @@ async function fetchLunaNativeTracking(token: string, locale: 'fr' | 'en'): Prom
         origin_country?: string | null;
         destination_city?: string | null;
         destination_country?: string | null;
+        tracking_number?: string | null;
+        estimated_delivery?: string | null;
         events?: Array<{ kind: string; to_status: string | null; created_at: string }>;
       };
     };
@@ -146,6 +151,9 @@ async function fetchLunaNativeTracking(token: string, locale: 'fr' | 'en'): Prom
         destination_city: d.destination_city ?? null,
         destination_country: d.destination_country ?? null,
         events,
+        reference: d.reference ?? null,
+        tracking_number: d.tracking_number ?? null,
+        estimated_delivery: d.estimated_delivery ?? null,
       },
       positions: events.map((e) => ({
         numeroColis: body.data?.reference ?? '',

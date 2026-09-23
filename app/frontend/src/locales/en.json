@@ -2606,6 +2606,8 @@
     "departed_be": "departure from Belgium confirmed",
     "sub_delivered": "Handed to the recipient on {{date}}.",
     "sub_updated": "Status updated on {{date}}.",
-    "sub_cancelled": "A question about this shipment? Contact us and we will get back to you quickly."
+    "sub_cancelled": "A question about this shipment? Contact us and we will get back to you quickly.",
+    "k_carrier_ref": "Carrier ref.",
+    "k_eta": "Estimated delivery"
   }
 }

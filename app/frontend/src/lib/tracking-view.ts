@@ -25,6 +25,10 @@ export type TrackingView = {
   reachedBeforeCancel: TrackStep | null;
   mode: 'air' | 'sea' | null;
   carrier: string | null;
+  /** Carrier's own tracking number (native, when the shipper filled it). */
+  carrierRef: string | null;
+  /** Estimated delivery DATE (native, only while not delivered/cancelled). */
+  eta: string | null;
   /** First time each step was reached. Legacy: Brussels wall time; native: UTC ISO. */
   times: Partial<Record<TrackStep | 'cancelled', string>>;
   timesAreUtc: boolean;
@@ -75,6 +79,8 @@ function legacyView(result: Extract<TrackingResult, { status: 'ok' }>, typed: st
     reachedBeforeCancel: null,
     mode: null,
     carrier: null,
+    carrierRef: null,
+    eta: null,
     times,
     timesAreUtc: false,
     updatedAt: latest(Object.values(times)),
@@ -106,12 +112,15 @@ function nativeView(result: Extract<TrackingResult, { status: 'ok' }>, typed: st
     : null;
   const place = (city: string | null, country: string) => [city, country].filter(Boolean).join(', ') || null;
   return {
-    number: typed.trim(),
+    // The shipment reference the shipper knows, rather than the link token.
+    number: s.reference?.trim() || typed.trim(),
     parcel: null,
     status,
     reachedBeforeCancel: status === 'cancelled' ? reachedBeforeCancel : null,
     mode: s.mode === 'air' || s.mode === 'sea' ? s.mode : null,
     carrier: s.carrier_name?.trim() || null,
+    carrierRef: s.tracking_number?.trim() || null,
+    eta: status !== 'delivered' && status !== 'cancelled' ? (s.estimated_delivery ?? null) : null,
     times,
     timesAreUtc: true,
     updatedAt: latest(s.events.map((e) => e.created_at)),

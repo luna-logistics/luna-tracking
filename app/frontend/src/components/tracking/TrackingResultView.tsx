@@ -2,7 +2,7 @@ import { useEffect, useState, type ComponentType, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  ArrowRight, BadgeCheck, Barcode, Check, CircleCheck, CircleX, Clock, FilePen, House, Info, MapPin,
+  ArrowRight, BadgeCheck, Barcode, CalendarClock, Check, CircleCheck, CircleX, Clock, FilePen, Hash, House, Info, MapPin,
   MapPinned, MessageCircle, Package, Plane, Route, Search, Share2, Ship, Stamp, Truck, type LucideProps,
 } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
@@ -40,8 +40,9 @@ export function TrackingResultView({ view, title, search }: {
   view: TrackingView;
   /** Page title (admin-editable <Ed> from the page). */
   title: ReactNode;
-  /** The page's own search input + submit (kept in the page, so the lookup logic stays in one place). */
-  search: { code: string; setCode: (v: string) => void; onSubmit: (e: React.FormEvent) => void; loading: boolean };
+  /** The page's own search input + submit (kept in the page, so the lookup
+   *  logic stays in one place). Omitted on the shared-link page. */
+  search?: { code: string; setCode: (v: string) => void; onSubmit: (e: React.FormEvent) => void; loading: boolean };
 }) {
   const { t, i18n } = useTranslation();
   const lang: 'fr' | 'en' = i18n.language === 'en' ? 'en' : 'fr';
@@ -56,6 +57,12 @@ export function TrackingResultView({ view, title, search }: {
     const date = new Intl.DateTimeFormat(lang === 'en' ? 'en-GB' : 'fr-BE', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
       .format(new Date(Date.UTC(p.y, p.mo - 1, p.d))).replace(',', '');
     return `${date}${t('tracking_v2.at')}${p.hh}:${p.mi}`;
+  };
+  const fmtDay = (v: string | null): string => {
+    const p = v ? brusselsParts(v, false) : null;
+    if (!p) return '';
+    return new Intl.DateTimeFormat(lang === 'en' ? 'en-GB' : 'fr-BE', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
+      .format(new Date(Date.UTC(p.y, p.mo - 1, p.d))).replace(',', '');
   };
   const modeLabel = view.mode ? t(`tracking_v2.mode_${view.mode}`) : null;
   const ModeIcon: Icon = view.mode === 'air' ? Plane : view.mode === 'sea' ? Ship : Package;
@@ -107,6 +114,8 @@ export function TrackingResultView({ view, title, search }: {
     ...(view.parcel ? [{ key: 'parcel', k: t('tracking_v2.k_parcel'), v: view.parcel, icon: Package }] : []),
     ...(modeLabel ? [{ key: 'mode', k: t('tracking_v2.k_mode'), v: modeLabel, icon: ModeIcon }] : []),
     ...(view.carrier ? [{ key: 'carrier', k: t('tracking_v2.k_carrier'), v: view.carrier, icon: Truck }] : []),
+    ...(view.carrierRef ? [{ key: 'cref', k: t('tracking_v2.k_carrier_ref'), v: view.carrierRef, icon: Hash }] : []),
+    ...(view.eta && fmtDay(view.eta) ? [{ key: 'eta', k: t('tracking_v2.k_eta'), v: fmtDay(view.eta), icon: CalendarClock }] : []),
     ...(view.updatedAt ? [{ key: 'upd', k: t('tracking_v2.k_updated'), v: fmt(view.updatedAt), icon: Clock }] : []),
     ...(view.from ? [{ key: 'from', k: t('tracking_v2.k_from'), v: view.from, icon: MapPin }] : []),
     ...(view.to ? [{ key: 'to', k: t('tracking_v2.k_to'), v: view.to, icon: MapPinned }] : []),
@@ -142,7 +151,7 @@ export function TrackingResultView({ view, title, search }: {
             </span>
             {title}
           </div>
-          <form onSubmit={search.onSubmit} className="flex flex-[0_1_520px] gap-2.5" role="search">
+          {search && <form onSubmit={search.onSubmit} className="flex flex-[0_1_520px] gap-2.5" role="search">
             <label className="flex flex-1 items-center gap-2.5 rounded-lg border border-[#C6D4E6] bg-white px-4 focus-within:border-luna-sky">
               <Search className="h-[17px] w-[17px] flex-none text-luna-muted-ink" aria-hidden="true" />
               <span className="sr-only">{t('tracking_v2.field_label')}</span>
@@ -153,7 +162,7 @@ export function TrackingResultView({ view, title, search }: {
               className="flex items-center gap-2.5 rounded-lg border border-luna-royal bg-luna-royal px-[22px] py-3.5 text-[13px] font-semibold text-white transition-colors hover:border-luna-azure hover:bg-luna-azure disabled:opacity-60">
               {search.loading ? t('tracking.loading') : t('tracking_v2.track_btn')} <ArrowRight className="h-[15px] w-[15px]" aria-hidden="true" />
             </button>
-          </form>
+          </form>}
         </div>
 
         {/* Map + status panel */}
@@ -240,7 +249,7 @@ export function TrackingResultView({ view, title, search }: {
         </span>
         {title}
       </div>
-      <form onSubmit={search.onSubmit} role="search">
+      {search && <form onSubmit={search.onSubmit} role="search">
         <label htmlFor="track-m" className="mb-2 block text-[11px] font-semibold text-luna-royal">{t('tracking_v2.field_label')}</label>
         <div className="flex gap-2">
           <input id="track-m" value={search.code} onChange={(e) => search.setCode(e.target.value)} autoComplete="off" spellCheck={false}
@@ -250,7 +259,7 @@ export function TrackingResultView({ view, title, search }: {
             <ArrowRight className="h-[18px] w-[18px]" aria-hidden="true" />
           </button>
         </div>
-      </form>
+      </form>}
 
       <div className="mt-4 overflow-hidden rounded-[18px] border border-luna-hair bg-luna-ink">
         {view.corridor && (

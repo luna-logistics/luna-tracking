@@ -59,6 +59,20 @@ describe('tracking view', () => {
     expect(buildTrackingView({ ...r, shipment: { ...r.shipment!, status: 'weird' } }, 'u')).toBeNull();
   });
 
+  it('native (shared link): reference as number, carrier ref, ETA only while undelivered', () => {
+    const base: TrackingResult = {
+      status: 'ok', source: 'luna', positions: [],
+      shipment: {
+        status: 'in_transit', mode: 'air', carrier_name: null, origin_city: null, origin_country: 'BE',
+        destination_city: null, destination_country: 'CD', events: [],
+        reference: 'LTL-2026-0042', tracking_number: 'SN123', estimated_delivery: '2026-10-02',
+      },
+    };
+    const v = buildTrackingView(base, 'token-uuid')!;
+    expect([v.number, v.carrierRef, v.eta, v.corridor]).toEqual(['LTL-2026-0042', 'SN123', '2026-10-02', 'be-cd']);
+    expect(buildTrackingView({ ...base, shipment: { ...base.shipment!, status: 'delivered' } }, 't')!.eta).toBeNull();
+  });
+
   it('dates: UTC instants shown in Brussels time, legacy strings as-is', () => {
     expect(brusselsParts('2026-09-09T04:45:00Z', true)).toEqual({ y: 2026, mo: 9, d: 9, hh: '06', mi: '45' });
     expect(brusselsParts('2026-08-19T22:56:43', false)).toEqual({ y: 2026, mo: 8, d: 19, hh: '22', mi: '56' });
