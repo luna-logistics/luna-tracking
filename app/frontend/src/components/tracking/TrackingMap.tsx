@@ -6,17 +6,24 @@ import { routeFraction, type TrackingView } from '@/lib/tracking-view';
 /**
  * Route map for the tracking result ("Suivi Luna v2", Claude Design): a
  * simplified political map (Natural Earth shapes, precomputed — no map
- * library, fetched after first paint), the Brussels ⇄ Kinshasa route with
- * the travelled part solid and the rest dashed, and a marker whose position
- * is derived from the status (indicative, never GPS). Animations stop under
- * prefers-reduced-motion.
+ * library, fetched after first paint), the shipment's real route — sea
+ * Antwerp → Matadi → Kinshasa, air Brussels → Kinshasa or Brussels → Goma,
+ * either direction (view.route, lib/tracking-view) — with the travelled part
+ * solid and the rest dashed, and a marker whose position is derived from the
+ * status (indicative, never GPS). Animations stop under prefers-reduced-motion.
+ *
+ * Map data: equirectangular, standard parallel 20° (x = 1081.0 + 9.397·lon,
+ * y = 620 − 10·lat — fits every drawn city to 0.1). Goma and its air route
+ * were added with that projection and the same curve rule as the Kinshasa
+ * air route (quadratic, control point offset 12.5 % of the chord).
  */
 
 type Pt = [number, number];
 export type MapData = {
   sea: { pts: Pt[]; matadiFrac: number };
   air: { pts: Pt[] };
-  cities: { bru: Pt; mat: Pt; fih: Pt };
+  airGoma: { pts: Pt[] };
+  cities: { bru: Pt; mat: Pt; fih: Pt; gom: Pt };
   countries: { id?: string; n: string; d: string; c: number }[];
 };
 
@@ -74,8 +81,10 @@ export function TrackingMap({ data, view, variant, lang, labels }: {
   const cancelled = view.status === 'cancelled';
   const delivered = view.status === 'delivered';
   const step = cancelled ? (view.reachedBeforeCancel ?? 'confirmed') : view.status;
-  const route = sea ? data.sea.pts : data.air.pts;
-  const pts = view.corridor === 'cd-be' ? [...route].reverse() : route;
+  const r = view.route!;
+  const goma = r.dest === 'gom';
+  const line = sea ? data.sea.pts : goma ? data.airGoma.pts : data.air.pts;
+  const pts = r.reverse ? [...line].reverse() : line;
   const pos = along(pts, routeFraction(step as Exclude<typeof step, 'cancelled'>, view.mode, data.sea.matadiFrac));
   const done: Pt[] = [...pts.slice(0, pos.i), [pos.x, pos.y]];
   const rest: Pt[] = [[pos.x, pos.y], ...pts.slice(pos.i)];
@@ -85,7 +94,13 @@ export function TrackingMap({ data, view, variant, lang, labels }: {
   const Icon = delivered ? Check : cancelled ? X : view.mode === 'air' ? Plane : sea ? Ship : Package;
   // lucide's Plane points up-right (-45°): turn it along the route.
   const rot = moving && view.mode === 'air' ? pos.ang + 45 : 0;
-  const { bru: o, fih: k, mat: mt } = data.cities;
+  const { bru: o, mat: mt } = data.cities;
+  const k = goma ? data.cities.gom : data.cities.fih;
+  const destName = goma ? 'Goma' : 'Kinshasa';
+  // Goma sits on the eastern border: its label goes to the left (inside DRC).
+  const kx = goma
+    ? k[0] - (delivered ? (mob ? 36 : 30) : 16)
+    : k[0] + (delivered ? (mob ? 36 : 30) : 16);
   const big = mob ? 21 : 17, small = mob ? 17 : 13, cf = mob ? 16 : 12.5;
   const doneStroke = cancelled ? '#8FA3BF' : '#0A1650';
 
@@ -132,7 +147,7 @@ export function TrackingMap({ data, view, variant, lang, labels }: {
         {country('cd', 1352, 700, labels.cd, true)}
         {text(o[0] + (mob ? 18 : 16), o[1] + (mob ? 30 : 26), labels.be, cf + 1, { fontWeight: 600, letterSpacing: 1.2, strokeWidth: 3 })}
         {text(o[0] + (mob ? 18 : 16), o[1] + (mob ? 7 : 6), labels.bru, big, { fontWeight: 600 })}
-        {text(k[0] + (delivered ? (mob ? 36 : 30) : 16), k[1] + (mob ? -14 : 5), 'Kinshasa', big, { fontWeight: 600 })}
+        {text(kx, k[1] + (mob ? -14 : 5), destName, big, { fontWeight: 600, ...(goma ? { textAnchor: 'end' } : {}) })}
         {sea && (
           <>
             <circle cx={mt[0]} cy={mt[1]} r={mob ? 4.5 : 3.5} fill="#0A1650" />

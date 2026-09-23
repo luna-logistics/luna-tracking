@@ -2572,7 +2572,6 @@
     "help": "Une question ? Contactez-nous",
     "history": "Historique de l’envoi",
     "now_tag": "STATUT ACTUEL",
-    "tz": "Heures de Bruxelles",
     "if_applicable": "Si applicable",
     "pending": "À venir",
     "passed": "Étape franchie",
@@ -2608,6 +2607,8 @@
     "sub_updated": "Statut mis à jour le {{date}}.",
     "sub_cancelled": "Une question sur cet envoi ? Contactez-nous, nous vous répondons rapidement.",
     "k_carrier_ref": "N° transporteur",
-    "k_eta": "Livraison prévue"
+    "head_in_transit_nocity": "Votre colis est en route",
+    "head_delivered_nocity": "Votre colis a été livré",
+    "tz_local": "Heure locale ({{city}})"
   }
 }

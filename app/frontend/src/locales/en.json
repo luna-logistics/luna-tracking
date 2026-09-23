@@ -2572,7 +2572,6 @@
     "help": "A question? Contact us",
     "history": "Shipment history",
     "now_tag": "CURRENT STATUS",
-    "tz": "Brussels time",
     "if_applicable": "If applicable",
     "pending": "Upcoming",
     "passed": "Completed",
@@ -2608,6 +2607,8 @@
     "sub_updated": "Status updated on {{date}}.",
     "sub_cancelled": "A question about this shipment? Contact us and we will get back to you quickly.",
     "k_carrier_ref": "Carrier ref.",
-    "k_eta": "Estimated delivery"
+    "head_in_transit_nocity": "Your parcel is on its way",
+    "head_delivered_nocity": "Your parcel has been delivered",
+    "tz_local": "Local time ({{city}})"
   }
 }

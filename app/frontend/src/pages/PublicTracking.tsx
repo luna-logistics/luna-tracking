@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Package, ArrowRight, CheckCircle2, Circle, MapPin, Loader2 } from 'lucide-react';
@@ -7,12 +7,21 @@ import { supabase } from '@/lib/supabase';
 import { pipelineFor, type ShipmentStatus } from '@/lib/shipment-status';
 import { ShipmentStatusBadge } from '@/components/ShipmentStatusBadge';
 import { cn } from '@/lib/utils';
+import { shipmentFromPublicPayload } from '@/lib/tracking';
+import { buildTrackingView } from '@/lib/tracking-view';
+import { TrackingResultView } from '@/components/tracking/TrackingResultView';
 
 /**
  * Public shipment tracking page — no auth required.
  * The URL carries a per-shipment token; the RPC only returns data when
  * the shipper has enabled sharing. Payload is intentionally narrow:
  * no full addresses, no notes, no charges, no goods value.
+ *
+ * Rendering: the SAME result view as the /suivi search (TrackingResultView,
+ * fed by the shared shipmentFromPublicPayload → buildTrackingView). Only the
+ * entry point differs: this page loads directly by token (same
+ * get_public_shipment rule as the /suivi lookup) and has no search box. The
+ * previous layout below is kept as the fallback if a shipment can't be read.
  */
 
 type PublicShipmentEvent = {
@@ -58,11 +67,35 @@ export default function PublicTracking() {
     })();
   }, [token]);
 
+  const view = useMemo(
+    () => (shipment ? buildTrackingView({ status: 'ok', source: 'luna', positions: [], shipment: shipmentFromPublicPayload(shipment) }, token ?? '') : null),
+    [shipment, token],
+  );
+
   const locale = i18n.language;
   const fmtDate = (v: string | null) => v ? new Date(v).toLocaleDateString(locale) : '—';
   const fmtDateTime = (v: string) => new Date(v).toLocaleString(locale, {
     day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
   });
+
+  if (!loading && view) {
+    return (
+      <div className="min-h-[70vh] bg-luna-mist">
+        <SEO title={t('public_tracking.meta_title')} noindex />
+        <section className="mx-auto max-w-[1220px] px-5 sm:px-8" style={{ paddingBottom: 'clamp(48px,6vw,80px)' }}>
+          <TrackingResultView
+            view={view}
+            title={(
+              <h1 className="text-[26px] font-semibold leading-[1.2] tracking-[-.01em] text-luna-ink lg:text-[32px]">
+                {t('public_tracking.heading')}
+              </h1>
+            )}
+          />
+          <p className="pt-6 text-center text-xs text-slate-500">{t('public_tracking.footer_note')}</p>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[70vh] bg-slate-50">
@@ -120,12 +153,9 @@ export default function PublicTracking() {
                 {t('public_tracking.section_dates')}
               </h2>
               <dl className="mt-3 grid grid-cols-2 gap-y-2 text-sm">
-                <dt className="text-slate-500">{t('public_tracking.estimated_pickup')}</dt>
-                <dd className="text-luna-navy">{fmtDate(shipment.estimated_pickup)}</dd>
+                {/* No estimated dates: not shown anywhere for now (unreliable). */}
                 <dt className="text-slate-500">{t('public_tracking.actual_pickup')}</dt>
                 <dd className="text-luna-navy">{fmtDate(shipment.actual_pickup)}</dd>
-                <dt className="text-slate-500">{t('public_tracking.estimated_delivery')}</dt>
-                <dd className="text-luna-navy">{fmtDate(shipment.estimated_delivery)}</dd>
                 <dt className="text-slate-500">{t('public_tracking.actual_delivery')}</dt>
                 <dd className="text-luna-navy">{fmtDate(shipment.actual_delivery)}</dd>
               </dl>

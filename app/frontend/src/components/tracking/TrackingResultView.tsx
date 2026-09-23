@@ -2,13 +2,13 @@ import { useEffect, useState, type ComponentType, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  ArrowRight, BadgeCheck, Barcode, CalendarClock, Check, CircleCheck, CircleX, Clock, FilePen, Hash, House, Info, MapPin,
+  ArrowRight, BadgeCheck, Barcode, Check, CircleCheck, CircleX, Clock, FilePen, Hash, House, Info, MapPin,
   MapPinned, MessageCircle, Package, Plane, Route, Search, Share2, Ship, Stamp, Truck, type LucideProps,
 } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 import { urlFor } from '@/lib/url/routes';
 import { cn } from '@/lib/utils';
-import { TRACK_ORDER, brusselsParts, type TrackStep, type TrackingView } from '@/lib/tracking-view';
+import { TRACK_ORDER, formatWhen, timeZoneCity, viewerTimeZone, type TrackStep, type TrackingView } from '@/lib/tracking-view';
 import { TrackingMap, useTrackingMap } from './TrackingMap';
 
 /**
@@ -16,6 +16,9 @@ import { TrackingMap, useTrackingMap } from './TrackingMap';
  * with the status panel over a left fade, then the shipment history (a
  * horizontal frieze on desktop; on mobile a vertical crop of the corridor, a
  * compact rail, the history newest-first and the details as key/value rows).
+ * The ONE rendering for every entry point: /suivi search and the shared
+ * link page both hand it a TrackingView (lib/tracking-view).
+ * Times: every timestamp is a UTC instant, shown in the viewer's own zone.
  * Data comes from lib/tracking-view (legacy FileMaker or native shipment,
  * read-only); nothing is invented — unknown steps say so.
  */
@@ -47,26 +50,17 @@ export function TrackingResultView({ view, title, search }: {
   const { t, i18n } = useTranslation();
   const lang: 'fr' | 'en' = i18n.language === 'en' ? 'en' : 'fr';
   const desktop = useIsDesktop();
-  const map = useTrackingMap(view.corridor !== null);
+  const map = useTrackingMap(view.route !== null);
 
   // ── Formatting ───────────────────────────────────────────────────────
-  const fmt = (v: string | null | undefined): string => {
-    if (!v) return '';
-    const p = brusselsParts(v, view.timesAreUtc);
-    if (!p) return '';
-    const date = new Intl.DateTimeFormat(lang === 'en' ? 'en-GB' : 'fr-BE', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
-      .format(new Date(Date.UTC(p.y, p.mo - 1, p.d))).replace(',', '');
-    return `${date}${t('tracking_v2.at')}${p.hh}:${p.mi}`;
-  };
-  const fmtDay = (v: string | null): string => {
-    const p = v ? brusselsParts(v, false) : null;
-    if (!p) return '';
-    return new Intl.DateTimeFormat(lang === 'en' ? 'en-GB' : 'fr-BE', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
-      .format(new Date(Date.UTC(p.y, p.mo - 1, p.d))).replace(',', '');
-  };
+  // One formatter for every time on the page (steps, panel, details):
+  // the viewer's own timezone, detected from the browser.
+  const tz = viewerTimeZone();
+  const fmt = (v: string | null | undefined): string => formatWhen(v, lang, t('tracking_v2.at'), tz);
   const modeLabel = view.mode ? t(`tracking_v2.mode_${view.mode}`) : null;
   const ModeIcon: Icon = view.mode === 'air' ? Plane : view.mode === 'sea' ? Ship : Package;
-  const toCity = (view.to ?? '').split(',')[0].trim() || 'Kinshasa';
+  // Never a default city: an unrecorded destination is simply not named.
+  const toCity = view.toCity;
   const hasTimes = Object.keys(view.times).length > 0;
 
   // ── Steps (design logic: done / current / final / future / unknown) ──
@@ -100,11 +94,13 @@ export function TrackingResultView({ view, title, search }: {
   const statusLabel = t(`tracking_v2.step_${view.status}`);
   const ChipIcon: Icon = view.status === 'delivered' ? CircleCheck : cancelled ? CircleX : ModeIcon;
   const stepOf = !cancelled && nowIdx >= 0 ? t('tracking_v2.step_of', { a: nowIdx + 1, b: steps.length }) : '';
-  const headline = t(`tracking_v2.head_${view.status}`, { city: toCity });
+  const headline = toCity || !['in_transit', 'delivered'].includes(view.status)
+    ? t(`tracking_v2.head_${view.status}`, { city: toCity })
+    : t(`tracking_v2.head_${view.status}_nocity`);
   const updated = view.updatedAt ? t('tracking_v2.sub_updated', { date: fmt(view.updatedAt) }) : '';
   const sub =
     view.status === 'in_transit'
-      ? [modeLabel, view.carrier, view.corridor === 'be-cd' ? t('tracking_v2.departed_be') : null].filter(Boolean).join(' · ') || updated
+      ? [modeLabel, view.carrier, view.route && !view.route.reverse ? t('tracking_v2.departed_be') : null].filter(Boolean).join(' · ') || updated
       : view.status === 'delivered' ? (view.times.delivered ? t('tracking_v2.sub_delivered', { date: fmt(view.times.delivered) }) : updated)
       : cancelled ? t('tracking_v2.sub_cancelled')
       : updated;
@@ -115,7 +111,6 @@ export function TrackingResultView({ view, title, search }: {
     ...(modeLabel ? [{ key: 'mode', k: t('tracking_v2.k_mode'), v: modeLabel, icon: ModeIcon }] : []),
     ...(view.carrier ? [{ key: 'carrier', k: t('tracking_v2.k_carrier'), v: view.carrier, icon: Truck }] : []),
     ...(view.carrierRef ? [{ key: 'cref', k: t('tracking_v2.k_carrier_ref'), v: view.carrierRef, icon: Hash }] : []),
-    ...(view.eta && fmtDay(view.eta) ? [{ key: 'eta', k: t('tracking_v2.k_eta'), v: fmtDay(view.eta), icon: CalendarClock }] : []),
     ...(view.updatedAt ? [{ key: 'upd', k: t('tracking_v2.k_updated'), v: fmt(view.updatedAt), icon: Clock }] : []),
     ...(view.from ? [{ key: 'from', k: t('tracking_v2.k_from'), v: view.from, icon: MapPin }] : []),
     ...(view.to ? [{ key: 'to', k: t('tracking_v2.k_to'), v: view.to, icon: MapPinned }] : []),
@@ -167,19 +162,19 @@ export function TrackingResultView({ view, title, search }: {
 
         {/* Map + status panel */}
         <div className={cn('relative mt-6 overflow-hidden rounded-2xl border',
-          view.corridor ? 'h-[600px] border-[#C6D4E6] bg-[#E4EDF6]' : 'border-luna-hair bg-luna-ink')}>
-          {view.corridor && map && <TrackingMap data={map} view={view} variant="desktop" lang={lang} labels={mapLabels} />}
-          {view.corridor && (
+          view.route ? 'h-[600px] border-[#C6D4E6] bg-[#E4EDF6]' : 'border-luna-hair bg-luna-ink')}>
+          {view.route && map && <TrackingMap data={map} view={view} variant="desktop" lang={lang} labels={mapLabels} />}
+          {view.route && (
             <div className="pointer-events-none absolute inset-0" style={{ background: 'linear-gradient(90deg, #0A1650 0px, #0A1650 440px, rgba(10,22,80,0) 500px)' }} />
           )}
-          <div className={cn('relative flex flex-col px-10 pb-9 pt-10', view.corridor ? 'h-full w-[460px]' : 'max-w-[640px]')}>
+          <div className={cn('relative flex flex-col px-10 pb-9 pt-10', view.route ? 'h-full w-[460px]' : 'max-w-[640px]')}>
             <div className="mb-[22px] flex items-center gap-3">
               {chip('d')}
               {stepOf && <span className="text-[12px] text-[#8FA3BF]">{stepOf}</span>}
             </div>
             <h2 className="mb-3 text-[32px] font-semibold leading-[1.2] tracking-[-.01em] text-white [text-wrap:balance]">{headline}</h2>
             {sub && <p className="text-[13px] leading-[1.7] text-[#B9C9E0]">{sub}</p>}
-            <div className={cn('grid grid-cols-2 gap-x-6 gap-y-[18px] border-t border-luna-hair pt-[22px]', view.corridor ? 'mt-auto' : 'mt-8')}>
+            <div className={cn('grid grid-cols-2 gap-x-6 gap-y-[18px] border-t border-luna-hair pt-[22px]', view.route ? 'mt-auto' : 'mt-8')}>
               {details.map((r) => (
                 <div key={r.key} className="min-w-0">
                   <p className="mb-1 text-[11px] font-medium uppercase tracking-[.12em] text-[#8FA3BF]">{r.k}</p>
@@ -199,7 +194,7 @@ export function TrackingResultView({ view, title, search }: {
               </Link>
             </div>
           </div>
-          {view.corridor && (
+          {view.route && (
             <div className="absolute right-5 top-4 flex items-center gap-2 whitespace-nowrap rounded-lg border border-luna-hair bg-[rgba(10,22,80,.72)] px-3 py-[7px] text-[11px] text-[#B9C9E0]">
               <Info className="h-3.5 w-3.5 text-luna-sky" aria-hidden="true" /> {t('tracking_v2.map_note')}
             </div>
@@ -210,7 +205,7 @@ export function TrackingResultView({ view, title, search }: {
         <div className="mt-6 rounded-[14px] border border-[#DCE5F0] bg-white px-8 pb-8 pt-[30px]">
           <div className="mb-7 flex items-baseline justify-between gap-5">
             <h2 className="text-[20px] font-semibold text-luna-ink">{t('tracking_v2.history')}</h2>
-            {hasTimes && <span className="text-[11px] text-luna-body">{t('tracking_v2.tz')}</span>}
+            {hasTimes && <span className="text-[11px] text-luna-body">{t('tracking_v2.tz_local', { city: timeZoneCity(tz) })}</span>}
           </div>
           <ol className="flex">
             {steps.map((s, j) => {
@@ -262,7 +257,7 @@ export function TrackingResultView({ view, title, search }: {
       </form>}
 
       <div className="mt-4 overflow-hidden rounded-[18px] border border-luna-hair bg-luna-ink">
-        {view.corridor && (
+        {view.route && (
           <div className="relative h-[420px] bg-[#E4EDF6]">
             {map && <TrackingMap data={map} view={view} variant="mobile" lang={lang} labels={mapLabels} />}
             <div className="absolute left-3 top-3 flex items-center gap-1.5 whitespace-nowrap rounded-full border border-luna-hair bg-[rgba(10,22,80,.78)] px-2.5 py-[5px] text-[10px] text-[#B9C9E0]">
@@ -295,7 +290,7 @@ export function TrackingResultView({ view, title, search }: {
             })}
           </div>
           <div className="mt-2 flex justify-between text-[10px] text-[#8FA3BF]">
-            <span>{(view.from ?? '').split(',')[0]}</span><span>{toCity}</span>
+            <span>{view.fromCity ?? ''}</span><span>{toCity ?? ''}</span>
           </div>
         </div>
       </div>
@@ -303,7 +298,7 @@ export function TrackingResultView({ view, title, search }: {
       <div className="mt-3 rounded-2xl border border-[#DCE5F0] bg-white px-[18px] pb-1.5 pt-[22px]">
         <div className="mb-5 flex items-baseline justify-between gap-3">
           <h2 className="text-[17px] font-semibold text-luna-ink">{t('tracking_v2.history')}</h2>
-          {hasTimes && <span className="text-[10px] text-luna-body">{t('tracking_v2.tz')}</span>}
+          {hasTimes && <span className="text-[10px] text-luna-body">{t('tracking_v2.tz_local', { city: timeZoneCity(tz) })}</span>}
         </div>
         <ol>
           {rev.map((s, j) => {

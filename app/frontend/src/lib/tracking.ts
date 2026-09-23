@@ -45,8 +45,41 @@ export type TrackingShipment = {
   events: Array<{ kind: string; to_status: string | null; created_at: string }>;
   reference?: string | null;
   tracking_number?: string | null;
-  estimated_delivery?: string | null;
 };
+
+/** get_public_shipment payload (the ONLY data either entry point gets: the
+ *  /suivi lookup via /api-v1/tracking/:token and the shared link page, both
+ *  gated by the same token + tracking_enabled rule in that RPC). */
+export type PublicShipmentPayload = {
+  reference?: string | null;
+  status?: string | null;
+  mode?: string | null;
+  carrier_name?: string | null;
+  tracking_number?: string | null;
+  origin_city?: string | null;
+  origin_country?: string | null;
+  destination_city?: string | null;
+  destination_country?: string | null;
+  events?: Array<{ kind: string; to_status: string | null; created_at: string }>;
+};
+
+/** One mapping from that payload to the result view's input, shared by both
+ *  entry points (like lib/pricing/surfaces for the price surfaces). The
+ *  estimated delivery date is deliberately NOT carried: not shown for now. */
+export function shipmentFromPublicPayload(d: PublicShipmentPayload): TrackingShipment {
+  return {
+    status: d.status ?? null,
+    mode: d.mode ?? null,
+    carrier_name: d.carrier_name ?? null,
+    origin_city: d.origin_city ?? null,
+    origin_country: d.origin_country ?? null,
+    destination_city: d.destination_city ?? null,
+    destination_country: d.destination_country ?? null,
+    events: d.events ?? [],
+    reference: d.reference ?? null,
+    tracking_number: d.tracking_number ?? null,
+  };
+}
 
 export type TrackingResult =
   | { status: 'ok'; positions: TrackingPosition[]; source: 'legacy' | 'luna'; shipment?: TrackingShipment }
@@ -115,21 +148,7 @@ async function fetchLunaNativeTracking(token: string, locale: 'fr' | 'en'): Prom
     });
     if (res.status === 404) return { status: 'not_found', message: notFoundMsg(locale) };
     if (!res.ok) return { status: 'unavailable', message: unavailableMsg(locale) };
-    const body = await res.json() as {
-      data?: {
-        reference?: string;
-        status?: string;
-        mode?: string | null;
-        carrier_name?: string | null;
-        origin_city?: string | null;
-        origin_country?: string | null;
-        destination_city?: string | null;
-        destination_country?: string | null;
-        tracking_number?: string | null;
-        estimated_delivery?: string | null;
-        events?: Array<{ kind: string; to_status: string | null; created_at: string }>;
-      };
-    };
+    const body = await res.json() as { data?: PublicShipmentPayload };
     const events = body.data?.events ?? [];
     if (events.length === 0) return { status: 'not_found', message: notFoundMsg(locale) };
 
@@ -138,23 +157,10 @@ async function fetchLunaNativeTracking(token: string, locale: 'fr' | 'en'): Prom
       if (e.kind === 'status_change') return (locale === 'en' ? 'Status: ' : 'Statut : ') + (e.to_status ?? '—');
       return e.kind;
     };
-    const d = body.data ?? {};
     return {
       status: 'ok',
       source: 'luna',
-      shipment: {
-        status: d.status ?? null,
-        mode: d.mode ?? null,
-        carrier_name: d.carrier_name ?? null,
-        origin_city: d.origin_city ?? null,
-        origin_country: d.origin_country ?? null,
-        destination_city: d.destination_city ?? null,
-        destination_country: d.destination_country ?? null,
-        events,
-        reference: d.reference ?? null,
-        tracking_number: d.tracking_number ?? null,
-        estimated_delivery: d.estimated_delivery ?? null,
-      },
+      shipment: shipmentFromPublicPayload(body.data ?? {}),
       positions: events.map((e) => ({
         numeroColis: body.data?.reference ?? '',
         libelle: label(e),
