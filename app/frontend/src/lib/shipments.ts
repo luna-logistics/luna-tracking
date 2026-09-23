@@ -1,3 +1,4 @@
+import { volumeM3FromCm } from '@/lib/pricing/volume';
 import { supabase } from '@/lib/supabase';
 import type { ShipmentStatus, ShipmentDirection, ShipmentMode } from '@/lib/shipment-status';
 import type { Currency } from '@/lib/businesses';
@@ -204,8 +205,7 @@ export function emptyPackingLine(): PackingLine {
 
 /** Volume of a line in m³ (L×l×H cm → m³ × quantity), or null without all 3 dims. */
 export function lineVolumeM3(l: Pick<PackingLine, 'length_cm' | 'width_cm' | 'height_cm' | 'quantity'>): number | null {
-  if (l.length_cm == null || l.width_cm == null || l.height_cm == null) return null;
-  return (l.length_cm * l.width_cm * l.height_cm / 1_000_000) * (l.quantity || 1);
+  return volumeM3FromCm(l.length_cm, l.width_cm, l.height_cm, l.quantity || 1);
 }
 
 /** Save the form's packing list in one call: updates existing lines by id

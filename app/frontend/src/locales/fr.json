@@ -233,7 +233,7 @@
     "field_parcels": "Nombre de colis identiques",
     "field_volume": "Volume",
     "unit_m3": "m³",
-    "volume_hint": "Renseignez le volume directement, ou laissez-le se déduire des dimensions.",
+    "volume_hint": "Se calcule tout seul dès que les 3 dimensions sont remplies — ou saisissez directement un volume connu.",
     "presets_title": "Exemples rapides",
     "preset_carton_std": "Carton 60 × 40 × 40",
     "preset_carton_small": "Carton 40 × 30 × 30",
@@ -365,7 +365,10 @@
     "sum_origin": "Départ",
     "sum_dims": "Dimensions",
     "quote_dest_detail": "Destination précise (ville, pays)",
-    "quote_dest_detail_ph": "ex. Lubumbashi, RD Congo"
+    "quote_dest_detail_ph": "ex. Lubumbashi, RD Congo",
+    "volume_auto_hint": "Calculé à partir des dimensions (volume d'un colis). Vous pouvez le remplacer par un volume connu.",
+    "volume_from_dims": "calculé depuis les dimensions",
+    "volume_use_dims": "Utiliser le volume calculé ({{v}} m³)"
   },
   "pricing": {
     "meta_title": "Tarifs et devis — Luna Tracking Logistics",
@@ -1449,8 +1452,14 @@
     "help_platform_fee": "Frais de service de la plateforme sur ce devis, déduits de votre marge.",
     "help_valid_until": "Après cette date, le devis n'est plus valable pour votre client.",
     "help_direction": "Export : départ de votre pays vers l'étranger ; import : l'inverse ; national : dans un même pays.",
-    "help_volume": "Longueur × largeur × hauteur en mètres ; sert au poids volumétrique (aérien) et au prix maritime.",
-    "help_weight": "Poids réel total, facturé au gramme près."
+    "help_volume": "Volume total en m³ ; sert au poids volumétrique (aérien) et au prix maritime. Se remplit tout seul si vous indiquez les dimensions d'un colis.",
+    "help_weight": "Poids réel total, facturé au gramme près.",
+    "field_dims": "Dimensions d'un colis (cm) — facultatif",
+    "dim_l": "Longueur",
+    "dim_w": "Largeur",
+    "dim_h": "Hauteur",
+    "help_dims": "Le volume se calcule tout seul : L × l × H × Nb colis. Vous pouvez toujours le corriger à la main.",
+    "help_volume_auto": "Calculé à partir des dimensions × Nb colis. Modifiable si vous connaissez le volume exact."
   },
   "business_quote_detail": {
     "not_found_title": "Devis introuvable",

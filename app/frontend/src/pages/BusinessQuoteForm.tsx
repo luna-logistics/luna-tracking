@@ -17,6 +17,7 @@ import {
 import { fetchActivePricingConfig } from '@/lib/pricing/config';
 import { formatEuros, type PricingConfig } from '@/lib/pricing/engine';
 import { suggestFromGrid, type ProLine, type ProOption } from '@/lib/pricing/pro-suggest';
+import { formatM3, parseDecimal, roundM3, volumeM3FromCm } from '@/lib/pricing/volume';
 import { fetchCustomers, type BusinessCustomer } from '@/lib/customers';
 import { CURRENCIES, type Currency } from '@/lib/businesses';
 import { SHIPMENT_DIRECTIONS, SHIPMENT_MODES } from '@/lib/shipment-status';
@@ -49,6 +50,20 @@ export default function BusinessQuoteForm() {
   const [gridConfig, setGridConfig] = useState<PricingConfig | null>(null);
   const [showSuggest, setShowSuggest] = useState(false);
 
+  // Volume helper — same rule as /calculateur and /tarifs (lib/pricing/volume):
+  // per-piece L×l×H × "Nb colis" pre-fills the volume live; a typed (or saved)
+  // volume is an override, and the dimensions then only offer a one-click reset.
+  const [dims, setDims] = useState({ l: '', w: '', h: '' });
+  const [volTyped, setVolTyped] = useState(false);
+  const dimsL = parseDecimal(dims.l), dimsW = parseDecimal(dims.w), dimsH = parseDecimal(dims.h);
+  const derivedVol = volumeM3FromCm(dimsL, dimsW, dimsH, f.package_count || 1);
+  const volAuto = !volTyped && derivedVol != null;
+  useEffect(() => {
+    if (!volAuto || derivedVol == null) return;
+    const v = roundM3(derivedVol);
+    setF((p) => (p.volume_m3 === v ? p : { ...p, volume_m3: v }));
+  }, [volAuto, derivedVol]);
+
   // Live: re-priced as the weight / volume / route / customs flag change.
   const suggestion = useMemo(() => {
     if (!showSuggest || !gridConfig) return null;
@@ -57,9 +72,10 @@ export default function BusinessQuoteForm() {
       originCountry: f.origin_country, destinationCountry: f.destination_country,
       originCity: f.origin_city, destinationCity: f.destination_city,
       weightKg: f.weight_kg, volumeM3: f.volume_m3, underCustoms: f.under_customs,
+      dimsCm: volAuto ? { length: dimsL, width: dimsW, height: dimsH, pieces: f.package_count } : null,
     }, gridConfig);
   }, [showSuggest, gridConfig, f.mode, f.origin_country, f.destination_country, f.origin_city,
-      f.destination_city, f.weight_kg, f.volume_m3, f.under_customs]);
+      f.destination_city, f.weight_kg, f.volume_m3, f.under_customs, f.package_count, volAuto, dimsL, dimsW, dimsH]);
 
   useEffect(() => {
     if (!current) return;
@@ -69,7 +85,7 @@ export default function BusinessQuoteForm() {
   useEffect(() => {
     if (!id) return;
     void fetchQuote(id).then((q) => {
-      if (q) setF({ ...q });
+      if (q) { setF({ ...q }); setVolTyped(q.volume_m3 != null); }
       setLoading(false);
     });
   }, [id]);
@@ -192,13 +208,33 @@ export default function BusinessQuoteForm() {
               <Field label={t('business_quote_form.field_weight')} hint={t('business_quote_form.help_weight')}>
                 <Input type="number" step="any" min="0" value={f.weight_kg ?? ''} onChange={(e) => setF((p) => ({ ...p, weight_kg: num(e.target.value) }))} />
               </Field>
-              <Field label={t('business_quote_form.field_volume')} hint={t('business_quote_form.help_volume')}>
-                <Input type="number" step="0.001" value={f.volume_m3 ?? ''} onChange={(e) => setF((p) => ({ ...p, volume_m3: num(e.target.value) }))} />
+              <Field label={t('business_quote_form.field_volume')}
+                hint={volAuto ? t('business_quote_form.help_volume_auto') : t('business_quote_form.help_volume')}>
+                <Input type="number" step="any" min="0" value={f.volume_m3 ?? ''}
+                  className={volAuto ? 'bg-sky-50' : undefined}
+                  onChange={(e) => { setVolTyped(e.target.value !== ''); setF((p) => ({ ...p, volume_m3: num(e.target.value) })); }} />
+                {volTyped && derivedVol != null && f.volume_m3 !== roundM3(derivedVol) && (
+                  <button type="button" onClick={() => setVolTyped(false)}
+                    className="mt-1 text-[11px] font-medium text-luna-blue underline underline-offset-2">
+                    {t('calc.volume_use_dims', { v: formatM3(derivedVol) })}
+                  </button>
+                )}
               </Field>
               <Field label={t('business_quote_form.field_pieces')}>
                 <Input type="number" step="1" min="0" value={f.package_count ?? ''} onChange={(e) => setF((p) => ({ ...p, package_count: e.target.value === '' ? null : parseInt(e.target.value, 10) }))} />
               </Field>
             </div>
+            <fieldset className="mt-3">
+              <legend className="text-luna-navy text-xs uppercase tracking-wide">{t('business_quote_form.field_dims')}</legend>
+              <div className="mt-1.5 grid grid-cols-3 gap-2 sm:max-w-md">
+                {(['l', 'w', 'h'] as const).map((k) => (
+                  <Input key={k} type="number" step="any" min="0" inputMode="decimal" value={dims[k]}
+                    aria-label={t(`business_quote_form.dim_${k}`)} placeholder={t(`business_quote_form.dim_${k}`)}
+                    onChange={(e) => setDims((d) => ({ ...d, [k]: e.target.value }))} />
+                ))}
+              </div>
+              <p className="mt-1 text-[11px] leading-snug text-slate-500">{t('business_quote_form.help_dims')}</p>
+            </fieldset>
             <label className="mt-3 flex items-start gap-2 text-sm text-slate-700 cursor-pointer">
               <input type="checkbox" checked={f.under_customs}
                 onChange={(e) => setF((p) => ({ ...p, under_customs: e.target.checked }))}

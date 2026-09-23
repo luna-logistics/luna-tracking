@@ -14,7 +14,8 @@
  *     the quote is flagged "under customs"; the dossier fee is in every price.
  */
 import { computeQuote, type BreakdownLine, type Mode, type ModeResult, type PricingConfig, type QuoteReason } from './engine';
-import { BRUSSELS_RE as BRUSSELS, KINSHASA_RE as KINSHASA } from './surfaces';
+import { BRUSSELS_RE as BRUSSELS, KINSHASA_RE as KINSHASA, sizeInput } from './surfaces';
+import { volumeM3FromCm } from './volume';
 
 export type QuoteMode = 'air' | 'sea' | 'road';
 
@@ -27,6 +28,9 @@ export interface ProQuoteInput {
   weightKg: number | null;
   volumeM3: number | null;
   underCustoms: boolean;
+  /** Per-piece dimensions (cm) while the volume field auto-fills from them;
+   *  omit (or null) when the volume was typed — it then prices on its own. */
+  dimsCm?: { length: number | null; width: number | null; height: number | null; pieces: number | null } | null;
 }
 
 export type ProLine =
@@ -57,13 +61,16 @@ export function suggestFromGrid(q: ProQuoteInput, config: PricingConfig): ProSug
   const origin = cityToken(q.originCountry, q.originCity, 'BE', BRUSSELS, config.corridor.origin);
   const destination = cityToken(q.destinationCountry, q.destinationCity, 'CD', KINSHASA, config.corridor.destination);
 
+  const d = q.dimsCm ?? null;
+  const dimsOk = d != null && volumeM3FromCm(d.length, d.width, d.height) != null;
   const res = computeQuote({
-    weightKg: q.weightKg,
-    volumeM3: q.volumeM3,
-    parcels: 1,
+    // Same size rule as /calculateur and /tarifs (surfaces.sizeInput): auto-filled
+    // dimensions price per piece; otherwise the total volume stands alone.
+    ...sizeInput(dimsOk && d
+      ? { weight: q.weightKg, weightIsTotal: true, volume: null, length: d.length, width: d.width, height: d.height, parcels: d.pieces }
+      : { weight: q.weightKg, weightIsTotal: true, volume: q.volumeM3 }),
     origin,
     destination,
-    volumetricFromVolume: true,
   }, config);
 
   const modes: Mode[] = q.mode === 'air' ? ['express', 'cargo'] : ['sea'];

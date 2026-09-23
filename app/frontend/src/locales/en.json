@@ -233,7 +233,7 @@
     "field_parcels": "Number of identical parcels",
     "field_volume": "Volume",
     "unit_m3": "m³",
-    "volume_hint": "Enter the volume directly, or let it be derived from the dimensions.",
+    "volume_hint": "Fills in automatically once all 3 dimensions are entered — or type a known volume directly.",
     "presets_title": "Quick examples",
     "preset_carton_std": "Carton 60 × 40 × 40",
     "preset_carton_small": "Carton 40 × 30 × 30",
@@ -365,7 +365,10 @@
     "sum_origin": "Origin",
     "sum_dims": "Dimensions",
     "quote_dest_detail": "Exact destination (city, country)",
-    "quote_dest_detail_ph": "e.g. Lubumbashi, DR Congo"
+    "quote_dest_detail_ph": "e.g. Lubumbashi, DR Congo",
+    "volume_auto_hint": "Calculated from the dimensions (one parcel). You can replace it with a known volume.",
+    "volume_from_dims": "from the dimensions",
+    "volume_use_dims": "Use the calculated volume ({{v}} m³)"
   },
   "pricing": {
     "meta_title": "Pricing & quote — Luna Tracking Logistics",
@@ -1449,8 +1452,14 @@
     "help_platform_fee": "The platform's service fee on this quote, deducted from your margin.",
     "help_valid_until": "After this date the quote is no longer valid for your customer.",
     "help_direction": "Export: from your country abroad; import: the reverse; domestic: within one country.",
-    "help_volume": "Length × width × height in metres; used for volumetric weight (air) and the sea price.",
-    "help_weight": "Total actual weight, billed to the gram."
+    "help_volume": "Total volume in m³; used for volumetric weight (air) and the sea price. Fills in automatically when you enter one package's dimensions.",
+    "help_weight": "Total actual weight, billed to the gram.",
+    "field_dims": "Dimensions of one package (cm) — optional",
+    "dim_l": "Length",
+    "dim_w": "Width",
+    "dim_h": "Height",
+    "help_dims": "The volume is calculated for you: L × W × H × packages. You can still correct it by hand.",
+    "help_volume_auto": "Calculated from the dimensions × packages. Editable if you know the exact volume."
   },
   "business_quote_detail": {
     "not_found_title": "Quote not found",

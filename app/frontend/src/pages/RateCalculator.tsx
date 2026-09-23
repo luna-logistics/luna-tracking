@@ -19,6 +19,8 @@ import {
 } from '@/lib/pricing/engine';
 import { fetchActivePricingConfig } from '@/lib/pricing/config';
 import { calculatorEngineInput, gridEstimateLines } from '@/lib/pricing/surfaces';
+import { parseDecimal, volumeM3FromCm } from '@/lib/pricing/volume';
+import { useAutoVolume } from '@/hooks/useAutoVolume';
 
 /**
  * Shipping price calculator — Brussels → Kinshasa (/calculateur).
@@ -125,7 +127,9 @@ export default function RateCalculator() {
   const [width, setWidth] = useState('');
   const [height, setHeight] = useState('');
   const [parcels, setParcels] = useState('1');
-  const [volume, setVolume] = useState('');
+  // Volume (one parcel) pre-fills live from L×l×H, stays editable (shared rule).
+  const vol = useAutoVolume(volumeM3FromCm(parseDecimal(length), parseDecimal(width), parseDecimal(height)));
+  const volume = vol.typed;
   const [destination, setDestination] = useState<DestChoice>('kinshasa');
   const [live, setLive] = useState('');
 
@@ -166,16 +170,16 @@ export default function RateCalculator() {
     if (input.weightKg != null) lines.push(`${t('calc.field_weight')}: ${fmtKg(input.weightKg)} kg`);
     if (input.lengthCm != null && input.widthCm != null && input.heightCm != null) lines.push(`${t('calc.sum_dims')}: ${input.lengthCm} × ${input.widthCm} × ${input.heightCm} cm`);
     if ((num(parcels) || 1) > 1) lines.push(`${t('calc.field_parcels')}: ${num(parcels)}`);
-    if (input.volumeM3 != null) lines.push(`${t('calc.field_volume')}: ${fmtM3(input.volumeM3)} m³`);
+    if (vol.value) lines.push(`${t('calc.field_volume')}: ${vol.value} m³${vol.auto ? ` (${t('calc.volume_from_dims')})` : ''}`);
     return lines;
-  }, [input, destination, parcels, t]);
+  }, [input, destination, parcels, vol.value, vol.auto, t]);
 
   const applyPreset = (p: { l?: number; w?: number; h?: number; kg?: number; m3?: number }) => {
     setLength(p.l != null ? String(p.l) : '');
     setWidth(p.w != null ? String(p.w) : '');
     setHeight(p.h != null ? String(p.h) : '');
     setWeight(p.kg != null ? String(p.kg) : '');
-    setVolume(p.m3 != null ? String(p.m3) : '');
+    if (p.m3 != null) vol.onChange(String(p.m3)); else vol.reset();
     setParcels('1');
   };
 
@@ -254,8 +258,17 @@ export default function RateCalculator() {
 
                 <div style={{ gridColumn: '1 / -1' }}>
                   <label htmlFor="luna-vol" style={LABEL}>{t('calc.field_volume')} <span style={{ fontWeight: 400, color: '#4A5A75' }}>(m³)</span></label>
-                  <input id="luna-vol" inputMode="decimal" placeholder="3" value={volume} onChange={(e) => setVolume(e.target.value)} style={INPUT} />
-                  <p style={NOTE}>{t('calc.volume_hint')}</p>
+                  <input id="luna-vol" inputMode="decimal" placeholder="3" value={vol.value} onChange={(e) => vol.onChange(e.target.value)}
+                    aria-describedby="luna-vol-hint" style={{ ...INPUT, ...(vol.auto ? { background: '#F3F8FD' } : null) }} />
+                  <p id="luna-vol-hint" style={NOTE}>
+                    {vol.auto ? t('calc.volume_auto_hint') : t('calc.volume_hint')}
+                    {vol.differsFromDims && (
+                      <> {' '}<button type="button" onClick={vol.reset}
+                        style={{ padding: 0, border: 0, background: 'none', color: '#2077C3', textDecoration: 'underline', cursor: 'pointer', font: 'inherit' }}>
+                        {t('calc.volume_use_dims', { v: vol.derivedLabel })}
+                      </button></>
+                    )}
+                  </p>
                 </div>
               </div>
 

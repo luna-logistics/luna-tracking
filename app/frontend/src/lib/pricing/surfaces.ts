@@ -13,46 +13,71 @@
  * given, on every surface (it is the same L×l×H / divisor physics).
  */
 import { computeQuote, formatEuros, type Mode, type PricingConfig, type QuoteResponse, type ShipmentInput } from './engine';
+import { parseDecimal, volumeM3FromCm } from './volume';
 
 /** City spellings that mean the corridor's origin / destination. */
 export const BRUSSELS_RE = /^(bruxelles|brussels|brussel|bxl)$/i;
 export const KINSHASA_RE = /^kinshasa$/i;
 
-const toNum = (v: string | number | null | undefined): number | null => {
-  if (v == null || v === '') return null;
-  const n = typeof v === 'number' ? v : Number(String(v).replace(',', '.'));
-  return Number.isFinite(n) && n > 0 ? n : null;
-};
+const toNum = parseDecimal;
+
+type Num = string | number | null | undefined;
+
+/**
+ * Size fields → engine input, the same rule on every surface: the dimensions
+ * (per parcel, × parcels) price the shipment while the volume field follows
+ * them; a TYPED volume is an explicit override and replaces the dimensions
+ * (volumetric weight then comes from that volume — same L×l×H / divisor physics).
+ * `volume` is the typed override only ('' / null while the field auto-fills).
+ */
+export function sizeInput(f: {
+  weight: Num; weightIsTotal: boolean; volume: Num;
+  length?: Num; width?: Num; height?: Num; parcels?: Num;
+}): Pick<ShipmentInput, 'weightKg' | 'weightIsTotal' | 'lengthCm' | 'widthCm' | 'heightCm' | 'parcels' | 'volumeM3' | 'volumetricFromVolume'> {
+  const typed = toNum(f.volume);
+  const l = toNum(f.length), w = toNum(f.width), h = toNum(f.height);
+  const useDims = volumeM3FromCm(l, w, h) != null && typed == null;
+  const parcels = toNum(f.parcels) || 1;
+  return {
+    weightKg: toNum(f.weight),
+    weightIsTotal: f.weightIsTotal,
+    lengthCm: useDims ? l : null, widthCm: useDims ? w : null, heightCm: useDims ? h : null,
+    // A typed volume on a totals form is the TOTAL volume → one "parcel".
+    parcels: useDims || !f.weightIsTotal ? parcels : 1,
+    volumeM3: typed,
+    volumetricFromVolume: true,
+  };
+}
 
 export type CalculatorFields = {
   weight: string; length: string; width: string; height: string;
   parcels: string; volume: string; destination: 'kinshasa' | 'other';
 };
 
-/** /calculateur form → engine input. Origin is always the corridor origin. */
+/** /calculateur form → engine input. Origin is always the corridor origin.
+ *  Weight and volume are per parcel here (× "colis identiques"). */
 export function calculatorEngineInput(f: CalculatorFields): ShipmentInput {
   return {
-    weightKg: toNum(f.weight),
-    lengthCm: toNum(f.length), widthCm: toNum(f.width), heightCm: toNum(f.height),
-    parcels: toNum(f.parcels) || 1,
-    volumeM3: toNum(f.volume),
+    ...sizeInput({ weight: f.weight, weightIsTotal: false, volume: f.volume,
+      length: f.length, width: f.width, height: f.height, parcels: f.parcels }),
     destination: f.destination === 'kinshasa' ? 'kinshasa' : 'autre',
-    volumetricFromVolume: true,
   };
 }
 
-/** /tarifs quote form → engine input (city values → corridor tokens). */
+/** /tarifs quote form → engine input (city values → corridor tokens). The
+ *  weight is the shipment total; dimensions are per parcel × parcels. */
 export function tarifsEngineInput(
-  f: { originValue: string; destinationSlug: string; weight: string | number | null; volume: string | number | null },
+  f: {
+    originValue: string; destinationSlug: string; weight: Num; volume: Num;
+    length?: Num; width?: Num; height?: Num; parcels?: Num;
+  },
   config: PricingConfig,
 ): ShipmentInput {
   return {
-    weightKg: toNum(f.weight),
-    volumeM3: toNum(f.volume),
-    parcels: 1,
+    ...sizeInput({ weight: f.weight, weightIsTotal: true, volume: f.volume,
+      length: f.length, width: f.width, height: f.height, parcels: f.parcels }),
     origin: BRUSSELS_RE.test(f.originValue.trim()) ? config.corridor.origin : (f.originValue.trim().toLowerCase() || 'autre'),
     destination: KINSHASA_RE.test(f.destinationSlug.trim()) ? config.corridor.destination : (f.destinationSlug.trim().toLowerCase() || 'autre'),
-    volumetricFromVolume: true,
   };
 }
 

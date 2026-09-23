@@ -18,6 +18,7 @@
  * Nothing here invents a business value. Every number comes from the config
  * document, which is seeded from the owner's confirmed tariff.
  */
+import { volumeM3FromCm } from './volume';
 
 export type Mode = 'express' | 'cargo' | 'sea';
 
@@ -78,6 +79,9 @@ export interface ShipmentInput {
    *  calculator's volume field stays a sea-only shortcut; the pro quote form,
    *  which only knows total weight + total volume, turns it on. */
   volumetricFromVolume?: boolean;
+  /** `weightKg` is the shipment's TOTAL weight, not one parcel's (/tarifs and
+   *  the pro form ask for a total; the calculator asks per parcel). */
+  weightIsTotal?: boolean;
 }
 
 export interface BreakdownLine {
@@ -145,10 +149,7 @@ const norm = (s: unknown) => String(s ?? '').trim().toLowerCase();
 
 /** Geometric volume of one parcel in m³ from cm dimensions, or null. */
 function volumeFromDims(i: ShipmentInput): number | null {
-  if (isPos(i.lengthCm) && isPos(i.widthCm) && isPos(i.heightCm)) {
-    return (i.lengthCm * i.widthCm * i.heightCm) / 1_000_000;
-  }
-  return null;
+  return volumeM3FromCm(i.lengthCm, i.widthCm, i.heightCm);
 }
 
 /** Volumetric weight (kg) of one parcel: L×l×h(cm) / divisor. */
@@ -161,7 +162,8 @@ function volumetricWeightKg(i: ShipmentInput, divisor: number): number | null {
 
 export function normalizeInput(input: ShipmentInput, config: PricingConfig): NormalizedInput {
   const parcels = isPos(input.parcels) ? Math.floor(input.parcels) : 1;
-  const perParcelWeightKg = isPos(input.weightKg) ? input.weightKg : null;
+  const weightKg = isPos(input.weightKg) ? input.weightKg : null;
+  const perParcelWeightKg = weightKg == null ? null : (input.weightIsTotal ? weightKg / parcels : weightKg);
   const perParcelVolumeM3 = isPos(input.volumeM3) ? input.volumeM3 : volumeFromDims(input);
   const dims = isPos(input.lengthCm) && isPos(input.widthCm) && isPos(input.heightCm)
     ? { lengthCm: input.lengthCm, widthCm: input.widthCm, heightCm: input.heightCm }
@@ -171,7 +173,7 @@ export function normalizeInput(input: ShipmentInput, config: PricingConfig): Nor
     origin: norm(input.origin) || norm(config.corridor.origin),
     destination: norm(input.destination) || norm(config.corridor.destination),
     perParcelWeightKg,
-    totalWeightKg: perParcelWeightKg == null ? null : perParcelWeightKg * parcels,
+    totalWeightKg: weightKg == null ? null : (input.weightIsTotal ? weightKg : weightKg * parcels),
     perParcelVolumeM3,
     totalVolumeM3: perParcelVolumeM3 == null ? null : perParcelVolumeM3 * parcels,
     dims,
