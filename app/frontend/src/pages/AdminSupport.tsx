@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MessageSquare, ArrowLeft, XCircle, RotateCcw, Search, UserRound, Shield, Mail, Save } from 'lucide-react';
 import { SEO } from '@/components/SEO';
@@ -10,7 +10,7 @@ import { ChatMessageList } from '@/components/ChatMessageList';
 import { ChatMessageInput } from '@/components/ChatMessageInput';
 import { OfficeNotificationLog } from '@/components/OfficeNotificationLog';
 import {
-  fetchConversations, setConversationStatus,
+  fetchConversationsStrict, setConversationStatus,
   fetchMessages, sendMessage, markConversationRead,
   subscribeToMessages, subscribeToConversations,
   fetchAccessMode, setAccessMode, SUPPORT_ACCESS_MODES,
@@ -36,6 +36,8 @@ export default function AdminSupport() {
   );
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [listError, setListError] = useState<string | null>(null);
+  const inboxRef = useRef<HTMLDivElement>(null);
   const [q, setQ] = useState('');
   const [onlyUnread, setOnlyUnread] = useState(false);
   const [mode, setMode] = useState<SupportAccessMode | null>(null);
@@ -76,8 +78,14 @@ export default function AdminSupport() {
 
   const reload = async () => {
     setLoading(true);
-    setRows(await fetchConversations());
-    setLoading(false);
+    try {
+      setRows(await fetchConversationsStrict());
+      setListError(null);
+    } catch (err) {
+      setListError(errorMessage(err, t('common.error_generic')));
+    } finally {
+      setLoading(false);
+    }
   };
   useEffect(() => { void reload(); }, []);
 
@@ -177,7 +185,11 @@ export default function AdminSupport() {
           </div>
         </section>
       )}
-      <OfficeNotificationLog onOpenConversation={setSelectedId} />
+      <OfficeNotificationLog onOpenConversation={(id) => {
+        setSelectedId(id);
+        // The inbox sits below the settings panels — bring it into view.
+        window.requestAnimationFrame(() => inboxRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+      }} />
       <section className="mb-4 rounded-2xl border-2 border-amber-500 bg-amber-50 p-4">
         <header className="flex items-center gap-2 mb-2">
           <Shield className="h-4 w-4 text-amber-700" aria-hidden="true" />
@@ -202,7 +214,7 @@ export default function AdminSupport() {
           ))}
         </div>
       </section>
-      <div className="grid gap-0 lg:grid-cols-[380px_1fr] h-[calc(100vh-14rem)] min-h-[500px] rounded-2xl border border-slate-200 bg-white overflow-hidden">
+      <div ref={inboxRef} className="grid gap-0 lg:grid-cols-[380px_1fr] h-[calc(100vh-14rem)] min-h-[500px] rounded-2xl border border-slate-200 bg-white overflow-hidden">
         {/* List */}
         <aside className={cn('border-r border-slate-200 flex flex-col', selectedId && 'hidden lg:flex')}>
           <header className="px-4 py-3 border-b border-slate-200 space-y-2">
@@ -223,7 +235,16 @@ export default function AdminSupport() {
           </header>
           <div className="flex-1 overflow-y-auto">
             {loading && <div className="p-6 text-center text-sm text-slate-500">{t('common.loading')}</div>}
-            {!loading && filtered.length === 0 && (
+            {!loading && listError && (
+              <div role="alert" className="m-3 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-800">
+                <p className="font-semibold">{t('admin_support.list_error')}</p>
+                <p className="mt-1 break-words">{listError}</p>
+                <Button size="sm" variant="outline" className="mt-2 h-7" onClick={() => void reload()}>
+                  <RotateCcw className="h-3.5 w-3.5" />{t('admin_support.log_refresh')}
+                </Button>
+              </div>
+            )}
+            {!loading && !listError && filtered.length === 0 && (
               <div className="p-6 text-center text-sm text-slate-500">{t('admin_support.empty')}</div>
             )}
             {filtered.map((r) => (

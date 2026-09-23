@@ -663,7 +663,7 @@
     "log_status_all": "Tous",
     "log_status_pending": "En attente",
     "log_status_sending": "Envoi en cours",
-    "log_status_sent": "Envoyé",
+    "log_status_sent": "Transmis",
     "log_status_skipped": "Ignoré",
     "log_status_failed": "Échec",
     "log_refresh": "Actualiser",
@@ -682,7 +682,12 @@
     "log_retry_queued": "E-mail remis en file d’envoi.",
     "log_open_conversation": "Ouvrir la conversation",
     "log_failed_count_one": "{{count}} échec",
-    "log_failed_count_other": "{{count}} échecs"
+    "log_failed_count_other": "{{count}} échecs",
+    "log_read": "Lire",
+    "log_read_hide": "Masquer",
+    "log_no_body": "Contenu indisponible (demande supprimée).",
+    "list_error": "Impossible de charger les conversations.",
+    "log_delivery_note": "« Transmis » = accepté par le service d’envoi (Resend). La remise dans la boîte de réception n’est pas encore suivie ici : si un e-mail n’arrive pas, le contenu reste lisible avec « Lire »."
   },
   "business_reports": {
     "meta_title": "Comptes & rapports — Luna Tracking Logistics",

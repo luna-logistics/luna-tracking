@@ -21,6 +21,9 @@ export type OfficeNotification = {
   label: string | null;
   contact: string | null;
   conversation_id: string | null;
+  /** The submission's actual content (message body / request description /
+   *  order lines) so the admin can read it without the e-mail. */
+  body: string | null;
 };
 
 export async function fetchOfficeNotifications(

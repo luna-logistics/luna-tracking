@@ -663,7 +663,7 @@
     "log_status_all": "All",
     "log_status_pending": "Queued",
     "log_status_sending": "Sending",
-    "log_status_sent": "Sent",
+    "log_status_sent": "Handed off",
     "log_status_skipped": "Skipped",
     "log_status_failed": "Failed",
     "log_refresh": "Refresh",
@@ -682,7 +682,12 @@
     "log_retry_queued": "E-mail queued again.",
     "log_open_conversation": "Open conversation",
     "log_failed_count_one": "{{count}} failure",
-    "log_failed_count_other": "{{count}} failures"
+    "log_failed_count_other": "{{count}} failures",
+    "log_read": "Read",
+    "log_read_hide": "Hide",
+    "log_no_body": "Content unavailable (request deleted).",
+    "list_error": "Could not load conversations.",
+    "log_delivery_note": "“Handed off” = accepted by the sending service (Resend). Delivery to the inbox is not tracked here yet: if an e-mail does not arrive, its content can still be read with “Read”."
   },
   "business_reports": {
     "meta_title": "Accounts & reports — Luna Tracking Logistics",

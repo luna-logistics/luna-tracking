@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { History, RefreshCw, RotateCcw, MessageSquare } from 'lucide-react';
+import { History, RefreshCw, RotateCcw, MessageSquare, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/sonner';
 import {
@@ -29,6 +29,7 @@ export function OfficeNotificationLog({ onOpenConversation }: { onOpenConversati
   const [loadError, setLoadError] = useState<string | null>(null);
   const [retrying, setRetrying] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [reading, setReading] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -72,6 +73,7 @@ export function OfficeNotificationLog({ onOpenConversation }: { onOpenConversati
         </Button>
       </header>
       <p className="text-xs text-slate-600 mt-2">{t('admin_support.log_intro')}</p>
+      <p className="text-[11px] text-slate-500 mt-1">{t('admin_support.log_delivery_note')}</p>
 
       {open && (
         <div id="office-notification-log" className="mt-3">
@@ -123,6 +125,12 @@ export function OfficeNotificationLog({ onOpenConversation }: { onOpenConversati
                       <td className="px-3 py-2 min-w-[12rem]">
                         <p className="font-medium text-luna-navy">{r.label ?? '—'}</p>
                         {r.contact && <p className="text-slate-500">{r.contact}</p>}
+                        {reading === r.id && (
+                          <div id={`office-log-body-${r.id}`}
+                            className="mt-2 rounded-lg border-l-4 border-luna-navy bg-slate-50 px-3 py-2 text-slate-800 whitespace-pre-wrap break-words">
+                            {r.body || t('admin_support.log_no_body')}
+                          </div>
+                        )}
                       </td>
                       <td className="px-3 py-2 min-w-[10rem]">
                         <span className={cn('inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold', STATUS_STYLES[r.status])}>
@@ -132,6 +140,12 @@ export function OfficeNotificationLog({ onOpenConversation }: { onOpenConversati
                       </td>
                       <td className="px-3 py-2 whitespace-nowrap text-right">
                         <div className="flex justify-end gap-1">
+                          <Button size="sm" variant="outline" className="h-7 px-2"
+                            onClick={() => setReading((cur) => cur === r.id ? null : r.id)}
+                            aria-expanded={reading === r.id} aria-controls={`office-log-body-${r.id}`}>
+                            {reading === r.id ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                            {reading === r.id ? t('admin_support.log_read_hide') : t('admin_support.log_read')}
+                          </Button>
                           {r.conversation_id && onOpenConversation && (
                             <Button size="sm" variant="ghost" className="h-7 px-2"
                               onClick={() => onOpenConversation(r.conversation_id!)}

@@ -44,6 +44,14 @@ export type SupportMessage = {
 
 // ─── Conversations ───────────────────────────────────────────────
 
+/** Admin variant: surfaces the error instead of an empty list, so a broken
+ *  RPC is visible rather than looking like "no conversations". */
+export async function fetchConversationsStrict(): Promise<ConversationSummary[]> {
+  const { data, error } = await supabase.rpc('support_conversations_with_unread');
+  if (error) throw error;
+  return (data ?? []) as ConversationSummary[];
+}
+
 export async function fetchConversations(): Promise<ConversationSummary[]> {
   const { data, error } = await supabase.rpc('support_conversations_with_unread');
   if (error) { console.warn('[support] list failed:', error.message); return []; }
