@@ -7,6 +7,7 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { useSupportUnread } from '@/hooks/useSupportUnread';
 import { cn } from '@/lib/utils';
+import { useDashboardFeatures } from '@/contexts/DashboardFeaturesContext';
 
 /**
  * Authenticated client area shell — same Navbar/Footer as public pages, with
@@ -20,12 +21,14 @@ export function AccountShell() {
   const lang = i18n.language === 'en' ? 'en' : 'fr';
 
   const supportUnread = useSupportUnread();
-  const items = [
-    { to: urlFor('account', lang), label: t('account.sidebar_shipments'), icon: Package },
-    { to: urlFor('accountOrders', lang), label: t('account.sidebar_orders'), icon: Clock },
-    { to: urlFor('accountInvoices', lang), label: t('account.sidebar_invoices'), icon: FileText },
-    { to: urlFor('accountSupport', lang), label: t('account.sidebar_support'), icon: MessageSquare },
+  const { isFeatureEnabled } = useDashboardFeatures();
+  const allItems = [
+    { to: urlFor('account', lang), label: t('account.sidebar_shipments'), icon: Package, featureKey: 'account' },
+    { to: urlFor('accountOrders', lang), label: t('account.sidebar_orders'), icon: Clock, featureKey: 'accountOrders' },
+    { to: urlFor('accountInvoices', lang), label: t('account.sidebar_invoices'), icon: FileText, featureKey: 'accountInvoices' },
+    { to: urlFor('accountSupport', lang), label: t('account.sidebar_support'), icon: MessageSquare, featureKey: 'accountSupport' },
   ];
+  const items = allItems.filter((it) => isFeatureEnabled('individual', it.featureKey));
 
   return (
     <div className="flex min-h-screen flex-col">

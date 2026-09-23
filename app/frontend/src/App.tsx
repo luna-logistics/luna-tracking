@@ -194,8 +194,8 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
             </ProtectedRoute>
           }>
             <Route path={t('/compte', '/account')} element={<Account />} />
-            <Route path={t('/compte/commandes', '/account/orders')} element={<AccountOrders />} />
-            <Route path={t('/compte/factures', '/account/invoices')} element={<AccountInvoices />} />
+            <Route path={t('/compte/commandes', '/account/orders')} element={<FeatureGate dashboard="individual" featureKey="accountOrders"><AccountOrders /></FeatureGate>} />
+            <Route path={t('/compte/factures', '/account/invoices')} element={<FeatureGate dashboard="individual" featureKey="accountInvoices"><AccountInvoices /></FeatureGate>} />
             <Route path={t('/compte/support', '/account/support')} element={<SupportChat />} />
           </Route>
 
