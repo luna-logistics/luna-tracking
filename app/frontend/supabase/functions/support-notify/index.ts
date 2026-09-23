@@ -48,6 +48,8 @@ type Mail = {
   rows: Array<[string, string]>; body: string | null;
   cta: { label: string; url: string };
   notifyEmail: string; fromAddress: string; enabled: boolean;
+  /** Addresses to leave off this round (the staff member who replied). */
+  exclude?: string[];
 };
 
 function renderHtml(m: Mail): string {
@@ -83,22 +85,46 @@ async function buildMail(db: any, kind: Kind, id: string): Promise<Mail | null> 
     if (error) throw new Error(`rpc_failed: ${error.message}`);
     if (!data) return null;
     const d = data as {
-      subject: string | null; body: string; is_guest: boolean;
-      sender_email: string | null; sender_name: string | null;
+      conversation_id: string; subject: string | null; body: string; is_guest: boolean;
+      sender_role: 'client' | 'admin'; author_email: string | null; is_first: boolean;
+      client_email: string | null; sender_name: string | null;
       notify_email: string; from_address: string; notify_enabled: boolean;
     };
-    const sender = d.sender_name
-      ? `${d.sender_name}${d.sender_email ? ` (${d.sender_email})` : ''}`
-      : (d.sender_email ?? 'Visiteur anonyme');
+    const clientLabel = d.sender_name
+      ? `${d.sender_name}${d.client_email ? ` (${d.client_email})` : ''}`
+      : (d.client_email ?? 'Visiteur anonyme');
     const body = d.body.length > 4000 ? d.body.slice(0, 4000) + '…' : d.body;
-    return {
-      subject: `[Luna Support] ${d.subject ?? 'Nouveau message'} — ${sender}${d.is_guest ? ' — Visiteur non connecté' : ''}`,
-      heading: 'Nouveau message support',
-      replyTo: d.sender_email,
-      rows: [['De', sender], ['Compte', d.is_guest ? 'Invité (non connecté)' : 'Client connecté'], ['Sujet', d.subject ?? '']],
+    const topic = d.subject ?? 'Conversation support';
+    const common = {
+      replyTo: d.client_email,
       body,
-      cta: { label: 'Répondre au client', url: `${SITE_URL}/admin/support` },
+      cta: { label: 'Ouvrir la conversation', url: `${SITE_URL}/admin/support?c=${d.conversation_id}` },
       notifyEmail: d.notify_email, fromAddress: d.from_address, enabled: d.notify_enabled,
+    };
+    const clientRows: Array<[string, string]> = [
+      ['Client', clientLabel],
+      ['E-mail du client', d.client_email ?? ''],
+      ['Compte', d.is_guest ? 'Invité (non connecté)' : 'Client connecté'],
+      ['Sujet', topic],
+    ];
+
+    if (d.sender_role === 'admin') {
+      // A colleague answered: tell the rest of the list what was said.
+      return {
+        ...common,
+        subject: `[Luna Support] Réponse de l'équipe — ${topic} — ${clientLabel}`,
+        heading: "Réponse envoyée au client par l'équipe",
+        rows: [['Répondu par', d.author_email ?? 'Équipe Luna'], ...clientRows],
+        exclude: d.author_email ? [d.author_email] : [],
+      };
+    }
+    return {
+      ...common,
+      subject: d.is_first
+        ? `[Luna Support] ${topic} — ${clientLabel}${d.is_guest ? ' — Visiteur non connecté' : ''}`
+        : `[Luna Support] Nouvelle réponse du client — ${topic} — ${clientLabel}`,
+      heading: d.is_first ? 'Nouveau message support' : 'Nouvelle réponse du client',
+      rows: clientRows,
     };
   }
 
@@ -206,7 +232,12 @@ Deno.serve(async (req) => {
   if (!mail.notifyEmail)  { await finish('skipped', 'no_recipient');     return ok({ skipped: 'no_recipient' }); }
   if (!RESEND_KEY)        { await finish('failed', 'RESEND_API_KEY not set on the Edge Function'); return ok({ error: 'resend_not_configured' }, 500); }
 
-  const recipients = mail.notifyEmail.split(',').map((s) => s.trim()).filter(Boolean);
+  // Exclude the replying staff member (matched on their login e-mail); if
+  // nobody on the list matches, everyone is notified — never under-notify.
+  const excluded = new Set((mail.exclude ?? []).map((e) => e.trim().toLowerCase()));
+  const recipients = mail.notifyEmail.split(',').map((s) => s.trim()).filter(Boolean)
+    .filter((r) => !excluded.has(r.toLowerCase()));
+  if (recipients.length === 0) { await finish('skipped', 'no_other_recipient'); return ok({ skipped: 'no_other_recipient' }); }
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },

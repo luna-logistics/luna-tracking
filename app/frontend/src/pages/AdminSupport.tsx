@@ -263,6 +263,9 @@ export default function AdminSupport() {
                       )}
                       <span className="truncate">{r.user_display_name || r.user_email || t('admin_support.unknown_user')}</span>
                     </p>
+                    {r.user_display_name && r.user_email && (
+                      <p className="text-[11px] text-slate-500 truncate">{r.user_email}</p>
+                    )}
                     <p className="text-xs text-slate-500 truncate">{r.subject || t('support_chat.no_subject')}</p>
                   </div>
                   {r.unread_count > 0 && (
@@ -305,6 +308,13 @@ export default function AdminSupport() {
                   </p>
                   <p className="text-[11px] text-slate-500 truncate">
                     {selected.subject || t('support_chat.no_subject')} · {t(`support_chat.status_${selected.status}`)}
+                    {selected.user_email && (
+                      <>
+                        {' · '}
+                        <a href={`mailto:${selected.user_email}`} className="text-slate-600 hover:text-luna-navy hover:underline"
+                          title={t('admin_support.client_email')}>{selected.user_email}</a>
+                      </>
+                    )}
                   </p>
                 </div>
                 {selected.status === 'open' ? (

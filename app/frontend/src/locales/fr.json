@@ -689,7 +689,8 @@
     "log_read_hide": "Masquer",
     "log_no_body": "Contenu indisponible (demande supprimée).",
     "list_error": "Impossible de charger les conversations.",
-    "log_delivery_note": "« Transmis » = accepté par le service d’envoi (Resend). La remise dans la boîte de réception n’est pas encore suivie ici : si un e-mail n’arrive pas, le contenu reste lisible avec « Lire »."
+    "log_delivery_note": "« Transmis » = accepté par le service d’envoi (Resend). La remise dans la boîte de réception n’est pas encore suivie ici : si un e-mail n’arrive pas, le contenu reste lisible avec « Lire ».",
+    "client_email": "E-mail du client"
   },
   "business_reports": {
     "meta_title": "Comptes & rapports — Luna Tracking Logistics",

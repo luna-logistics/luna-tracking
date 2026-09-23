@@ -689,7 +689,8 @@
     "log_read_hide": "Hide",
     "log_no_body": "Content unavailable (request deleted).",
     "list_error": "Could not load conversations.",
-    "log_delivery_note": "“Handed off” = accepted by the sending service (Resend). Delivery to the inbox is not tracked here yet: if an e-mail does not arrive, its content can still be read with “Read”."
+    "log_delivery_note": "“Handed off” = accepted by the sending service (Resend). Delivery to the inbox is not tracked here yet: if an e-mail does not arrive, its content can still be read with “Read”.",
+    "client_email": "Client's e-mail"
   },
   "business_reports": {
     "meta_title": "Accounts & reports — Luna Tracking Logistics",
