@@ -83,6 +83,10 @@ jobs:
           # to fetch active product slugs at build time.
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          # Cloudflare Turnstile SITE key (public by design). Empty = forms run
+          # with the honeypot only; the server-side check stays dormant until
+          # the matching secret is stored in Supabase Vault (turnstile_secret).
+          VITE_TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
 
       - name: Deploy to Cloudflare Workers
         # Using wrangler directly (installed as a devDep) instead of

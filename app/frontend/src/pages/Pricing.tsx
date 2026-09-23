@@ -15,6 +15,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Ed } from '@/components/Ed';
 import { toast } from '@/components/ui/sonner';
 import { urlFor } from '@/lib/url/routes';
+import { FormShield, useFormShield } from '@/components/FormShield';
+import { submitErrorKey } from '@/lib/errors';
 import {
   createConversation, sendMessage, guestCreateConversation, writeGuestToken,
 } from '@/lib/support-chat';
@@ -70,6 +72,7 @@ export default function Pricing() {
   const [cities, setCities] = useState<DestinationCity[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const shield = useFormShield();
 
   // Controlled fields — needed to compose the request body + subject.
   const prefilled = searchParams.has('weight') || searchParams.has('volume') || searchParams.has('mode') || searchParams.has('from');
@@ -127,7 +130,8 @@ export default function Pricing() {
         const conv = await createConversation(subject);
         await sendMessage(conv.id, body);
       } else {
-        const row = await guestCreateConversation({ email, name, subject, body });
+        const proof = await shield.getProof();
+        const row = await guestCreateConversation({ email, name, subject, body, captcha: proof.captcha, hp: proof.hp });
         writeGuestToken(row.guest_token);
       }
       setSubmitted(true);
@@ -135,8 +139,10 @@ export default function Pricing() {
       trackEvent('generate_lead', { form: 'pricing', route_type: `${origin === OTHER ? 'other' : origin} → ${destination}`, mode, has_account: !!user });
     } catch (err) {
       console.error('[pricing] quote request failed', err);
-      toast.error(t('pricing.error_send', { email: supportEmail }));
+      const key = submitErrorKey(err, '');
+      toast.error(key ? t(key) : t('pricing.error_send', { email: supportEmail }));
     } finally {
+      shield.reset();
       setSubmitting(false);
     }
   };
@@ -179,7 +185,8 @@ export default function Pricing() {
               <p className="mt-2 text-sm text-slate-600">{t('pricing.success_body')}</p>
             </div>
           ) : (
-            <form onSubmit={onSubmit} className="mt-8 rounded-2xl border-2 border-luna-blue/30 bg-white p-6 shadow-sm grid gap-5">
+            <form onSubmit={onSubmit} className="relative mt-8 rounded-2xl border-2 border-luna-blue/30 bg-white p-6 shadow-sm grid gap-5">
+              {!user && <FormShield shield={shield} />}
               {prefilled && (
                 <p className="rounded-xl bg-luna-cyan/10 border border-luna-cyan/40 px-4 py-2.5 text-sm text-luna-navy">
                   {t('pricing.prefilled_banner')}

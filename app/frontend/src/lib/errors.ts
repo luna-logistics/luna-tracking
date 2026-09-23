@@ -17,3 +17,13 @@ export function errorMessage(err: unknown, fallback: string): string {
   if (typeof err === 'string' && err) return err;
   return fallback;
 }
+
+/** i18n key for a failed PUBLIC form submission: specific text for the
+ *  anti-abuse rejections (the guest RPCs return these codes), the generic
+ *  error otherwise. `fallbackKey` lets a form keep its own generic wording. */
+export function submitErrorKey(err: unknown, fallbackKey = 'common.error_generic'): string {
+  const m = errorMessage(err, '');
+  if (m === 'rate_limited' || m.includes('rate_limited')) return 'form_shield.rate_limited';
+  if (m === 'captcha_failed') return 'form_shield.captcha_failed';
+  return fallbackKey;
+}

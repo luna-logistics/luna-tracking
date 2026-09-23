@@ -40,7 +40,7 @@ const OPENAPI_SPEC = {
     title: 'Luna Tracking API',
     version: '1.0.0',
     summary: 'Freight logistics API for Luna Tracking Logistics.',
-    description: 'Read-only public API today (shipments, quotes, rates, tracking, usage). Every scoped endpoint is enforced server-side: an ApiKey may only reach the endpoints its scopes cover, and only its own business data. Write endpoints, webhooks setup via API, and paid tiers are on the roadmap. Documentation: https://lunatrackinglogistics.com/docs/api',
+    description: 'Read-only public API today (shipments, quotes, rates, tracking, usage). Every scoped endpoint is enforced server-side: an ApiKey may only reach the endpoints its scopes cover, and only its own business data. Requests are rate-limited per client IP (429 + Retry-After). Write endpoints, webhooks setup via API, and paid tiers are on the roadmap. Documentation: https://lunatrackinglogistics.com/docs/api',
     contact: { name: 'Luna Tracking Logistics', email: 'info@lunatrackinglogistics.com', url: 'https://lunatrackinglogistics.com/contact' },
     license: { name: 'Proprietary', url: 'https://lunatrackinglogistics.com/mentions-legales' },
   },
@@ -381,6 +381,30 @@ function requireScope(ctx: Ctx, scope: string): Response | null {
     return fail('forbidden', `this API key does not have the "${scope}" permission`, 403);
   }
   return null;
+}
+
+// ─── Rate limiting (per client IP) ─────────────────────────────────
+// Buckets + limits live in platform_settings.rate_limits (DB, editable
+// without a deploy) and are consumed through the service-role-only
+// rate_limit_consume() RPC — the same limiter the public form RPCs use.
+// Fails OPEN if the limiter itself errors: availability over strictness.
+function clientIp(req: Request): string | null {
+  const cf = req.headers.get('cf-connecting-ip');
+  if (cf && cf.trim()) return cf.trim();
+  const xff = req.headers.get('x-forwarded-for');
+  return xff ? (xff.split(',')[0].trim() || null) : null;
+}
+
+/** Seconds to wait when `ip` is over the `bucket` limit, else null. */
+async function overLimit(bucket: string, ip: string | null): Promise<number | null> {
+  const service = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!ip || !service) return null;
+  try {
+    const admin = createClient(Deno.env.get('SUPABASE_URL')!, service, { auth: { persistSession: false } });
+    const { data, error } = await admin.rpc('rate_limit_consume', { p_bucket: bucket, p_subject: ip });
+    if (error || !data) return null;
+    return (data as any).allowed === false ? Number((data as any).retry_after_seconds ?? 60) : null;
+  } catch { return null; }
 }
 
 // ─── Response helpers ────────────────────────────────────────────────
@@ -754,6 +778,20 @@ serve(async (req) => {
 
   const route = routes.find((r) => r.method === method && r.match(segments));
   if (!route) return finish(null, fail('not_found', `no route for ${method} ${path}`, 404));
+
+  // Per-IP limits: a general API budget, plus a tighter one on tracking
+  // lookups (anti-enumeration). Health + the OpenAPI document are unmetered.
+  const unmetered = segments[0] === 'health' || segments[0] === 'openapi.json' || segments[0] === 'openapi';
+  if (!unmetered) {
+    const ip = clientIp(req);
+    const isTracking = segments[0] === 'tracking' || segments[0] === 'legacy-tracking';
+    const retry = (await overLimit('api', ip)) ?? (isTracking ? await overLimit('tracking', ip) : null);
+    if (retry != null) {
+      const res = fail('rate_limited', `too many requests from this address, retry in ${retry}s`, 429);
+      res.headers.set('Retry-After', String(retry));
+      return finish(null, res);
+    }
+  }
 
   const { auth, supabase } = await extractAuth(req);
   const ctx: Ctx = {

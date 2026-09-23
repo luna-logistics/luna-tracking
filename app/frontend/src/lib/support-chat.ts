@@ -212,18 +212,26 @@ export function writeGuestToken(token: string | null): void {
   } catch { /* private-mode / no storage: silently ignore */ }
 }
 
+/** Rejections (rate_limited, captcha_failed, invalid_email…) come back as
+ *  `error` on the row rather than as a DB exception — so the attempt still
+ *  counts against the rate limit — and are re-thrown here as an Error whose
+ *  message is the code (see submitErrorKey). */
 export async function guestCreateConversation(input: {
   email: string; name: string; subject: string; body: string;
+  captcha?: string | null; hp?: string;
 }): Promise<{ conversation_id: string; guest_token: string }> {
   const { data, error } = await supabase.rpc('guest_create_support_conversation', {
     p_email: input.email,
     p_name: input.name,
     p_subject: input.subject,
     p_body: input.body,
+    p_captcha: input.captcha ?? null,
+    p_hp: input.hp ?? '',
   });
   if (error) throw error;
   const row = Array.isArray(data) && data.length > 0 ? data[0] : null;
   if (!row) throw new Error('empty_response');
+  if (row.error) throw new Error(String(row.error));
   return { conversation_id: row.conversation_id as string, guest_token: row.guest_token as string };
 }
 

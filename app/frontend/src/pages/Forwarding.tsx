@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { trackEvent } from '@/lib/analytics';
 import { writeGuestToken } from '@/lib/support-chat';
+import { FormShield, useFormShield } from '@/components/FormShield';
+import { submitErrorKey } from '@/lib/errors';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, Plane, ArrowRight, Plus, Minus, Ban, Paperclip } from 'lucide-react';
@@ -50,6 +52,7 @@ export default function Forwarding() {
   const [detail, setDetail] = useState('');
   const [consent, setConsent] = useState(false);
   const [errors, setErrors] = useState<{ name?: boolean; email?: boolean; consent?: boolean }>({});
+  const shield = useFormShield();
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
   const [reference, setReference] = useState('');
@@ -85,7 +88,10 @@ export default function Forwarding() {
         quantity ? `${t('forwarding.f_qty_label')} ${quantity}` : '',
         detail.trim() ? `${t('forwarding.f_detail_label')} ${detail.trim()}` : '',
       ].filter(Boolean).join('\n');
+      const proof = await shield.getProof();
       const res = await submitForwardingRequest({
+        captcha: proof.captcha,
+        hp: proof.hp,
         subject: t('forwarding.conv_subject', { origin: originLabel, dest: destLabel }),
         name: name.trim(),
         email: email.trim(),
@@ -103,8 +109,9 @@ export default function Forwarding() {
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('[forwarding] submit failed', err);
-      toast.error(t('common.error_generic'));
+      toast.error(t(submitErrorKey(err)));
     } finally {
+      shield.reset();
       setSubmitting(false);
     }
   };
@@ -498,6 +505,7 @@ export default function Forwarding() {
               </label>
               {errors.consent && <p className="mt-1.5 text-[13px] leading-[1.5] text-[#B3261E]">{t('forwarding.err_consent')}</p>}
 
+              <FormShield shield={shield} />
               <button type="button" onClick={submit} disabled={submitting}
                 className="mt-6 inline-flex items-center justify-center gap-2.5 rounded-lg border border-luna-royal bg-luna-royal px-7 py-[15px] text-[15px] font-semibold text-white transition-colors hover:border-luna-azure hover:bg-luna-azure disabled:opacity-60">
                 {t('forwarding.f_submit')}

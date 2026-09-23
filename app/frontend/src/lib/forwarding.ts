@@ -20,7 +20,8 @@ export type ForwardingRequest = {
 };
 
 export type NewForwardingRequest =
-  Omit<ForwardingRequest, 'id' | 'created_at' | 'status' | 'reference' | 'conversation_id'> & { subject: string };
+  Omit<ForwardingRequest, 'id' | 'created_at' | 'status' | 'reference' | 'conversation_id'>
+  & { subject: string; captcha?: string | null; hp?: string };
 
 export type ForwardingSubmission = {
   reference: string;
@@ -40,9 +41,12 @@ export async function submitForwardingRequest(req: NewForwardingRequest): Promis
     p_description: req.description,
     p_estimated_value: req.estimated_value,
     p_subject: req.subject,
+    p_captcha: req.captcha ?? null,
+    p_hp: req.hp ?? '',
   });
   if (error) throw error;
-  const row = (Array.isArray(data) ? data[0] : data) as ForwardingSubmission | undefined;
+  const row = (Array.isArray(data) ? data[0] : data) as (ForwardingSubmission & { error?: string | null }) | undefined;
+  if (row?.error) throw new Error(row.error);
   if (!row?.reference) throw new Error('forwarding_submit_no_reference');
   return row;
 }

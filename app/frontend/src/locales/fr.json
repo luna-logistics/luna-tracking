@@ -2478,5 +2478,9 @@
     "clear": "Effacer le pays",
     "list_label": "Pays",
     "no_match": "Aucun pays ne correspond."
+  },
+  "form_shield": {
+    "rate_limited": "Trop de demandes envoyées depuis votre connexion. Patientez quelques minutes puis réessayez, ou écrivez-nous à info@lunatrackinglogistics.com.",
+    "captcha_failed": "La vérification anti-robot n'a pas abouti. Réessayez ; si le problème persiste, écrivez-nous à info@lunatrackinglogistics.com."
   }
 }

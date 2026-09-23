@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { errorMessage } from '@/lib/errors';
+import { errorMessage, submitErrorKey } from '@/lib/errors';
+import { FormShield, useFormShield } from '@/components/FormShield';
 import { cn } from '@/lib/utils';
 import {
   fetchAccessMode, fetchConversations, createConversation,
@@ -274,6 +275,7 @@ function GuestBubbleBody() {
   const [name, setName] = useState('');
   const [firstMessage, setFirstMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const shield = useFormShield();
   const [draft, setDraft] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -313,13 +315,17 @@ function GuestBubbleBody() {
     if (!email.trim() || !firstMessage.trim() || busy) return;
     setBusy(true);
     try {
-      const row = await guestCreateConversation({ email, name, subject: '', body: firstMessage });
+      const proof = await shield.getProof();
+      const row = await guestCreateConversation({ email, name, subject: '', body: firstMessage, captcha: proof.captcha, hp: proof.hp });
       writeGuestToken(row.guest_token);
       const fresh = await guestFetchConversation(row.guest_token);
       setConv(fresh);
       setFirstMessage('');
-    } catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
-    finally { setBusy(false); }
+    } catch (err) {
+      const key = submitErrorKey(err, '');
+      toast.error(key ? t(key) : errorMessage(err, t('common.error_generic')));
+    }
+    finally { shield.reset(); setBusy(false); }
   };
 
   const sendGuest = async () => {
@@ -345,7 +351,8 @@ function GuestBubbleBody() {
 
   if (!conv) {
     return (
-      <form onSubmit={start} className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50">
+      <form onSubmit={start} className="relative flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50">
+        <FormShield shield={shield} />
         <p className="text-xs text-slate-600">{t('support_chat.bubble_guest_intro')}</p>
         <div>
           <Label className="text-xs">{t('guest_support.email_label')} *</Label>

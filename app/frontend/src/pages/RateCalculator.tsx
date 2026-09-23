@@ -11,6 +11,8 @@ import { Block } from '@/components/Block';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/components/ui/sonner';
 import { createConversation, sendMessage, guestCreateConversation, writeGuestToken } from '@/lib/support-chat';
+import { FormShield, useFormShield } from '@/components/FormShield';
+import { submitErrorKey } from '@/lib/errors';
 import {
   computeQuote, formatEuros, transitTimeFor,
   type PricingConfig, type ModeResult, type PricedResult, type Mode, type QuoteReason,
@@ -500,6 +502,7 @@ function QuotePanel({ mode, reason, summaryLines, user }: { mode: Mode; reason: 
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
+  const shield = useFormShield();
 
   const submit = async () => {
     if (!user && (!email.trim() || !name.trim())) return;
@@ -513,12 +516,16 @@ function QuotePanel({ mode, reason, summaryLines, user }: { mode: Mode; reason: 
     setBusy(true);
     try {
       if (user) { const conv = await createConversation(subject); await sendMessage(conv.id, body); }
-      else { const row = await guestCreateConversation({ email: email.trim(), name: name.trim(), subject, body }); writeGuestToken(row.guest_token); }
+      else {
+        const proof = await shield.getProof();
+        const row = await guestCreateConversation({ email: email.trim(), name: name.trim(), subject, body, captcha: proof.captcha, hp: proof.hp });
+        writeGuestToken(row.guest_token);
+      }
       setSent(true);
       toast.success(t('calc.quote_success_title'));
       trackEvent('generate_lead', { form: 'calculator', mode, reason, has_account: !!user });
-    } catch { toast.error(t('calc.quote_error')); }
-    finally { setBusy(false); }
+    } catch (err) { toast.error(t(submitErrorKey(err, 'calc.quote_error'))); }
+    finally { shield.reset(); setBusy(false); }
   };
 
   const qLabel: React.CSSProperties = { display: 'block', fontSize: 12.5, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', color: '#4A5A75' };
@@ -537,7 +544,8 @@ function QuotePanel({ mode, reason, summaryLines, user }: { mode: Mode; reason: 
           {t('calc.quote_cta')}
         </button>
       ) : (
-        <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div data-shield-host style={{ position: 'relative', marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {!user && <FormShield shield={shield} />}
           {!user && (
             <>
               <label style={qLabel}>{t('calc.quote_name')}

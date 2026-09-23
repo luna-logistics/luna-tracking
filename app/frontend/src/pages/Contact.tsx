@@ -12,6 +12,8 @@ import { useContent } from '@/contexts/SiteContentContext';
 import { urlFor } from '@/lib/url/routes';
 import { useLegalIdentity } from '@/hooks/useLegalIdentity';
 import { guestCreateConversation, writeGuestToken } from '@/lib/support-chat';
+import { FormShield, useFormShield } from '@/components/FormShield';
+import { submitErrorKey } from '@/lib/errors';
 import {
   contactData, computeOpeningStatus, kinshasaWindow, brusselsWindow,
   formatHour, weekdayName, OPEN_HOUR,
@@ -81,7 +83,8 @@ export default function Contact() {
   const [formPhone, setFormPhone] = useState('');
   const [location, setLocation] = useState('');
   const [consent, setConsent] = useState(false);
-  const [company, setCompany] = useState(''); // honeypot
+  const shield = useFormShield();
+  const [submitErrKey, setSubmitErrKey] = useState('common.error_generic');
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
@@ -117,7 +120,6 @@ export default function Contact() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (company.trim()) return; // honeypot tripped
     const errs: Record<string, boolean> = {};
     if (!subjectId) errs.subject = true;
     if (needsRef && !tracking.trim()) errs.tracking = true;
@@ -142,20 +144,25 @@ export default function Contact() {
       if (activeIntent) extra.push(`(${activeIntent})`);
       const body = extra.length ? `${lines[0]}\n\n— ${extra.join('\n— ')}` : lines[0];
 
+      const proof = await shield.getProof();
       const { conversation_id, guest_token } = await guestCreateConversation({
         email: emailInput.trim(),
         name: name.trim(),
         subject: subjectLabel,
         body,
+        captcha: proof.captcha,
+        hp: proof.hp,
       });
       writeGuestToken(guest_token);
       setReplyEmail(emailInput.trim());
       setReference(conversation_id.replace(/-/g, '').slice(0, 8).toUpperCase());
       setSent(true);
       trackEvent('contact_form_submitted', { subject_category: subjectId, has_tracking_ref: !!(needsRef && tracking.trim()) });
-    } catch {
+    } catch (err) {
+      setSubmitErrKey(submitErrorKey(err));
       setErrors({ submit: true });
     } finally {
+      shield.reset();
       setSubmitting(false);
     }
   };
@@ -397,10 +404,7 @@ export default function Contact() {
               </div>
             ) : (
               <form onSubmit={submit} noValidate className="mt-6 space-y-5">
-                <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', height: 0, overflow: 'hidden' }}>
-                  <label htmlFor="f-company">Company</label>
-                  <input id="f-company" name="company" type="text" tabIndex={-1} autoComplete="off" value={company} onChange={(e) => setCompany(e.target.value)} />
-                </div>
+                <FormShield shield={shield} />
 
                 <div>
                   <label htmlFor="f-subject" className="mb-1.5 block text-[14px] font-medium text-luna-ink">{t('contact.f_subject_label')}</label>
@@ -478,7 +482,7 @@ export default function Contact() {
                   {errors.consent && <p id="e-consent" className="mt-1 text-[13px] text-red-600">{t('contact.f_consent_error')}</p>}
                 </div>
 
-                {errors.submit && <p role="alert" className="text-[14px] text-red-600">{t('common.error_generic')}</p>}
+                {errors.submit && <p role="alert" className="text-[14px] text-red-600">{t(submitErrKey)}</p>}
 
                 <button type="submit" disabled={submitting}
                   className={`inline-flex items-center gap-2 rounded-full bg-luna-royal px-6 py-3 text-[15px] font-semibold text-white transition-colors hover:bg-luna-azure disabled:opacity-60 ${ringLight}`}>

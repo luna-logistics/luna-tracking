@@ -21,6 +21,14 @@
   X-Robots-Tag: noindex
 /admin/*
   X-Robots-Tag: noindex
+/entreprise
+  X-Robots-Tag: noindex
+/entreprise/*
+  X-Robots-Tag: noindex
+/en/business
+  X-Robots-Tag: noindex
+/en/business/*
+  X-Robots-Tag: noindex
 /compte
   X-Robots-Tag: noindex
 /compte/*

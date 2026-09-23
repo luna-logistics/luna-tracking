@@ -1,4 +1,19 @@
 User-agent: *
 Allow: /
 
+# Private areas: they require a login and are also sent with
+# `X-Robots-Tag: noindex` (public/_headers). Keeping crawlers out avoids
+# pointless crawl noise and keeps these paths off scraper target lists.
+# Anchored (`$` / trailing slash) so no public page sharing a prefix is hit.
+Disallow: /admin$
+Disallow: /admin/
+Disallow: /entreprise$
+Disallow: /entreprise/
+Disallow: /en/business$
+Disallow: /en/business/
+Disallow: /compte$
+Disallow: /compte/
+Disallow: /en/account$
+Disallow: /en/account/
+
 Sitemap: https://lunatrackinglogistics.com/sitemap.xml
