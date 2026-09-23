@@ -4,12 +4,20 @@ import { initAnalytics, trackPageView, analyticsEnabled } from '@/lib/analytics'
 
 // Staff back-office traffic would skew visitor stats.
 const EXCLUDED = /^\/(en\/)?admin(\/|$)/;
+// main.tsx sets this placeholder on non-prerendered URLs until Helmet runs.
+const PLACEHOLDER_TITLE = 'Chargement…';
+const POLL_MS = 100;
+const MAX_WAIT_MS = 1500;
 
 /** Sends one GA4 page_view per client-side navigation (incl. the first).
- *  Waits a beat so react-helmet has written the new page's <title>. */
+ *  Lazy routes set their <title> only once their chunk has loaded, so wait
+ *  until the title differs from the previous page's (or give up after
+ *  MAX_WAIT_MS and send what is there) — otherwise the page_view would
+ *  carry the previous page's title. */
 export function AnalyticsTracker() {
   const location = useLocation();
   const lastPath = useRef<string | null>(null);
+  const lastTitle = useRef<string | null>(null);
 
   useEffect(() => { initAnalytics(); }, []);
 
@@ -17,12 +25,24 @@ export function AnalyticsTracker() {
     if (!analyticsEnabled) return;
     const path = location.pathname + location.search;
     if (path === lastPath.current || EXCLUDED.test(location.pathname)) return;
-    // Record the path only once sent: a cleanup (StrictMode double effect,
-    // fast re-navigation) must not swallow the page_view.
-    const id = window.setTimeout(() => {
+
+    let waited = 0;
+    let id = 0;
+    const attempt = () => {
+      const title = document.title;
+      const ready = title !== lastTitle.current && title !== PLACEHOLDER_TITLE;
+      if (!ready && waited < MAX_WAIT_MS) {
+        waited += POLL_MS;
+        id = window.setTimeout(attempt, POLL_MS);
+        return;
+      }
+      // Recorded only once sent: a cleanup (StrictMode double effect, fast
+      // re-navigation) must not swallow the page_view.
       lastPath.current = path;
-      trackPageView(path, document.title);
-    }, 400);
+      lastTitle.current = title;
+      trackPageView(path, title);
+    };
+    id = window.setTimeout(attempt, POLL_MS);
     return () => window.clearTimeout(id);
   }, [location.pathname, location.search]);
 
