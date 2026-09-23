@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, MapPin, Package, Store, ShoppingCart, Boxes,
   KeyRound, FileText, Newspaper, UserCog, LogOut, ExternalLink, FilePlus,
-  MessageSquare, Calculator,
+  MessageSquare, Calculator, Settings2,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
@@ -41,6 +41,7 @@ export function AdminShell() {
     { to: '/admin/pages',                  label: t('admin.sidebar_pages'),           icon: FilePlus,        permission: 'pages' },
     { to: '/admin/support',                label: t('admin.sidebar_support'),         icon: MessageSquare,   permission: 'support' },
     { to: '/admin/collaborateurs',         label: t('admin.sidebar_collaborators'),   icon: UserCog,         permission: 'admins' },
+    { to: '/admin/dashboards',             label: t('admin.sidebar_dashboards'),      icon: Settings2,       permission: 'admins' },
   ] as const).filter((it) => it.permission === 'always' || can(it.permission as AdminPermission)) as Array<{ to: string; label: string; icon: typeof LayoutDashboard; permission: AdminPermission | 'always' }>;
 
   return (

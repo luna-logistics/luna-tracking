@@ -1624,6 +1624,7 @@
     "sidebar_pages": "Pages",
     "sidebar_support": "Messaging",
     "sidebar_collaborators": "Collaborators",
+    "sidebar_dashboards": "Dashboards",
     "back_to_site": "Back to site",
     "back_to_site_short": "Site",
     "language": "Language",
@@ -2330,5 +2331,23 @@
     "cta_body": "A quote within one business day, no commitment.",
     "cta_quote": "Request a quote",
     "cta_contact": "Contact us"
+  },
+  "feature_gate": {
+    "disabled_title": "Feature disabled",
+    "disabled_body": "This feature has been disabled by the administrator. Contact your administrator for more information.",
+    "back": "← Back to dashboard"
+  },
+  "dashboard_config": {
+    "page_title": "Dashboard configuration",
+    "page_intro": "Enable or disable the menus and features visible in the client dashboards.",
+    "business_title": "Business Client Dashboard",
+    "individual_title": "Individual Client Dashboard",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "toggle_on": "Enable",
+    "toggle_off": "Disable",
+    "saved": "Configuration saved.",
+    "always_on": "Always on",
+    "no_features": "No features configured."
   }
 }

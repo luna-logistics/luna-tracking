@@ -11,6 +11,7 @@ import { BusinessProvider } from '@/contexts/BusinessContext';
 import { CartProvider } from '@/contexts/CartContext';
 import { SiteContentProvider } from '@/contexts/SiteContentContext';
 import { EditModeProvider } from '@/contexts/EditModeContext';
+import { DashboardFeaturesProvider } from '@/contexts/DashboardFeaturesContext';
 import { LangUrlProvider } from '@/contexts/LangUrlContext';
 import { HreflangTags } from '@/components/HreflangTags';
 import { PublicLayout } from '@/components/PublicLayout';
@@ -20,6 +21,7 @@ import { ScrollToTop } from '@/components/ScrollToTop';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { AdminGate } from '@/components/AdminGate';
 import { OnboardingGate, AccountTypeGate } from '@/components/AccountTypeGate';
+import { FeatureGate } from '@/components/FeatureGate';
 import { setVisitLanguage, ensureLanguageLoaded } from '@/i18n';
 
 // Eager: homepage + login (critical paths).
@@ -88,6 +90,7 @@ const AdminCollaborators = lazy(() => import('@/pages/AdminCollaborators'));
 const AdminCustomPages = lazy(() => import('@/pages/AdminCustomPages'));
 const AdminCustomPageForm = lazy(() => import('@/pages/AdminCustomPageForm'));
 const CustomPage = lazy(() => import('@/pages/CustomPage'));
+const AdminDashboardConfig = lazy(() => import('@/pages/AdminDashboardConfig'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 const About = lazy(() => import('@/pages/About'));
 const LegalPage = lazy(() => import('@/pages/LegalPage'));
@@ -224,31 +227,31 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
             </ProtectedRoute>
           }>
             <Route path={t('/entreprise',              '/business')}              element={<BusinessDashboard />} />
-            <Route path={t('/entreprise/expeditions',  '/business/shipments')}    element={<BusinessShipments />} />
-            <Route path={t('/entreprise/expeditions/new', '/business/shipments/new')} element={<BusinessShipmentForm />} />
-            <Route path={t('/entreprise/expeditions/:id/edit', '/business/shipments/:id/edit')} element={<BusinessShipmentForm />} />
-            <Route path={t('/entreprise/expeditions/:id', '/business/shipments/:id')} element={<BusinessShipmentDetail />} />
-            <Route path={t('/entreprise/devis',        '/business/quotes')}       element={<BusinessQuotes />} />
-            <Route path={t('/entreprise/devis/new',    '/business/quotes/new')}   element={<BusinessQuoteForm />} />
-            <Route path={t('/entreprise/devis/:id/edit', '/business/quotes/:id/edit')} element={<BusinessQuoteForm />} />
-            <Route path={t('/entreprise/devis/:id',    '/business/quotes/:id')}   element={<BusinessQuoteDetail />} />
-            <Route path={t('/entreprise/clients',      '/business/clients')}      element={<BusinessClients />} />
-            <Route path={t('/entreprise/clients/new',  '/business/clients/new')}  element={<BusinessClientForm />} />
-            <Route path={t('/entreprise/clients/:id/edit', '/business/clients/:id/edit')} element={<BusinessClientForm />} />
-            <Route path={t('/entreprise/clients/:id',  '/business/clients/:id')}  element={<BusinessClientDetail />} />
-            <Route path={t('/entreprise/facturation',  '/business/invoicing')}    element={<BusinessInvoices />} />
-            <Route path={t('/entreprise/facturation/new', '/business/invoicing/new')} element={<BusinessInvoiceForm />} />
-            <Route path={t('/entreprise/facturation/:id/edit', '/business/invoicing/:id/edit')} element={<BusinessInvoiceForm />} />
-            <Route path={t('/entreprise/facturation/:id', '/business/invoicing/:id')} element={<BusinessInvoiceDetail />} />
-            <Route path={t('/entreprise/depenses',     '/business/expenses')}     element={<BusinessExpenses />} />
-            <Route path={t('/entreprise/rapports',     '/business/reports')}      element={<BusinessReports />} />
-            <Route path={t('/entreprise/documents',    '/business/documents')}    element={<BusinessDocuments />} />
-            <Route path={t('/entreprise/adresses',     '/business/addresses')}    element={<BusinessAddresses />} />
-            <Route path={t('/entreprise/equipe',       '/business/team')}         element={<BusinessTeam />} />
-            <Route path={t('/entreprise/parametres',   '/business/settings')}     element={<BusinessSettings />} />
-            <Route path={t('/entreprise/cles-api',     '/business/api-keys')}     element={<BusinessApiKeys />} />
-            <Route path={t('/entreprise/cles-api/usage', '/business/api-keys/usage')} element={<BusinessApiUsage />} />
-            <Route path={t('/entreprise/webhooks',     '/business/webhooks')}     element={<BusinessWebhooks />} />
+            <Route path={t('/entreprise/expeditions',  '/business/shipments')}    element={<FeatureGate dashboard="business" featureKey="businessShipments"><BusinessShipments /></FeatureGate>} />
+            <Route path={t('/entreprise/expeditions/new', '/business/shipments/new')} element={<FeatureGate dashboard="business" featureKey="businessShipments"><BusinessShipmentForm /></FeatureGate>} />
+            <Route path={t('/entreprise/expeditions/:id/edit', '/business/shipments/:id/edit')} element={<FeatureGate dashboard="business" featureKey="businessShipments"><BusinessShipmentForm /></FeatureGate>} />
+            <Route path={t('/entreprise/expeditions/:id', '/business/shipments/:id')} element={<FeatureGate dashboard="business" featureKey="businessShipments"><BusinessShipmentDetail /></FeatureGate>} />
+            <Route path={t('/entreprise/devis',        '/business/quotes')}       element={<FeatureGate dashboard="business" featureKey="businessQuotes"><BusinessQuotes /></FeatureGate>} />
+            <Route path={t('/entreprise/devis/new',    '/business/quotes/new')}   element={<FeatureGate dashboard="business" featureKey="businessQuotes"><BusinessQuoteForm /></FeatureGate>} />
+            <Route path={t('/entreprise/devis/:id/edit', '/business/quotes/:id/edit')} element={<FeatureGate dashboard="business" featureKey="businessQuotes"><BusinessQuoteForm /></FeatureGate>} />
+            <Route path={t('/entreprise/devis/:id',    '/business/quotes/:id')}   element={<FeatureGate dashboard="business" featureKey="businessQuotes"><BusinessQuoteDetail /></FeatureGate>} />
+            <Route path={t('/entreprise/clients',      '/business/clients')}      element={<FeatureGate dashboard="business" featureKey="businessClients"><BusinessClients /></FeatureGate>} />
+            <Route path={t('/entreprise/clients/new',  '/business/clients/new')}  element={<FeatureGate dashboard="business" featureKey="businessClients"><BusinessClientForm /></FeatureGate>} />
+            <Route path={t('/entreprise/clients/:id/edit', '/business/clients/:id/edit')} element={<FeatureGate dashboard="business" featureKey="businessClients"><BusinessClientForm /></FeatureGate>} />
+            <Route path={t('/entreprise/clients/:id',  '/business/clients/:id')}  element={<FeatureGate dashboard="business" featureKey="businessClients"><BusinessClientDetail /></FeatureGate>} />
+            <Route path={t('/entreprise/facturation',  '/business/invoicing')}    element={<FeatureGate dashboard="business" featureKey="businessInvoicing"><BusinessInvoices /></FeatureGate>} />
+            <Route path={t('/entreprise/facturation/new', '/business/invoicing/new')} element={<FeatureGate dashboard="business" featureKey="businessInvoicing"><BusinessInvoiceForm /></FeatureGate>} />
+            <Route path={t('/entreprise/facturation/:id/edit', '/business/invoicing/:id/edit')} element={<FeatureGate dashboard="business" featureKey="businessInvoicing"><BusinessInvoiceForm /></FeatureGate>} />
+            <Route path={t('/entreprise/facturation/:id', '/business/invoicing/:id')} element={<FeatureGate dashboard="business" featureKey="businessInvoicing"><BusinessInvoiceDetail /></FeatureGate>} />
+            <Route path={t('/entreprise/depenses',     '/business/expenses')}     element={<FeatureGate dashboard="business" featureKey="businessExpenses"><BusinessExpenses /></FeatureGate>} />
+            <Route path={t('/entreprise/rapports',     '/business/reports')}      element={<FeatureGate dashboard="business" featureKey="businessReports"><BusinessReports /></FeatureGate>} />
+            <Route path={t('/entreprise/documents',    '/business/documents')}    element={<FeatureGate dashboard="business" featureKey="businessDocuments"><BusinessDocuments /></FeatureGate>} />
+            <Route path={t('/entreprise/adresses',     '/business/addresses')}    element={<FeatureGate dashboard="business" featureKey="businessAddresses"><BusinessAddresses /></FeatureGate>} />
+            <Route path={t('/entreprise/equipe',       '/business/team')}         element={<FeatureGate dashboard="business" featureKey="businessTeam"><BusinessTeam /></FeatureGate>} />
+            <Route path={t('/entreprise/parametres',   '/business/settings')}     element={<FeatureGate dashboard="business" featureKey="businessSettings"><BusinessSettings /></FeatureGate>} />
+            <Route path={t('/entreprise/cles-api',     '/business/api-keys')}     element={<FeatureGate dashboard="business" featureKey="businessApiKeys"><BusinessApiKeys /></FeatureGate>} />
+            <Route path={t('/entreprise/cles-api/usage', '/business/api-keys/usage')} element={<FeatureGate dashboard="business" featureKey="businessApiUsage"><BusinessApiUsage /></FeatureGate>} />
+            <Route path={t('/entreprise/webhooks',     '/business/webhooks')}     element={<FeatureGate dashboard="business" featureKey="businessWebhooks"><BusinessWebhooks /></FeatureGate>} />
             <Route path={t('/entreprise/support',      '/business/support')}      element={<SupportChat />} />
           </Route>
 
@@ -274,6 +277,7 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
             <Route path="/admin/pages" element={<AdminCustomPages />} />
             <Route path="/admin/pages/nouvelle" element={<AdminCustomPageForm />} />
             <Route path="/admin/pages/:id" element={<AdminCustomPageForm />} />
+            <Route path="/admin/dashboards" element={<AdminDashboardConfig />} />
           </Route>
 
           {/* Admin-authored top-level pages — /:slug (FR) and /en/:slug (EN).
@@ -311,6 +315,7 @@ const App = () => (
         <ProfileProvider>
           <BusinessProvider>
           <EditModeProvider>
+            <DashboardFeaturesProvider>
             <SiteContentProvider>
               <CartProvider>
                 <Toaster richColors position="top-right" />
@@ -321,6 +326,7 @@ const App = () => (
                 </BrowserRouter>
               </CartProvider>
             </SiteContentProvider>
+            </DashboardFeaturesProvider>
           </EditModeProvider>
           </BusinessProvider>
         </ProfileProvider>

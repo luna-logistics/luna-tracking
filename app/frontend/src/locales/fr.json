@@ -1624,6 +1624,7 @@
     "sidebar_pages": "Pages",
     "sidebar_support": "Messagerie",
     "sidebar_collaborators": "Collaborateurs",
+    "sidebar_dashboards": "Dashboards",
     "back_to_site": "Retour au site",
     "back_to_site_short": "Site",
     "language": "Langue",
@@ -2330,5 +2331,23 @@
     "cta_body": "Un devis sous 24 h ouvrées, sans engagement.",
     "cta_quote": "Demander un devis",
     "cta_contact": "Nous contacter"
+  },
+  "feature_gate": {
+    "disabled_title": "Fonctionnalité désactivée",
+    "disabled_body": "Cette fonctionnalité a été désactivée par l'administrateur. Contactez votre administrateur pour plus d'informations.",
+    "back": "← Retour au tableau de bord"
+  },
+  "dashboard_config": {
+    "page_title": "Configuration des dashboards",
+    "page_intro": "Activez ou désactivez les menus et fonctionnalités visibles dans les dashboards clients.",
+    "business_title": "Dashboard Client Professionnel",
+    "individual_title": "Dashboard Client Particulier",
+    "enabled": "Activé",
+    "disabled": "Désactivé",
+    "toggle_on": "Activer",
+    "toggle_off": "Désactiver",
+    "saved": "Configuration enregistrée.",
+    "always_on": "Toujours actif",
+    "no_features": "Aucune fonctionnalité configurée."
   }
 }

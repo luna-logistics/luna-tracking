@@ -11,6 +11,7 @@ import { useBusiness } from '@/contexts/BusinessContext';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { urlFor } from '@/lib/url/routes';
 import { cn } from '@/lib/utils';
+import { useDashboardFeatures } from '@/contexts/DashboardFeaturesContext';
 import type { BusinessAction } from '@/lib/business-permissions';
 
 /**
@@ -29,6 +30,7 @@ export function BusinessShell() {
   const supportUnread = useSupportUnread();
   const location = useLocation();
   const { current, businesses, loading, can } = useBusiness();
+  const { isFeatureEnabled } = useDashboardFeatures();
   const lang = i18n.language === 'en' ? 'en' : 'fr';
 
   if (!loading && businesses.length === 0 && !location.pathname.endsWith('/nouvelle') && !location.pathname.endsWith('/new')) {
@@ -41,44 +43,51 @@ export function BusinessShell() {
   // detail page, documents from a shipment's detail page. Developer-facing
   // tools live under one clearly-labelled "Intégrations" group so a shop
   // owner without a developer can ignore the whole block.
-  const groups: { header: string; items: { to: string; label: string; icon: typeof Package; permission: BusinessAction | 'always' }[] }[] = [
+  type NavItem = { to: string; label: string; icon: typeof Package; permission: BusinessAction | 'always'; featureKey: string };
+  const groups: { header: string; items: NavItem[] }[] = [
     {
       header: t('business_nav.group_commerce'),
       items: [
-        { to: urlFor('businessDashboard', lang), label: t('business_nav.dashboard'),  icon: LayoutDashboard, permission: 'always' },
-        { to: urlFor('businessClients',   lang), label: t('business_nav.clients'),    icon: Users,           permission: 'clients.read' },
-        { to: urlFor('businessQuotes',    lang), label: t('business_nav.quotes'),     icon: FileText,        permission: 'quotes.read' },
-        { to: urlFor('businessShipments', lang), label: t('business_nav.shipments'),  icon: Package,         permission: 'shipments.read' },
+        { to: urlFor('businessDashboard', lang), label: t('business_nav.dashboard'),  icon: LayoutDashboard, permission: 'always',          featureKey: 'businessDashboard' },
+        { to: urlFor('businessClients',   lang), label: t('business_nav.clients'),    icon: Users,           permission: 'clients.read',    featureKey: 'businessClients' },
+        { to: urlFor('businessQuotes',    lang), label: t('business_nav.quotes'),     icon: FileText,        permission: 'quotes.read',     featureKey: 'businessQuotes' },
+        { to: urlFor('businessShipments', lang), label: t('business_nav.shipments'),  icon: Package,         permission: 'shipments.read',  featureKey: 'businessShipments' },
       ],
     },
     {
       header: t('business_nav.group_finance'),
       items: [
-        { to: urlFor('businessInvoicing', lang), label: t('business_nav.invoicing'),  icon: Receipt,   permission: 'invoices.read' },
-        { to: urlFor('businessExpenses',  lang), label: t('business_nav.expenses'),   icon: Wallet,    permission: 'expenses.read' },
-        { to: urlFor('businessReports',   lang), label: t('business_nav.reports'),    icon: BarChart3, permission: 'reports.read' },
+        { to: urlFor('businessInvoicing', lang), label: t('business_nav.invoicing'),  icon: Receipt,   permission: 'invoices.read',  featureKey: 'businessInvoicing' },
+        { to: urlFor('businessExpenses',  lang), label: t('business_nav.expenses'),   icon: Wallet,    permission: 'expenses.read',  featureKey: 'businessExpenses' },
+        { to: urlFor('businessReports',   lang), label: t('business_nav.reports'),    icon: BarChart3, permission: 'reports.read',   featureKey: 'businessReports' },
       ],
     },
     {
       header: t('business_nav.group_team'),
       items: [
-        { to: urlFor('businessTeam',     lang), label: t('business_nav.team'),     icon: UserCog,       permission: 'members.read' },
-        { to: urlFor('businessSettings', lang), label: t('business_nav.settings'), icon: Settings,      permission: 'business.update' },
-        { to: urlFor('businessSupport',  lang), label: t('business_nav.support'),  icon: MessageSquare, permission: 'always' },
+        { to: urlFor('businessTeam',     lang), label: t('business_nav.team'),     icon: UserCog,       permission: 'members.read',    featureKey: 'businessTeam' },
+        { to: urlFor('businessSettings', lang), label: t('business_nav.settings'), icon: Settings,      permission: 'business.update', featureKey: 'businessSettings' },
+        { to: urlFor('businessSupport',  lang), label: t('business_nav.support'),  icon: MessageSquare, permission: 'always',          featureKey: 'businessSupport' },
       ],
     },
     {
       header: t('business_nav.group_integrations'),
       items: [
-        { to: urlFor('businessApiKeys',  lang), label: t('business_nav.api_keys'),  icon: Key,     permission: 'business.update' },
-        { to: urlFor('businessApiUsage', lang), label: t('business_nav.api_usage'), icon: Activity, permission: 'business.update' },
-        { to: urlFor('businessWebhooks', lang), label: t('business_nav.webhooks'),  icon: Webhook,  permission: 'business.update' },
+        { to: urlFor('businessApiKeys',  lang), label: t('business_nav.api_keys'),  icon: Key,     permission: 'business.update', featureKey: 'businessApiKeys' },
+        { to: urlFor('businessApiUsage', lang), label: t('business_nav.api_usage'), icon: Activity, permission: 'business.update', featureKey: 'businessApiUsage' },
+        { to: urlFor('businessWebhooks', lang), label: t('business_nav.webhooks'),  icon: Webhook,  permission: 'business.update', featureKey: 'businessWebhooks' },
       ],
     },
   ];
 
   const visibleGroups = groups
-    .map((g) => ({ ...g, items: g.items.filter((it) => it.permission === 'always' || can(it.permission as BusinessAction)) }))
+    .map((g) => ({
+      ...g,
+      items: g.items.filter((it) =>
+        (it.permission === 'always' || can(it.permission as BusinessAction)) &&
+        isFeatureEnabled('business', it.featureKey),
+      ),
+    }))
     .filter((g) => g.items.length > 0);
   const flatItems = visibleGroups.flatMap((g) => g.items);
 
