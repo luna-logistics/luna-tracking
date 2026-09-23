@@ -189,7 +189,7 @@ export default function BusinessShipmentForm() {
                 </SelectContent>
               </Select>
             </Field>
-            <Field label={t('business_shipment_form.field_status')}>
+            <Field label={t('business_shipment_form.field_status')} info={t('business_shipment_form.help_status')}>
               <Select value={f.status} onValueChange={(v) => set('status', v as ShipmentStatus)} disabled={!canWrite}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -201,7 +201,7 @@ export default function BusinessShipmentForm() {
             </Field>
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
-            <Field label={t('business_shipment_form.field_direction')}>
+            <Field label={t('business_shipment_form.field_direction')} hint={t('business_shipment_form.help_direction')}>
               <Select value={f.direction} onValueChange={(v) => set('direction', v as ShipmentDirection)} disabled={!canWrite}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -238,7 +238,7 @@ export default function BusinessShipmentForm() {
             <Field label={t('business_shipment_form.field_carrier_name')}>
               <Input value={f.carrier_name ?? ''} onChange={(e) => setStr('carrier_name')(e.target.value)} disabled={!canWrite} />
             </Field>
-            <Field label={t('business_shipment_form.field_tracking_number')}>
+            <Field label={t('business_shipment_form.field_tracking_number')} hint={t('business_shipment_form.help_tracking_number')}>
               <Input value={f.tracking_number ?? ''} onChange={(e) => setStr('tracking_number')(e.target.value)} disabled={!canWrite} />
             </Field>
           </div>
@@ -258,7 +258,7 @@ export default function BusinessShipmentForm() {
 
         <Card title={t('business_shipment_form.section_totals')} hint={t('business_shipment_form.section_totals_hint')}>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label={t('business_shipment_form.field_goods_value')}>
+            <Field label={t('business_shipment_form.field_goods_value')} hint={t('business_shipment_form.help_goods_value')}>
               <Input type="number" step="0.01" value={f.goods_value ?? ''}
                 onChange={(e) => set('goods_value', e.target.value === '' ? null : Number(e.target.value))} disabled={!canWrite} />
             </Field>

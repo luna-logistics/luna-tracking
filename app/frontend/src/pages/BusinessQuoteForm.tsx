@@ -150,10 +150,10 @@ export default function BusinessQuoteForm() {
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label={t('business_quote_form.field_valid_until')}>
+              <Field label={t('business_quote_form.field_valid_until')} hint={t('business_quote_form.help_valid_until')}>
                 <Input type="date" value={f.valid_until ?? ''} onChange={(e) => setF((p) => ({ ...p, valid_until: e.target.value || null }))} />
               </Field>
-              <Field label={t('business_quote_form.field_direction')}>
+              <Field label={t('business_quote_form.field_direction')} hint={t('business_quote_form.help_direction')}>
                 <Select value={f.direction} onValueChange={(v) => setF((p) => ({ ...p, direction: v as typeof p.direction }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{SHIPMENT_DIRECTIONS.map((d) => <SelectItem key={d} value={d}>{t(`shipment_direction.${d}`)}</SelectItem>)}</SelectContent>
@@ -189,10 +189,10 @@ export default function BusinessQuoteForm() {
 
           <Section title={t('business_quote_form.section_measure')}>
             <div className="grid gap-3 sm:grid-cols-3">
-              <Field label={t('business_quote_form.field_weight')}>
+              <Field label={t('business_quote_form.field_weight')} hint={t('business_quote_form.help_weight')}>
                 <Input type="number" step="0.01" value={f.weight_kg ?? ''} onChange={(e) => setF((p) => ({ ...p, weight_kg: num(e.target.value) }))} />
               </Field>
-              <Field label={t('business_quote_form.field_volume')}>
+              <Field label={t('business_quote_form.field_volume')} hint={t('business_quote_form.help_volume')}>
                 <Input type="number" step="0.001" value={f.volume_m3 ?? ''} onChange={(e) => setF((p) => ({ ...p, volume_m3: num(e.target.value) }))} />
               </Field>
               <Field label={t('business_quote_form.field_pieces')}>
@@ -228,13 +228,13 @@ export default function BusinessQuoteForm() {
               {suggestion && (
                 <SuggestionPanel suggestion={suggestion} lang={lang} onApply={applyOption} onClose={() => setShowSuggest(false)} />
               )}
-              <Field label={t('business_quote_form.field_transport_cost')}>
+              <Field label={t('business_quote_form.field_transport_cost')} hint={t('business_quote_form.help_transport_cost')}>
                 <Input type="number" step="0.01" min="0" value={f.transport_cost} onChange={(e) => setF((p) => ({ ...p, transport_cost: Number(e.target.value) }))} required />
               </Field>
-              <Field label={t('business_quote_form.field_customer_price')}>
+              <Field label={t('business_quote_form.field_customer_price')} hint={t('business_quote_form.help_customer_price')}>
                 <Input type="number" step="0.01" min="0" value={f.customer_price} onChange={(e) => setF((p) => ({ ...p, customer_price: Number(e.target.value) }))} required />
               </Field>
-              <Field label={t('business_quote_form.field_platform_fee')}>
+              <Field label={t('business_quote_form.field_platform_fee')} hint={t('business_quote_form.help_platform_fee')}>
                 <Input type="number" step="0.01" min="0" value={f.platform_fee} onChange={(e) => setF((p) => ({ ...p, platform_fee: Number(e.target.value) }))} />
               </Field>
               <Field label={t('business_quote_form.field_currency')}>

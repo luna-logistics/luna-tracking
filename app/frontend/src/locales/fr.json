@@ -1185,7 +1185,7 @@
   "shipment_direction": {
     "export": "Export",
     "import": "Import",
-    "domestic": "Domestique"
+    "domestic": "National"
   },
   "shipment_mode": {
     "air": "Aérien",
@@ -1280,7 +1280,11 @@
     "totals_volume_partial": "Certaines lignes n’ont pas les 3 dimensions : leur volume n’est pas compté.",
     "field_country_origin": "Pays",
     "field_weight_kg": "Poids total (kg)",
-    "field_volume_m3": "Volume total (m³)"
+    "field_volume_m3": "Volume total (m³)",
+    "help_status": "« Douane » ne concerne que les envois dédouanés ; « Annulée » reste possible tant que l'envoi n'est pas livré.",
+    "help_direction": "Export : départ de votre pays vers l'étranger ; import : l'inverse ; national : dans un même pays.",
+    "help_tracking_number": "Le numéro du transporteur (compagnie aérienne, armateur…), distinct du lien de suivi Luna de l'envoi.",
+    "help_goods_value": "Valeur déclarée des marchandises, utilisée pour l'assurance et la douane."
   },
   "business_shipment_detail": {
     "not_found_title": "Expédition introuvable",
@@ -1435,7 +1439,14 @@
     "suggest_reason_over_max_volume": "ce volume dépasse le maximum de la grille en maritime.",
     "suggest_reason_ratio": "le rapport poids/volume dépasse le seuil de la grille.",
     "suggest_config_error": "La grille tarifaire est indisponible pour le moment. Réessayez ou saisissez le coût manuellement.",
-    "line_customs_admin": "Frais administratifs de douane"
+    "line_customs_admin": "Frais administratifs de douane",
+    "help_transport_cost": "Ce que Luna vous facture pour le transport — « Suggérer un tarif » le calcule depuis la grille officielle.",
+    "help_customer_price": "Ce que vous facturez à votre propre client ; l'écart avec vos coûts forme votre marge.",
+    "help_platform_fee": "Frais de service de la plateforme sur ce devis, déduits de votre marge.",
+    "help_valid_until": "Après cette date, le devis n'est plus valable pour votre client.",
+    "help_direction": "Export : départ de votre pays vers l'étranger ; import : l'inverse ; national : dans un même pays.",
+    "help_volume": "Longueur × largeur × hauteur en mètres ; sert au poids volumétrique (aérien) et au prix maritime.",
+    "help_weight": "Poids réel total, facturé au gramme près."
   },
   "business_quote_detail": {
     "not_found_title": "Devis introuvable",

@@ -1280,7 +1280,11 @@
     "totals_volume_partial": "Some lines lack all 3 dimensions: their volume is not counted.",
     "field_country_origin": "Country",
     "field_weight_kg": "Total weight (kg)",
-    "field_volume_m3": "Total volume (m³)"
+    "field_volume_m3": "Total volume (m³)",
+    "help_status": "“Customs” only applies to shipments cleared through customs; “Cancelled” stays possible until the shipment is delivered.",
+    "help_direction": "Export: from your country abroad; import: the reverse; domestic: within one country.",
+    "help_tracking_number": "The carrier's own number (airline, shipping line…), not the shipment's Luna tracking link.",
+    "help_goods_value": "Declared value of the goods, used for insurance and customs."
   },
   "business_shipment_detail": {
     "not_found_title": "Shipment not found",
@@ -1435,7 +1439,14 @@
     "suggest_reason_over_max_volume": "this volume exceeds the grid maximum for sea freight.",
     "suggest_reason_ratio": "the weight/volume ratio exceeds the grid threshold.",
     "suggest_config_error": "The rate grid is unavailable right now. Try again or enter the cost manually.",
-    "line_customs_admin": "Customs admin fee"
+    "line_customs_admin": "Customs admin fee",
+    "help_transport_cost": "What Luna charges you for the transport — “Suggest a rate” calculates it from the official grid.",
+    "help_customer_price": "What you charge your own customer; the gap with your costs is your margin.",
+    "help_platform_fee": "The platform's service fee on this quote, deducted from your margin.",
+    "help_valid_until": "After this date the quote is no longer valid for your customer.",
+    "help_direction": "Export: from your country abroad; import: the reverse; domestic: within one country.",
+    "help_volume": "Length × width × height in metres; used for volumetric weight (air) and the sea price.",
+    "help_weight": "Total actual weight, billed to the gram."
   },
   "business_quote_detail": {
     "not_found_title": "Quote not found",
