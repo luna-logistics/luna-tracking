@@ -42,7 +42,7 @@ export function Footer() {
           {/* Mobile: logo + brand inline, 2-col links, compact contact */}
           <div className="md:hidden">
             <div className="flex items-center gap-3 mb-5">
-              <img src="/brand/luna-icon.webp" alt="" aria-hidden="true" className="h-9 w-auto" width={36} height={36} />
+              <img src="/brand/luna-icon-64.webp" srcSet="/brand/luna-icon-44.webp 44w, /brand/luna-icon-64.webp 64w, /brand/luna-icon.webp 88w" sizes="36px" alt="" aria-hidden="true" className="h-9 w-auto" loading="lazy" width={36} height={36} />
               <span className="text-[15px] font-semibold text-white">{t('brand.name')}</span>
             </div>
             <nav aria-label={t('footer.services_title')} className="grid grid-cols-2 gap-x-6 gap-y-2 mb-5 text-sm">

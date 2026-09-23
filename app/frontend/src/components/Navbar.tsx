@@ -55,7 +55,7 @@ export function Navbar() {
       <div className="mx-auto flex max-w-[1220px] flex-nowrap items-center gap-x-2 px-3 py-1.5 sm:gap-x-3 sm:px-8 lg:px-5 lg:py-2.5">
         {/* Logo — far left */}
         <Link to={urlFor('home', lang)} className="flex-none flex items-center gap-2.5" aria-label={t('brand.name')}>
-          <img src="/brand/luna-icon.webp" alt="" aria-hidden="true" className="block h-[30px] w-auto lg:h-11" width={44} height={44} />
+          <img src="/brand/luna-icon-64.webp" srcSet="/brand/luna-icon-44.webp 44w, /brand/luna-icon-64.webp 64w, /brand/luna-icon.webp 88w" sizes="(min-width: 1024px) 44px, 30px" alt="" aria-hidden="true" className="block h-[30px] w-auto lg:h-11" width={44} height={44} />
           <span className="block leading-none">
             <span className="block text-[16px] font-semibold tracking-[0.055em] bg-luna-wordmark bg-clip-text text-transparent lg:text-[22px]">LUNA</span>
             <span className="mt-[2px] block text-[8.5px] font-medium tracking-[0.05em] text-luna-aqua whitespace-nowrap lg:mt-1 lg:text-[11px]">Tracking Logistics</span>
