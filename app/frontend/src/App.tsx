@@ -15,6 +15,7 @@ import { LangUrlProvider } from '@/contexts/LangUrlContext';
 import { HreflangTags } from '@/components/HreflangTags';
 import { PublicLayout } from '@/components/PublicLayout';
 import { ScrollToTop } from '@/components/ScrollToTop';
+import { AnalyticsTracker } from '@/components/AnalyticsTracker';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { AdminGate } from '@/components/AdminGate';
 import { OnboardingGate, AccountTypeGate } from '@/components/AccountTypeGate';
@@ -298,6 +299,7 @@ const AppRoutes = () => (
   <>
     <LanguageSync />
     <ScrollToTop />
+    <AnalyticsTracker />
     <HreflangTags />
     <Suspense fallback={null}><SupportChatBubble /></Suspense>
     <Suspense fallback={null}><SupportAdminNotifier /></Suspense>
