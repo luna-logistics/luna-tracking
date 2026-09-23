@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Package, ArrowRight, CheckCircle2, Circle, MapPin, Loader2 } from 'lucide-react';
@@ -7,8 +7,6 @@ import { supabase } from '@/lib/supabase';
 import { pipelineFor, type ShipmentStatus } from '@/lib/shipment-status';
 import { ShipmentStatusBadge } from '@/components/ShipmentStatusBadge';
 import { cn } from '@/lib/utils';
-import { buildTrackingView } from '@/lib/tracking-view';
-import { TrackingResultView } from '@/components/tracking/TrackingResultView';
 
 /**
  * Public shipment tracking page — no auth required.
@@ -60,43 +58,11 @@ export default function PublicTracking() {
     })();
   }, [token]);
 
-  // Same "Suivi Luna v2" view as /suivi; the previous layout below stays as
-  // the fallback if a shipment cannot be read into it.
-  const view = useMemo(() => (shipment ? buildTrackingView({
-    status: 'ok', source: 'luna', positions: [],
-    shipment: {
-      status: shipment.status, mode: shipment.mode, carrier_name: shipment.carrier_name,
-      origin_city: shipment.origin_city, origin_country: shipment.origin_country,
-      destination_city: shipment.destination_city, destination_country: shipment.destination_country,
-      events: shipment.events, reference: shipment.reference,
-      tracking_number: shipment.tracking_number, estimated_delivery: shipment.estimated_delivery,
-    },
-  }, token ?? '') : null), [shipment, token]);
-
   const locale = i18n.language;
   const fmtDate = (v: string | null) => v ? new Date(v).toLocaleDateString(locale) : '—';
   const fmtDateTime = (v: string) => new Date(v).toLocaleString(locale, {
     day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
   });
-
-  if (!loading && view) {
-    return (
-      <div className="min-h-[70vh] bg-luna-mist">
-        <SEO title={t('public_tracking.meta_title')} noindex />
-        <section className="mx-auto max-w-[1220px] px-5 sm:px-8" style={{ paddingBottom: 'clamp(48px,6vw,80px)' }}>
-          <TrackingResultView
-            view={view}
-            title={(
-              <h1 className="text-[26px] font-semibold leading-[1.2] tracking-[-.01em] text-luna-ink lg:text-[32px]">
-                {t('public_tracking.heading')}
-              </h1>
-            )}
-          />
-          <p className="pt-6 text-center text-xs text-slate-500">{t('public_tracking.footer_note')}</p>
-        </section>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-[70vh] bg-slate-50">
