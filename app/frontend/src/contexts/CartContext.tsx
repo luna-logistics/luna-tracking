@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { trackEvent } from '@/lib/analytics';
 
 /**
  * Session-scoped cart. Persists in sessionStorage so a page reload keeps the
@@ -48,6 +49,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [lines]);
 
   const add: CartContextValue['add'] = (line, qty = 1) => {
+    // GA4 recommended e-commerce event (courses_item_selected in the brief).
+    trackEvent('add_to_cart', {
+      currency: 'EUR',
+      value: line.unit_price * qty,
+      items: [{ item_id: line.product_id, item_name: line.name, price: line.unit_price, quantity: qty }],
+    });
     setLines((prev) => {
       const existing = prev.find((l) => l.product_id === line.product_id);
       if (existing) {

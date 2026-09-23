@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { trackEvent } from '@/lib/analytics';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -49,6 +50,11 @@ export default function Tracking() {
     try {
       const r = await fetchTrackingStatus(code.trim(), lang);
       setResult(r);
+      trackEvent('tracking_search', {
+        found: r.status === 'ok',
+        result: r.status,
+        source: r.status === 'ok' ? r.source : undefined,
+      });
     } finally {
       setLoading(false);
     }

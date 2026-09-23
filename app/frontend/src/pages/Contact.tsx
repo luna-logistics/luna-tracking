@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { trackEvent } from '@/lib/analytics';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -151,6 +152,7 @@ export default function Contact() {
       setReplyEmail(emailInput.trim());
       setReference(conversation_id.replace(/-/g, '').slice(0, 8).toUpperCase());
       setSent(true);
+      trackEvent('contact_form_submitted', { subject_category: subjectId, has_tracking_ref: !!(needsRef && tracking.trim()) });
     } catch {
       setErrors({ submit: true });
     } finally {

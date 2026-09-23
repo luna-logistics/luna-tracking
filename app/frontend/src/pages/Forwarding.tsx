@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { trackEvent } from '@/lib/analytics';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, Plane, ArrowRight, Plus, Minus, Ban, Paperclip } from 'lucide-react';
@@ -94,6 +95,7 @@ export default function Forwarding() {
       setReference(`REX-${Math.floor(Math.random() * 9000) + 1000}`);
       setErrors({});
       setSent(true);
+      trackEvent('reexpedition_requested', { origin_country: origin, destination: dest });
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('[forwarding] submit failed', err);

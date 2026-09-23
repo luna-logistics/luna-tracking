@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { trackEvent } from '@/lib/analytics';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle2, Calculator, ArrowRight, Clock, ShieldCheck } from 'lucide-react';
@@ -131,6 +132,7 @@ export default function Pricing() {
       }
       setSubmitted(true);
       toast.success(t('pricing.success_title'));
+      trackEvent('generate_lead', { form: 'pricing', route_type: `${origin === OTHER ? 'other' : origin} → ${destination}`, mode, has_account: !!user });
     } catch (err) {
       console.error('[pricing] quote request failed', err);
       toast.error(t('pricing.error_send', { email: supportEmail }));

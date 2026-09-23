@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { trackEvent } from '@/lib/analytics';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -104,6 +105,13 @@ export default function ShopAndShip() {
         recipient_city_id: String(form.get('recipient_city_id') ?? '') || null,
         recipient_address: String(form.get('recipient_address') ?? ''),
         notes: String(form.get('notes') ?? '') || null,
+      });
+      // Order row confirmed — fire before the payment step (which may redirect away).
+      trackEvent('courses_order_submitted', {
+        item_count: items.reduce((n, i) => n + i.quantity, 0),
+        line_count: items.length,
+        value: revalidatedTotal,
+        currency: 'EUR',
       });
       const pay = await initiatePayment(order, lang);
       if (pay.status === 'redirect') { window.location.href = pay.url; return; }

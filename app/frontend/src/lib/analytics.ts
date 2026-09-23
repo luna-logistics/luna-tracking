@@ -82,3 +82,13 @@ export function trackPageView(path: string, title: string): void {
     page_title: title,
   });
 }
+
+/** Business events (GA4 key events). Fire-and-forget: a sync dataLayer push,
+ *  never awaited, never throws — call it only AFTER the action succeeded.
+ *  Params must never carry PII (no names, e-mails, phones, free text). */
+export function trackEvent(name: string, params: Record<string, string | number | boolean | unknown[] | null | undefined> = {}): void {
+  try {
+    if (!analyticsEnabled || !window.gtag) return;
+    window.gtag('event', name, params);
+  } catch { /* analytics must never break a user flow */ }
+}

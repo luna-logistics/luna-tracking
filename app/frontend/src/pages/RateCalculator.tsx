@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { trackEvent } from '@/lib/analytics';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
@@ -515,6 +516,7 @@ function QuotePanel({ mode, reason, summaryLines, user }: { mode: Mode; reason: 
       else { const row = await guestCreateConversation({ email: email.trim(), name: name.trim(), subject, body }); writeGuestToken(row.guest_token); }
       setSent(true);
       toast.success(t('calc.quote_success_title'));
+      trackEvent('generate_lead', { form: 'calculator', mode, reason, has_account: !!user });
     } catch { toast.error(t('calc.quote_error')); }
     finally { setBusy(false); }
   };
