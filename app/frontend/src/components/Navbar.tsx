@@ -57,7 +57,7 @@ export function Navbar() {
         <Link to={urlFor('home', lang)} className="flex-none flex items-center gap-2.5" aria-label={t('brand.name')}>
           <img src="/brand/luna-icon.png" alt="" aria-hidden="true" className="block h-11 w-auto" width={44} height={44} />
           <span className="block leading-none">
-            <span className="block text-[22px] font-semibold tracking-[0.055em] text-white">LUNA</span>
+            <span className="block text-[22px] font-semibold tracking-[0.055em] bg-luna-wordmark bg-clip-text text-transparent">LUNA</span>
             <span className="mt-1 block text-[11px] font-medium tracking-[0.05em] text-luna-aqua whitespace-nowrap">Tracking Logistics</span>
           </span>
         </Link>

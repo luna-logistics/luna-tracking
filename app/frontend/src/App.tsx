@@ -16,6 +16,7 @@ import { HreflangTags } from '@/components/HreflangTags';
 import { PublicLayout } from '@/components/PublicLayout';
 import { SupportChatBubble } from '@/components/SupportChatBubble';
 import { SupportAdminNotifier } from '@/components/SupportAdminNotifier';
+import { ScrollToTop } from '@/components/ScrollToTop';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { AdminGate } from '@/components/AdminGate';
 import { OnboardingGate, AccountTypeGate } from '@/components/AccountTypeGate';
@@ -292,6 +293,7 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
 const AppRoutes = () => (
   <>
     <LanguageSync />
+    <ScrollToTop />
     <HreflangTags />
     <SupportChatBubble />
     <SupportAdminNotifier />

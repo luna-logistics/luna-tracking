@@ -42,13 +42,15 @@ export default function Index() {
   ];
 
   // Six "expertises" cards. `image` null = branded icon tile (no photo yet).
+  // Each card links to its most relevant page: transport modes → quote request
+  // with mode preset; tracking → tracking page; home/pickup → general quote.
   const cards = [
-    { key: 'air',      icon: Plane,       image: '/images/services/service-air-freight.webp',      alt: t('home.pillar_air_alt'),      title: useContent('home', 'pillar_air_title',      t('home.pillar_air_title')),      body: useContent('home', 'pillar_air_body',      t('home.pillar_air_body')) },
-    { key: 'sea',      icon: Ship,        image: '/images/services/service-sea-freight.webp',      alt: t('home.pillar_sea_alt'),      title: useContent('home', 'pillar_sea_title',      t('home.pillar_sea_title')),      body: useContent('home', 'pillar_sea_body',      t('home.pillar_sea_body')) },
-    { key: 'ground',   icon: Truck,       image: '/images/services/service-ground-transport.webp', alt: t('home.pillar_ground_alt'),   title: useContent('home', 'pillar_ground_title',   t('home.pillar_ground_title')),   body: useContent('home', 'pillar_ground_body',   t('home.pillar_ground_body')) },
-    { key: 'tracking', icon: Search,      image: lang === 'en' ? '/images/services/online-parcel-tracking-luna-tracking.webp?v=2' : '/images/services/suivi-colis-en-ligne-luna-tracking.webp?v=2', alt: t('home.pillar_tracking_alt'), title: useContent('home', 'pillar_tracking_title', t('home.pillar_tracking_title')), body: useContent('home', 'pillar_tracking_body', t('home.pillar_tracking_body')) },
-    { key: 'home',     icon: Home,        image: '/images/services/livraison-domicile-luna-tracking.webp', alt: t('home.pillar_home_alt'),     title: useContent('home', 'pillar_home_title',     t('home.pillar_home_title')),     body: useContent('home', 'pillar_home_body',     t('home.pillar_home_body')) },
-    { key: 'pickup',   icon: PackagePlus, image: '/images/services/enlevement-colis-camionnette-luna-tracking.webp', alt: t('home.pillar_pickup_alt'),   title: useContent('home', 'pillar_pickup_title',   t('home.pillar_pickup_title')),   body: useContent('home', 'pillar_pickup_body',   t('home.pillar_pickup_body')) },
+    { key: 'air',      icon: Plane,       image: '/images/services/service-air-freight.webp',      alt: t('home.pillar_air_alt'),      title: useContent('home', 'pillar_air_title',      t('home.pillar_air_title')),      body: useContent('home', 'pillar_air_body',      t('home.pillar_air_body')),      href: `${urlFor('pricing', lang)}?mode=air` },
+    { key: 'sea',      icon: Ship,        image: '/images/services/service-sea-freight.webp',      alt: t('home.pillar_sea_alt'),      title: useContent('home', 'pillar_sea_title',      t('home.pillar_sea_title')),      body: useContent('home', 'pillar_sea_body',      t('home.pillar_sea_body')),      href: `${urlFor('pricing', lang)}?mode=sea` },
+    { key: 'ground',   icon: Truck,       image: '/images/services/service-ground-transport.webp', alt: t('home.pillar_ground_alt'),   title: useContent('home', 'pillar_ground_title',   t('home.pillar_ground_title')),   body: useContent('home', 'pillar_ground_body',   t('home.pillar_ground_body')),   href: `${urlFor('pricing', lang)}?mode=ground` },
+    { key: 'tracking', icon: Search,      image: lang === 'en' ? '/images/services/online-parcel-tracking-luna-tracking.webp?v=2' : '/images/services/suivi-colis-en-ligne-luna-tracking.webp?v=2', alt: t('home.pillar_tracking_alt'), title: useContent('home', 'pillar_tracking_title', t('home.pillar_tracking_title')), body: useContent('home', 'pillar_tracking_body', t('home.pillar_tracking_body')), href: urlFor('tracking', lang) },
+    { key: 'home',     icon: Home,        image: '/images/services/livraison-domicile-luna-tracking.webp', alt: t('home.pillar_home_alt'),     title: useContent('home', 'pillar_home_title',     t('home.pillar_home_title')),     body: useContent('home', 'pillar_home_body',     t('home.pillar_home_body')),     href: urlFor('pricing', lang) },
+    { key: 'pickup',   icon: PackagePlus, image: '/images/services/enlevement-colis-camionnette-luna-tracking.webp', alt: t('home.pillar_pickup_alt'),   title: useContent('home', 'pillar_pickup_title',   t('home.pillar_pickup_title')),   body: useContent('home', 'pillar_pickup_body',   t('home.pillar_pickup_body')),   href: urlFor('pricing', lang) },
   ];
 
   const steps = [
@@ -79,9 +81,9 @@ export default function Index() {
       >
         <div
           className="relative mx-auto max-w-[1220px]"
-          style={{ padding: 'clamp(68px,8vw,116px) clamp(20px,4vw,40px) clamp(104px,12vw,168px)' }}
+          style={{ padding: 'clamp(40px,8vw,116px) clamp(20px,4vw,40px) clamp(48px,10vw,168px)' }}
         >
-          <div className="min-w-0" style={{ maxWidth: 'min(560px,58%)' }}>
+          <div className="min-w-0 max-w-full sm:max-w-[min(560px,58%)]">
             <p className="mb-5 text-[13px] font-semibold tracking-[0.2em] text-luna-aqua">
               {t('home.hero_eyebrow').toUpperCase()}
             </p>
@@ -144,10 +146,14 @@ export default function Index() {
             </div>
             <div className="grid gap-5 sm:grid-cols-2 nav:grid-cols-3">
               {cards.map((c) => (
-                <article key={c.key} className="flex flex-col overflow-hidden rounded-[10px] border border-[#DCE5F0] bg-white">
-                  <div className="h-40">
+                <Link
+                  key={c.key}
+                  to={c.href}
+                  className="group flex flex-col overflow-hidden rounded-[10px] border border-[#DCE5F0] bg-white transition-shadow hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-luna-royal"
+                >
+                  <div className="h-40 overflow-hidden">
                     {c.image ? (
-                      <img src={c.image} alt={c.alt} width={800} height={320} loading="lazy" decoding="async" className="h-full w-full object-cover" />
+                      <img src={c.image} alt={c.alt} width={800} height={320} loading="lazy" decoding="async" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center bg-luna-gradient">
                         <c.icon className="h-12 w-12 text-white/90" aria-hidden="true" />
@@ -155,14 +161,17 @@ export default function Index() {
                     )}
                   </div>
                   <div className="flex flex-1 flex-col px-[18px] pb-6 pt-5">
-                    <Ed page="home" field={`pillar_${c.key}_title`} as="h3" className="mb-2.5 block text-[20px] font-semibold leading-[1.3] text-luna-royal">
+                    <Ed page="home" field={`pillar_${c.key}_title`} as="h3" className="mb-2.5 block text-[20px] font-semibold leading-[1.3] text-luna-royal group-hover:text-luna-aqua2 transition-colors">
                       {c.title}
                     </Ed>
                     <Ed page="home" field={`pillar_${c.key}_body`} as="p" multiline className="block text-[13px] leading-[1.7] text-luna-body">
                       {c.body}
                     </Ed>
+                    <span className="mt-auto flex items-center gap-1 pt-3 text-[13px] font-semibold text-luna-royal group-hover:text-luna-aqua2 transition-colors">
+                      {t('home.pillar_cta')} <ArrowRight className="h-3.5 w-3.5" />
+                    </span>
                   </div>
-                </article>
+                </Link>
               ))}
             </div>
           </section>
