@@ -732,7 +732,8 @@
     "restore": "Restaurer",
     "restored_toast": "Conversation restaurée.",
     "deleted_banner": "Conversation supprimée le {{date}} — invisible pour le client, lecture seule. Restaurez-la pour y répondre.",
-    "not_in_view": "Cette conversation n'est pas dans cette vue (elle a peut-être été supprimée — cochez « Conversations supprimées »)."
+    "not_in_view": "Cette conversation n'est pas dans cette vue (elle a peut-être été supprimée — cochez « Conversations supprimées »).",
+    "row_actions": "Actions pour la conversation avec {{name}}"
   },
   "business_reports": {
     "meta_title": "Comptes & rapports — Luna Tracking Logistics",

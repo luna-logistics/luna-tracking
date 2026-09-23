@@ -49,12 +49,14 @@ export function ChatMessageList({
         return (
           <div key={m.id} className={cn('flex', mine ? 'justify-end' : 'justify-start')}>
             <div className={cn(
-              'max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-2 shadow-sm',
+              'min-w-0 max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-2 shadow-sm',
               mine
                 ? 'bg-luna-navy text-white rounded-br-sm'
                 : 'bg-slate-100 text-luna-navy rounded-bl-sm',
             )}>
-              <p className="text-sm whitespace-pre-wrap break-words">{m.body}</p>
+              {/* anywhere (not just break-word): an unbroken URL / e-mail also
+                  stops counting toward the pane's minimum width. */}
+              <p className="text-sm whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{m.body}</p>
               <p className={cn(
                 'mt-1 text-[10px]',
                 mine ? 'text-white/60 text-right' : 'text-slate-500',

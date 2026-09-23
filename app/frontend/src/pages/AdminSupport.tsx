@@ -9,6 +9,7 @@ import { toast } from '@/components/ui/sonner';
 import { ChatMessageList } from '@/components/ChatMessageList';
 import { ChatMessageInput } from '@/components/ChatMessageInput';
 import { OfficeNotificationLog } from '@/components/OfficeNotificationLog';
+import { ConversationRowMenu } from '@/components/ConversationRowMenu';
 import {
   fetchConversationsStrict, setConversationStatus, adminDeleteConversation, adminRestoreConversation,
   fetchMessages, sendMessage, markConversationRead,
@@ -138,22 +139,23 @@ export default function AdminSupport() {
     } catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); throw err; }
   };
 
-  const removeConversation = async () => {
-    if (!selected) return;
-    if (!confirm(t('admin_support.delete_confirm', { name: selected.user_display_name || selected.user_email || selected.subject || '' }))) return;
+  // Soft delete / restore (admin_delete|restore_support_conversation), from the
+  // list row's "…" menu or the open conversation's header — same action.
+  const rowLabel = (r: ConversationSummary) => r.user_display_name || r.user_email || r.subject || '';
+  const removeConversation = async (r: ConversationSummary) => {
+    if (!confirm(t('admin_support.delete_confirm', { name: rowLabel(r) }))) return;
     try {
-      await adminDeleteConversation(selected.id);
-      setSelectedId(null);
+      await adminDeleteConversation(r.id);
+      if (selectedId === r.id) setSelectedId(null);
       await reload();
       toast.success(t('admin_support.deleted_toast'));
     } catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
   };
 
-  const restoreConversation = async () => {
-    if (!selected) return;
+  const restoreConversation = async (r: ConversationSummary) => {
     try {
-      await adminRestoreConversation(selected.id);
-      setSelectedId(null);
+      await adminRestoreConversation(r.id);
+      if (selectedId === r.id) setSelectedId(null);
       await reload();
       toast.success(t('admin_support.restored_toast'));
     } catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
@@ -241,9 +243,12 @@ export default function AdminSupport() {
           ))}
         </div>
       </section>
-      <div ref={inboxRef} className="grid gap-0 lg:grid-cols-[380px_1fr] h-[calc(100vh-14rem)] min-h-[500px] rounded-2xl border border-slate-200 bg-white overflow-hidden">
+      {/* minmax(0,…) tracks + min-w-0 panes: a long unbreakable header line
+          (truncate = nowrap) must ellipsize, never widen the detail column past
+          the card — that clipped the right-aligned (staff-side) bubbles. */}
+      <div ref={inboxRef} className="grid gap-0 grid-cols-1 lg:grid-cols-[380px_minmax(0,1fr)] h-[calc(100vh-14rem)] min-h-[500px] rounded-2xl border border-slate-200 bg-white overflow-hidden">
         {/* List */}
-        <aside className={cn('border-r border-slate-200 flex flex-col', selectedId && 'hidden lg:flex')}>
+        <aside className={cn('min-w-0 border-r border-slate-200 flex flex-col', selectedId && 'hidden lg:flex')}>
           <header className="px-4 py-3 border-b border-slate-200 space-y-2">
             <h1 className="text-lg font-bold text-luna-navy flex items-center gap-2">
               <MessageSquare className="h-5 w-5" />
@@ -281,11 +286,9 @@ export default function AdminSupport() {
               <div className="p-6 text-center text-sm text-slate-500">{t(showDeleted ? 'admin_support.empty_deleted' : 'admin_support.empty')}</div>
             )}
             {filtered.map((r) => (
-              <button key={r.id} type="button" onClick={() => setSelectedId(r.id)}
-                className={cn(
-                  'w-full text-left px-4 py-3 border-b border-slate-100 hover:bg-slate-50 transition-colors',
-                  selectedId === r.id && 'bg-luna-blue/5',
-                )}>
+              <div key={r.id} className={cn('relative border-b border-slate-100', selectedId === r.id && 'bg-luna-blue/5')}>
+              <button type="button" onClick={() => setSelectedId(r.id)}
+                className="w-full text-left pl-4 pr-10 py-3 hover:bg-slate-50 transition-colors">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-luna-navy truncate flex items-center gap-1.5">
@@ -323,12 +326,15 @@ export default function AdminSupport() {
                   </span>
                 </div>
               </button>
+              <ConversationRowMenu deleted={!!r.deleted_at} label={rowLabel(r) || t('admin_support.unknown_user')}
+                onDelete={() => void removeConversation(r)} onRestore={() => void restoreConversation(r)} />
+              </div>
             ))}
           </div>
         </aside>
 
         {/* Detail */}
-        <section className={cn('flex flex-col', !selectedId && 'hidden lg:flex')}>
+        <section className={cn('min-w-0 flex flex-col', !selectedId && 'hidden lg:flex')}>
           {selected && (
             <>
               <header className="px-4 py-3 border-b border-slate-200 flex items-center gap-3">
@@ -351,7 +357,7 @@ export default function AdminSupport() {
                   </p>
                 </div>
                 {selected.deleted_at ? (
-                  <Button size="sm" variant="outline" onClick={() => void restoreConversation()}>
+                  <Button size="sm" variant="outline" onClick={() => void restoreConversation(selected)}>
                     <ArchiveRestore className="h-3.5 w-3.5" />{t('admin_support.restore')}
                   </Button>
                 ) : (
@@ -366,7 +372,7 @@ export default function AdminSupport() {
                       </Button>
                     )}
                     <Button size="sm" variant="ghost" className="text-red-700 hover:text-red-800 hover:bg-red-50"
-                      onClick={() => void removeConversation()} title={t('admin_support.delete_help')}>
+                      onClick={() => void removeConversation(selected)} title={t('admin_support.delete_help')}>
                       <Trash2 className="h-3.5 w-3.5" /><span className="hidden sm:inline">{t('admin_support.delete')}</span>
                     </Button>
                   </>
