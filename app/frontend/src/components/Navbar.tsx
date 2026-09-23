@@ -55,7 +55,7 @@ export function Navbar() {
       <div className="mx-auto flex max-w-[1220px] flex-nowrap items-center gap-x-2 px-3 py-1.5 sm:gap-x-3 sm:px-8 lg:px-5 lg:py-2.5">
         {/* Logo — far left */}
         <Link to={urlFor('home', lang)} className="flex-none flex items-center gap-2.5" aria-label={t('brand.name')}>
-          <img src="/brand/luna-icon.png" alt="" aria-hidden="true" className="block h-[30px] w-auto lg:h-11" width={44} height={44} />
+          <img src="/brand/luna-icon.webp" alt="" aria-hidden="true" className="block h-[30px] w-auto lg:h-11" width={44} height={44} />
           <span className="block leading-none">
             <span className="block text-[16px] font-semibold tracking-[0.055em] bg-luna-wordmark bg-clip-text text-transparent lg:text-[22px]">LUNA</span>
             <span className="mt-[2px] block text-[8.5px] font-medium tracking-[0.05em] text-luna-aqua whitespace-nowrap lg:mt-1 lg:text-[11px]">Tracking Logistics</span>
@@ -97,6 +97,7 @@ export function Navbar() {
                 <Link
                   to="/admin"
                   title={t('nav.admin')}
+                  aria-label={t('nav.admin')}
                   className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-luna-hair text-luna-aqua hover:bg-luna-sky/20 lg:h-10 lg:w-10"
                 >
                   <LayoutDashboard className="h-4 w-4" />
@@ -104,6 +105,7 @@ export function Navbar() {
               )}
               <Link
                 to={urlFor('account', lang)}
+                aria-label={t('nav.account')}
                 className="inline-flex items-center gap-2 rounded-lg border border-luna-sky px-3 py-2 text-[13px] font-medium text-white hover:bg-luna-sky/20 whitespace-nowrap"
               >
                 <UserCircle className="h-[18px] w-[18px] text-luna-aqua" />
@@ -122,6 +124,7 @@ export function Navbar() {
           ) : (
             <Link
               to={urlFor('login', lang)}
+              aria-label={t('nav.login')}
               className="inline-flex items-center gap-2 rounded-lg border border-luna-sky px-3 py-2 text-[13px] font-medium text-white hover:bg-luna-sky/20 whitespace-nowrap"
             >
               <UserCircle className="h-[18px] w-[18px] text-luna-aqua" />

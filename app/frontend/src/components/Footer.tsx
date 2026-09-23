@@ -42,7 +42,7 @@ export function Footer() {
           {/* Mobile: logo + brand inline, 2-col links, compact contact */}
           <div className="md:hidden">
             <div className="flex items-center gap-3 mb-5">
-              <img src="/brand/luna-icon.png" alt="" aria-hidden="true" className="h-9 w-auto" width={36} height={36} />
+              <img src="/brand/luna-icon.webp" alt="" aria-hidden="true" className="h-9 w-auto" width={36} height={36} />
               <span className="text-[15px] font-semibold text-white">{t('brand.name')}</span>
             </div>
             <nav aria-label={t('footer.services_title')} className="grid grid-cols-2 gap-x-6 gap-y-2 mb-5 text-sm">
