@@ -1556,7 +1556,7 @@
     "ep_group_scoped": "Scoped endpoints — authentication required",
     "ep_health": "Liveness probe. Returns { status: \"ok\" }.",
     "ep_root": "Discovery: lists every endpoint with its signature.",
-    "ep_rates": "Rate calculator: returns available modes and customer prices — internal cost is never exposed.",
+    "ep_rates": "Retired on 24/09/2026 (410 response): current prices are on the online calculator.",
     "ep_tracking": "Public shipment tracking by token (the shipper toggles sharing from their dashboard).",
     "ep_me": "Caller profile: user id + businesses + roles.",
     "ep_ship_list": "Shipment list for the business (JWT or scoped ApiKey). Filters: status, limit.",

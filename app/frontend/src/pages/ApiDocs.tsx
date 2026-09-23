@@ -274,7 +274,7 @@ print(payload['data'])   # list of shipments` },
           <EndpointGroup title={t('api_docs.ep_group_public')}>
             <EndpointRow method="GET" path="/health" auth="—" body={t('api_docs.ep_health')} />
             <EndpointRow method="GET" path="/" auth="—" body={t('api_docs.ep_root')} />
-            <EndpointRow method="GET" path="/rates?origin=..&destination=..&weight_kg=.." auth="—" body={t('api_docs.ep_rates')} />
+            <EndpointRow method="GET" path="/rates (410)" auth="—" body={t('api_docs.ep_rates')} />
             <EndpointRow method="GET" path="/tracking/:token" auth="—" body={t('api_docs.ep_tracking')} />
           </EndpointGroup>
 

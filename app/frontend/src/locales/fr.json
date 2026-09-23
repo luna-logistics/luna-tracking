@@ -1556,7 +1556,7 @@
     "ep_group_scoped": "Endpoints scopés — authentification requise",
     "ep_health": "Test de vie de l'API. Renvoie { status: \"ok\" }.",
     "ep_root": "Découverte : liste tous les endpoints avec leur signature.",
-    "ep_rates": "Calcul de tarif : renvoie les modes disponibles + prix client, sans jamais exposer le coût interne.",
+    "ep_rates": "Retiré le 24/09/2026 (réponse 410) : les tarifs à jour se consultent sur le calculateur en ligne.",
     "ep_tracking": "Suivi public d'une expédition via son token (le shipper active le partage depuis son tableau de bord).",
     "ep_me": "Profil du caller : identifiant + entreprises + rôles.",
     "ep_ship_list": "Liste des expéditions de l'entreprise (JWT ou ApiKey scopée). Filtres : status, limit.",

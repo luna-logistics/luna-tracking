@@ -53,7 +53,7 @@ const OPENAPI_SPEC = {
     { name: 'Account', description: 'Caller identity.' },
     { name: 'Shipments', description: 'Shipment records (business-scoped). Requires the shipments.read scope for ApiKey callers.' },
     { name: 'Customers', description: 'B2B customer address book (business-scoped). Requires the customers.read scope for ApiKey callers.' },
-    { name: 'Rates', description: 'Public rate calculator.' },
+    { name: 'Rates', description: 'Retired 2026-09-24 — prices are published at https://lunatrackinglogistics.com/calculateur.' },
     { name: 'Tracking', description: 'Public shipment tracking by opt-in token.' },
     { name: 'Usage', description: 'API call telemetry (business-scoped).' },
   ],
@@ -142,15 +142,6 @@ const OPENAPI_SPEC = {
         is_active: { type: 'boolean' },
         created_at: { type: 'string', format: 'date-time' },
       } },
-      Rate: { type: 'object', properties: {
-        provider_code: { type: 'string' },
-        provider_name: { type: 'string' },
-        service_mode: { type: 'string', enum: ['air','sea','road'] },
-        currency: { type: 'string' },
-        customer_price: { type: 'number' },
-        transit_days_min: { type: 'integer', nullable: true },
-        transit_days_max: { type: 'integer', nullable: true },
-      } },
       PublicTracking: { type: 'object', properties: {
         reference: { type: 'string' },
         status: { type: 'string' },
@@ -229,18 +220,9 @@ const OPENAPI_SPEC = {
         '200': { description: 'OK', content: { 'application/json': {} } },
         '403': { $ref: '#/components/responses/Forbidden' },
         '404': { $ref: '#/components/responses/NotFound' } } } },
-    '/rates': { get: { tags: ['Rates'], summary: 'Freight rate calculator', security: [],
-      parameters: [
-        { name: 'origin',      in: 'query', required: true, schema: { type: 'string', minLength: 2, maxLength: 2 }, description: 'ISO 3166-1 alpha-2 country code.' },
-        { name: 'destination', in: 'query', required: true, schema: { type: 'string', minLength: 2, maxLength: 2 } },
-        { name: 'mode',        in: 'query', schema: { type: 'string', enum: ['air','sea','road'] } },
-        { name: 'weight_kg',   in: 'query', schema: { type: 'number', minimum: 0 } },
-        { name: 'volume_m3',   in: 'query', schema: { type: 'number', minimum: 0 } },
-      ],
-      responses: { '200': { description: 'OK', content: { 'application/json': { schema: { type: 'object', properties: {
-        data: { type: 'array', items: { $ref: '#/components/schemas/Rate' } },
-        meta: { type: 'object' },
-      } } } } } } } },
+    '/rates': { get: { tags: ['Rates'], summary: 'RETIRED — use the online calculator', deprecated: true, security: [],
+      description: 'Retired on 2026-09-24 (it served a superseded tariff). Always answers 410 Gone. Current prices: https://lunatrackinglogistics.com/calculateur',
+      responses: { '410': { description: 'Gone', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } } } } },
     '/tracking/{token}': { get: { tags: ['Tracking'], summary: 'Public shipment tracking by opt-in token', security: [],
       parameters: [{ name: 'token', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
       responses: {
@@ -525,38 +507,14 @@ const getCustomer: Handler = async (ctx) => {
   return ok(data);
 };
 
-/** Rate calculator — public, backed by calculate_rates() RPC. Only
- *  ever returns curated customer-facing pricing. Internal costs and
- *  markup details stay in Postgres and never cross this boundary. */
-const rates: Handler = async (ctx) => {
-  const url = new URL(ctx.req.url);
-  const origin = url.searchParams.get('origin');
-  const destination = url.searchParams.get('destination');
-  const mode = url.searchParams.get('mode');
-  const weight = parseFloat(url.searchParams.get('weight_kg') || '0');
-  const volume = parseFloat(url.searchParams.get('volume_m3') || '0');
-
-  if (!origin || origin.length !== 2) return fail('missing_param', 'origin (2-letter ISO country code) is required', 400);
-  if (!destination || destination.length !== 2) return fail('missing_param', 'destination (2-letter ISO country code) is required', 400);
-  if (mode && !['air','sea','road'].includes(mode)) return fail('bad_mode', 'mode must be one of air, sea, road', 400);
-  if (!Number.isFinite(weight) || weight < 0) return fail('bad_weight', 'weight_kg must be a non-negative number', 400);
-  if (!Number.isFinite(volume) || volume < 0) return fail('bad_volume', 'volume_m3 must be a non-negative number', 400);
-  if (weight === 0 && volume === 0) return fail('missing_param', 'weight_kg or volume_m3 must be > 0', 400);
-
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_ANON_KEY')!,
-  );
-  const { data, error } = await supabase.rpc('calculate_rates', {
-    p_origin_country: origin.toUpperCase(),
-    p_destination_country: destination.toUpperCase(),
-    p_mode: mode,
-    p_weight_kg: weight,
-    p_volume_m3: volume,
-  });
-  if (error) return fail('db_error', error.message, 500);
-  return ok(data ?? [], { count: (data ?? []).length });
-};
+/** RETIRED 2026-09-24 — 410 Gone. /rates served calculate_rates() over
+ *  rate_rules, a superseded placeholder tariff that disagreed with the
+ *  published Brussels → Kinshasa grid (pricing_config) used by /calculateur
+ *  and the pro dashboard. Usage log: 1 call before retirement besides the
+ *  team's own tests, 0 API keys → retired rather than kept serving wrong
+ *  prices. The RPC itself is no longer executable by anon/authenticated. */
+const RATES_RETIRED_MESSAGE = 'The /rates endpoint was retired on 2026-09-24. Current Brussels -> Kinshasa prices: https://lunatrackinglogistics.com/calculateur (English: https://lunatrackinglogistics.com/en/calculator). For programmatic pricing, contact info@lunatrackinglogistics.com.';
+const rates: Handler = async () => fail('gone', RATES_RETIRED_MESSAGE, 410);
 
 /** Usage summary — authenticated only. Returns totals + timeline +
  *  per-endpoint + per-key breakdown for the given range. Same shape
@@ -848,7 +806,7 @@ function describeRoute(r: Route): string {
   if (src.includes("=== 'customers'"))  return src.includes('length === 2') ? 'customers/:id' : 'customers';
   if (src.includes("=== 'tracking'"))   return 'tracking/:token';
   if (src.includes("=== 'legacy-tracking'")) return 'legacy-tracking/:code';
-  if (src.includes("=== 'rates'"))      return 'rates?origin=..&destination=..&mode=..&weight_kg=..&volume_m3=..';
+  if (src.includes("=== 'rates'"))      return 'rates (retired: 410)';
   if (src.includes("=== 'usage'"))      return 'usage/summary?business_id=..&range=24h|7d|30d';
   if (src.includes("=== 'openapi.json'")) return 'openapi.json';
   if (src.includes("=== 'health'"))     return 'health';
