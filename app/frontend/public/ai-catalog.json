@@ -1,72 +1,8 @@
 {
-  "schema_version": "1.0",
-  "name": "Luna Tracking Logistics",
-  "description": "Freight partner between Belgium and the Democratic Republic of Congo. Air, sea and ground transport with transparent tracking at every stage.",
-  "url": "https://lunatrackinglogistics.com",
-  "logo": "https://lunatrackinglogistics.com/brand/luna-icon.png",
-  "contact": {
-    "email": "info@lunatrackinglogistics.com"
+  "specVersion": "1.0",
+  "host": {
+    "displayName": "Luna Tracking Logistics",
+    "identifier": "lunatrackinglogistics.com"
   },
-  "resources": [
-    {
-      "name": "Homepage",
-      "url": "https://lunatrackinglogistics.com/",
-      "description": "Main landing page with service overview and tracking entry point.",
-      "type": "website"
-    },
-    {
-      "name": "Parcel tracking",
-      "url": "https://lunatrackinglogistics.com/suivi",
-      "description": "Real-time shipment tracking by tracking number.",
-      "type": "website"
-    },
-    {
-      "name": "Rate calculator",
-      "url": "https://lunatrackinglogistics.com/calculateur",
-      "description": "Instant freight cost estimation by mode, weight and destination.",
-      "type": "website"
-    },
-    {
-      "name": "Pricing",
-      "url": "https://lunatrackinglogistics.com/tarifs",
-      "description": "Price grid by service and corridor.",
-      "type": "website"
-    },
-    {
-      "name": "Shop & Ship",
-      "url": "https://lunatrackinglogistics.com/achat-envoi",
-      "description": "Buy Belgian products and have them delivered to an address in Congo.",
-      "type": "website"
-    },
-    {
-      "name": "International forwarding",
-      "url": "https://lunatrackinglogistics.com/reexpedition",
-      "description": "Parcel consolidation via a Belgian address forwarded to Congo.",
-      "type": "website"
-    },
-    {
-      "name": "Contact",
-      "url": "https://lunatrackinglogistics.com/contact",
-      "description": "Email, office address in Ixelles (Brussels), opening hours.",
-      "type": "website"
-    },
-    {
-      "name": "Blog",
-      "url": "https://lunatrackinglogistics.com/blog",
-      "description": "Practical guides and news about Belgium-Congo freight.",
-      "type": "website"
-    },
-    {
-      "name": "API documentation",
-      "url": "https://lunatrackinglogistics.com/docs/api",
-      "description": "OpenAPI 3.1 reference for integrating tracking, quotes, rate calculator and webhooks.",
-      "type": "api"
-    },
-    {
-      "name": "LLMs.txt",
-      "url": "https://lunatrackinglogistics.com/llms.txt",
-      "description": "Machine-readable site summary for large language models.",
-      "type": "llms_txt"
-    }
-  ]
+  "entries": []
 }
