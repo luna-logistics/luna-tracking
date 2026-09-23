@@ -514,7 +514,8 @@
     "legal_label_office": "Registered office",
     "legal_label_email": "Email",
     "legal_terms": "Terms and conditions",
-    "legal_privacy": "Privacy policy"
+    "legal_privacy": "Privacy policy",
+    "success_account": "You are signed in: the conversation is also in your account (Support section), where you can read our reply and answer it."
   },
   "auth": {
     "login_title": "Sign in",

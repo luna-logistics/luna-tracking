@@ -514,7 +514,8 @@
     "legal_label_office": "Siège social",
     "legal_label_email": "E-mail",
     "legal_terms": "Conditions générales",
-    "legal_privacy": "Politique de confidentialité"
+    "legal_privacy": "Politique de confidentialité",
+    "success_account": "Vous êtes connecté : la conversation est aussi dans votre espace client (rubrique Support), où vous pouvez lire notre réponse et y répondre."
   },
   "auth": {
     "login_title": "Se connecter",

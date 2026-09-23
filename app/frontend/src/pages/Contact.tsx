@@ -11,7 +11,8 @@ import { Ed } from '@/components/Ed';
 import { useContent } from '@/contexts/SiteContentContext';
 import { urlFor } from '@/lib/url/routes';
 import { useLegalIdentity } from '@/hooks/useLegalIdentity';
-import { guestCreateConversation, writeGuestToken } from '@/lib/support-chat';
+import { createConversation, guestCreateConversation, sendMessage, writeGuestToken } from '@/lib/support-chat';
+import { useAuth } from '@/contexts/AuthContext';
 import { FormShield, useFormShield } from '@/components/FormShield';
 import { submitErrorKey } from '@/lib/errors';
 import {
@@ -84,6 +85,12 @@ export default function Contact() {
   const [location, setLocation] = useState('');
   const [consent, setConsent] = useState(false);
   const shield = useFormShield();
+  // Signed-in visitors: the request is attached to their account (in-account
+  // conversation view + account reply e-mails), never to a guest token.
+  const { user } = useAuth();
+  useEffect(() => {
+    if (user?.email) setEmailInput((v) => v || user.email!);
+  }, [user?.email]);
   const [submitErrKey, setSubmitErrKey] = useState('common.error_generic');
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -142,22 +149,40 @@ export default function Contact() {
       if (location) extra.push(`${t('contact.f_location_label')} ${location}`);
       if (formPhone.trim()) extra.push(`${t('contact.f_phone_label')} : ${formPhone.trim()}`);
       if (activeIntent) extra.push(`(${activeIntent})`);
+      // An account conversation has no guest name/e-mail columns: keep what
+      // was typed in the message so the team sees it (the reply e-mail goes
+      // to the account's address).
+      if (user) {
+        extra.push(`${t('contact.f_name_label')} : ${name.trim()}`);
+        if (emailInput.trim().toLowerCase() !== (user.email ?? '').toLowerCase()) {
+          extra.push(`${t('contact.f_email_label')} : ${emailInput.trim()}`);
+        }
+      }
       const body = extra.length ? `${lines[0]}\n\n— ${extra.join('\n— ')}` : lines[0];
 
-      const proof = await shield.getProof();
-      const { conversation_id, guest_token } = await guestCreateConversation({
-        email: emailInput.trim(),
-        name: name.trim(),
-        subject: subjectLabel,
-        body,
-        captcha: proof.captcha,
-        hp: proof.hp,
-      });
-      writeGuestToken(guest_token);
-      setReplyEmail(emailInput.trim());
-      setReference(conversation_id.replace(/-/g, '').slice(0, 8).toUpperCase());
+      let conversationId: string;
+      if (user) {
+        const conv = await createConversation(subjectLabel);
+        await sendMessage(conv.id, body);
+        conversationId = conv.id;
+        setReplyEmail(user.email ?? emailInput.trim());
+      } else {
+        const proof = await shield.getProof();
+        const { conversation_id, guest_token } = await guestCreateConversation({
+          email: emailInput.trim(),
+          name: name.trim(),
+          subject: subjectLabel,
+          body,
+          captcha: proof.captcha,
+          hp: proof.hp,
+        });
+        writeGuestToken(guest_token);
+        conversationId = conversation_id;
+        setReplyEmail(emailInput.trim());
+      }
+      setReference(conversationId.replace(/-/g, '').slice(0, 8).toUpperCase());
       setSent(true);
-      trackEvent('contact_form_submitted', { subject_category: subjectId, has_tracking_ref: !!(needsRef && tracking.trim()) });
+      trackEvent('contact_form_submitted', { subject_category: subjectId, has_tracking_ref: !!(needsRef && tracking.trim()), has_account: !!user });
     } catch (err) {
       setSubmitErrKey(submitErrorKey(err));
       setErrors({ submit: true });
@@ -398,13 +423,14 @@ export default function Contact() {
                 <p className="mt-2 text-[15px] leading-[1.6] text-luna-body">
                   {t('contact.success_body', { ref: reference, email: replyEmail })}
                 </p>
+                {user && <p className="mt-2 text-[15px] leading-[1.6] text-luna-body">{t('contact.success_account')}</p>}
                 <button type="button" onClick={resetForm} className={`mt-5 inline-flex items-center gap-1.5 rounded-full border border-luna-azure px-4 py-2 text-[14px] font-semibold text-luna-azure hover:bg-luna-azure hover:text-white ${ringLight}`}>
                   {t('contact.success_new')}
                 </button>
               </div>
             ) : (
               <form onSubmit={submit} noValidate className="mt-6 space-y-5">
-                <FormShield shield={shield} />
+                {!user && <FormShield shield={shield} />}
 
                 <div>
                   <label htmlFor="f-subject" className="mb-1.5 block text-[14px] font-medium text-luna-ink">{t('contact.f_subject_label')}</label>
