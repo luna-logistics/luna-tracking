@@ -36,13 +36,22 @@ async function serveNeutralShell(request, env) {
     .on('title',                              neutralTitleHandler);
 
   const stripped = rewriter.transform(shellResponse);
-  return new Response(stripped.body, {
-    status: 200,
-    headers: {
-      'content-type': 'text/html; charset=utf-8',
-      'x-luna-fallback': 'neutral-shell',
-    },
-  });
+  const headers = {
+    'content-type': 'text/html; charset=utf-8',
+    'x-luna-fallback': 'neutral-shell',
+  };
+  // public/_headers rules only reach asset responses, NOT this hand-built
+  // one — so the noindex it declares for private areas never went out
+  // (verified 2026-09-24: /admin, /compte, /entreprise had no header).
+  if (isPrivatePath(new URL(request.url).pathname)) headers['x-robots-tag'] = 'noindex';
+  return new Response(stripped.body, { status: 200, headers });
+}
+
+// Login-only areas + auth screens. Mirrors the noindex list in
+// public/_headers and the Disallow list in public/robots.txt.
+const PRIVATE_PATH = /^\/(?:admin|compte|entreprise|auth|connexion|inscription|mot-de-passe-oublie|en\/(?:account|business|login|signup|forgot-password))(?:\/|$)/;
+function isPrivatePath(pathname) {
+  return PRIVATE_PATH.test(pathname);
 }
 
 export default {
