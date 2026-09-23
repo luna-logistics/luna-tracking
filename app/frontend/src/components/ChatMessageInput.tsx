@@ -57,6 +57,7 @@ export function ChatMessageInput({
           onClick={() => void submit()}
           disabled={disabled || busy || !body.trim()}
           className="h-[3.75rem]"
+          aria-label={t('support_chat.send')}
         >
           {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
           <span className="hidden sm:inline">{t('support_chat.send')}</span>

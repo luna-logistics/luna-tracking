@@ -431,7 +431,8 @@ function BubbleComposer({
         className="flex-1 resize-none rounded-md border border-slate-300 p-2 text-sm min-h-[44px]"
       />
       <Button type="button" variant="navy" size="sm" onClick={() => void onSend()}
-        disabled={disabled || busy || !draft.trim()} className="h-11">
+        disabled={disabled || busy || !draft.trim()} className="h-11"
+        aria-label={t('support_chat.send')}>
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
       </Button>
     </div>

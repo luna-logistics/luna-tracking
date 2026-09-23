@@ -63,7 +63,7 @@ export function Navbar() {
         </Link>
 
         {/* Inline nav — centered, single row (>= navfull) */}
-        <nav className="hidden navfull:flex flex-1 min-w-0 items-center justify-center gap-1.5 xl:gap-2" aria-label={t('nav.home')}>
+        <nav className="hidden navfull:flex flex-1 min-w-0 items-center justify-center gap-1.5 xl:gap-2" aria-label={t('nav.main_navigation')}>
           {links.map((l) => (
             <Link key={l.to} to={l.to} aria-current={isActive(l.to) ? 'page' : undefined} className={pill(isActive(l.to))}>
               {l.label}
@@ -134,7 +134,8 @@ export function Navbar() {
             type="button"
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
-            aria-label="Menu"
+            aria-controls="mobile-nav"
+            aria-label={t('nav.menu')}
             className="navfull:hidden inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-luna-sky text-luna-aqua hover:bg-luna-sky/20 lg:h-10 lg:w-10"
           >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -144,7 +145,7 @@ export function Navbar() {
 
       {/* Mobile dropdown — below navfull */}
       {open && (
-        <nav className="navfull:hidden border-t border-luna-hair bg-luna-ink px-4 sm:px-8 py-3 lg:px-5 lg:py-4">
+        <nav id="mobile-nav" className="navfull:hidden border-t border-luna-hair bg-luna-ink px-4 sm:px-8 py-3 lg:px-5 lg:py-4" aria-label={t('nav.main_navigation')}>
           <div className="grid grid-cols-2 gap-1.5 lg:gap-2">
             {links.map((l) => (
               <Link

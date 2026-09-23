@@ -45,7 +45,7 @@ export function Footer() {
               <img src="/brand/luna-icon.png" alt="" aria-hidden="true" className="h-9 w-auto" width={36} height={36} />
               <span className="text-[15px] font-semibold text-white">{t('brand.name')}</span>
             </div>
-            <nav className="grid grid-cols-2 gap-x-6 gap-y-2 mb-5 text-sm">
+            <nav aria-label={t('footer.services_title')} className="grid grid-cols-2 gap-x-6 gap-y-2 mb-5 text-sm">
               <Link to={urlFor('tracking', lang)} className="text-white/80 hover:text-white">{t('nav.tracking')}</Link>
               <Link to={urlFor('shopAndShip', lang)} className="text-white/80 hover:text-white">{t('nav.shop_and_ship')}</Link>
               <Link to={urlFor('forwarding', lang)} className="text-white/80 hover:text-white">{t('nav.forwarding')}</Link>

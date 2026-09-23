@@ -39,6 +39,11 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+  <!-- Preload the homepage hero background — CSS background-image in a React
+       component is only discoverable after JS hydration; this hint starts the
+       fetch during HTML parse, cutting ~2-4s off mobile LCP. -->
+  <link rel="preload" as="image" href="/brand/hero-map.jpg" fetchpriority="high" />
+
   <!-- Trustpilot domain ownership verification. Ships on every page but
        Trustpilot only reads it from the homepage. Safe to leave in place
        after the check clears — it's inert everywhere else. -->
