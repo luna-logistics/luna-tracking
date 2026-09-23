@@ -1409,7 +1409,9 @@
     "suggest_rate": "Suggérer un tarif",
     "suggest_needs_countries": "Renseignez d'abord les pays d'origine et de destination.",
     "suggest_no_result": "Aucun tarif disponible pour cet itinéraire.",
-    "suggest_applied": "Tarif adopté : {{code}} · {{price}} {{currency}}"
+    "suggest_applied": "Tarif adopté : {{code}} · {{price}} {{currency}}",
+    "margin_help": "Ce que vous gagnez une fois le coût de transport interne et les frais de plateforme déduits de votre prix client.",
+    "margin_pending": "Renseignez le prix client pour voir votre marge."
   },
   "business_quote_detail": {
     "not_found_title": "Devis introuvable",
@@ -2277,7 +2279,8 @@
     "error_generic": "Une erreur s'est produite. Merci de réessayer.",
     "required": "Ce champ est requis",
     "email_invalid": "Adresse e-mail invalide",
-    "close": "Fermer"
+    "close": "Fermer",
+    "more_info": "Plus d'informations"
   },
   "guest_support": {
     "email_label": "Votre e-mail",

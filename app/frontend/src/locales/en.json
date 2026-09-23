@@ -1409,7 +1409,9 @@
     "suggest_rate": "Suggest a rate",
     "suggest_needs_countries": "Set the origin and destination countries first.",
     "suggest_no_result": "No rate available for this route.",
-    "suggest_applied": "Rate adopted: {{code}} · {{price}} {{currency}}"
+    "suggest_applied": "Rate adopted: {{code}} · {{price}} {{currency}}",
+    "margin_help": "What you earn once the internal transport cost and platform fee are deducted from your customer price.",
+    "margin_pending": "Enter the customer price to see your margin."
   },
   "business_quote_detail": {
     "not_found_title": "Quote not found",
@@ -2277,7 +2279,8 @@
     "error_generic": "An error occurred. Please try again.",
     "required": "This field is required",
     "email_invalid": "Invalid email address",
-    "close": "Close"
+    "close": "Close",
+    "more_info": "More information"
   },
   "guest_support": {
     "email_label": "Your email",

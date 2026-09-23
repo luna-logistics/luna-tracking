@@ -20,6 +20,7 @@ import { CURRENCIES, type Currency } from '@/lib/businesses';
 import { SHIPMENT_DIRECTIONS, SHIPMENT_MODES } from '@/lib/shipment-status';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
+import { InfoHint } from '@/components/InfoHint';
 
 /**
  * Quote form. Full pricing panel with cost / customer price / platform
@@ -58,6 +59,10 @@ export default function BusinessQuoteForm() {
 
   const num = (v: string) => v === '' ? null : Number(v);
   const marginNow = professionalMargin(f as unknown as { customer_price: number; transport_cost: number; platform_fee: number });
+  // A blank form has customer_price 0 → the margin would read as a scary
+  // negative number before anything was typed. Judge it only once a price exists.
+  const priceEntered = Number(f.customer_price) > 0;
+  const marginNegative = priceEntered && marginNow < 0;
 
   const suggestRate = async () => {
     if (!f.origin_country || !f.destination_country) {
@@ -215,15 +220,22 @@ export default function BusinessQuoteForm() {
               </Field>
               <div className={cn(
                 'mt-2 rounded-xl border p-3 text-sm',
-                marginNow < 0 ? 'border-red-300 bg-red-50 text-red-800' : 'border-emerald-300 bg-emerald-50 text-emerald-900',
-              )}>
-                <p className="text-xs uppercase tracking-wide font-semibold">
+                !priceEntered ? 'border-slate-200 bg-slate-50 text-slate-700'
+                  : marginNegative ? 'border-red-300 bg-red-50 text-red-800'
+                  : 'border-emerald-300 bg-emerald-50 text-emerald-900',
+              )} aria-live="polite">
+                <p className="text-xs uppercase tracking-wide font-semibold flex items-center gap-1.5">
                   {t('business_quote_form.professional_margin')}
+                  <InfoHint text={t('business_quote_form.margin_help')} label={t('common.more_info')} />
                 </p>
-                <p className="mt-1 text-lg font-bold">
-                  {marginNow.toLocaleString()} {f.currency}
-                </p>
-                {marginNow < 0 && (
+                {priceEntered ? (
+                  <p className="mt-1 text-lg font-bold">
+                    {marginNow.toLocaleString()} {f.currency}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-xs">{t('business_quote_form.margin_pending')}</p>
+                )}
+                {marginNegative && (
                   <p className="mt-1 text-xs">{t('business_quote_form.margin_negative_warning')}</p>
                 )}
               </div>
@@ -259,11 +271,18 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+/** `hint` = one always-visible sentence under the input (readable on touch
+ *  screens); `info` = the same kind of sentence behind an ⓘ tooltip. */
+function Field({ label, hint, info, children }: { label: string; hint?: string; info?: string; children: React.ReactNode }) {
+  const { t } = useTranslation();
   return (
     <div>
-      <Label className="text-luna-navy text-xs uppercase tracking-wide">{label}</Label>
+      <Label className="text-luna-navy text-xs uppercase tracking-wide inline-flex items-center gap-1.5">
+        {label}
+        {info && <InfoHint text={info} label={t('common.more_info')} />}
+      </Label>
       <div className="mt-1.5">{children}</div>
+      {hint && <p className="mt-1 text-[11px] leading-snug text-slate-500">{hint}</p>}
     </div>
   );
 }
