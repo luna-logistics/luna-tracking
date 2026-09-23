@@ -55,6 +55,30 @@ export function SEO({
   const resolvedOgTitle = ogTitle || title;
   const resolvedOgDescription = ogDescription || description;
 
+  // Helmet 3 on React 18 writes the head on first render but does NOT update
+  // it on client-side navigation (verified live 2026-09-23: after /tarifs →
+  // /suivi the tab title, description, canonical and og:url all stayed on
+  // /tarifs, and GA4 page_views carried the wrong title). Mirror the
+  // per-page values onto the EXISTING tags directly — update only, never
+  // create, so nothing can duplicate what Helmet or the prerender emitted.
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    document.title = title;
+    const set = (selector: string, attr: 'content' | 'href', value: string | undefined) => {
+      if (value == null) return;
+      document.head.querySelectorAll(selector).forEach((el) => el.setAttribute(attr, value));
+    };
+    set('link[rel="canonical"]', 'href', url);
+    set('meta[name="description"]', 'content', description);
+    set('meta[property="og:url"]', 'content', url);
+    set('meta[property="og:title"]', 'content', resolvedOgTitle);
+    set('meta[property="og:description"]', 'content', resolvedOgDescription);
+    set('meta[property="og:image"]', 'content', ogImage);
+    set('meta[name="twitter:title"]', 'content', resolvedOgTitle);
+    set('meta[name="twitter:description"]', 'content', resolvedOgDescription);
+    set('meta[name="twitter:image"]', 'content', ogImage);
+  }, [title, url, description, resolvedOgTitle, resolvedOgDescription, ogImage]);
+
   useEffect(() => {
     if (typeof document === 'undefined') return;
     document.head.querySelectorAll('meta[name="robots"][data-seo-managed]').forEach((el) => el.remove());
