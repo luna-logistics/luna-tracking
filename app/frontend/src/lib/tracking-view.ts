@@ -10,8 +10,8 @@ import type { TrackingResult, TrackingShipment } from './tracking';
  *
  * Sources (unchanged, read-only here):
  *   • legacy FileMaker codes → positions + the bridge's libelle parse
- *     (picked_up / in_transit / delivered). Their times carry NO timezone;
- *     they are read as LEGACY_SOURCE_TZ wall-clock time (see below);
+ *     (picked_up / in_transit / delivered). Their times are Brussels
+ *     wall-clock time (LEGACY_SOURCE_TZ, confirmed);
  *   • native shipments → shipment.status + status_change events
  *     (shipment_events.created_at is timestamptz → exact instants).
  * Every time is kept as a UTC instant and shown in the viewer's timezone.
@@ -54,11 +54,9 @@ export type TrackingView = {
 };
 
 /**
- * [USER DECISION] FileMaker's libelle times ("… le 19-08-2026 à 22:56:43")
- * carry no timezone and nothing in the bridge or the data says which clock
- * wrote them. Read as Brussels wall time (head office) until confirmed —
- * change this one constant if they turn out to be Kinshasa (Africa/Kinshasa)
- * or Goma (Africa/Lubumbashi) time.
+ * FileMaker's libelle times ("… le 19-08-2026 à 22:56:43") carry no timezone
+ * in the data; they are Brussels wall-clock time (confirmed by the owner,
+ * 2026-09-24). Converted to real instants, then shown in the viewer's zone.
  */
 export const LEGACY_SOURCE_TZ = 'Europe/Brussels';
 
