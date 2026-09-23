@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { trackEvent } from '@/lib/analytics';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { fetchTrackingStatus, type TrackingResult } from '@/lib/tracking';
+import { buildTrackingView } from '@/lib/tracking-view';
+import { TrackingResultView } from '@/components/tracking/TrackingResultView';
 import { useContent } from '@/contexts/SiteContentContext';
 import { Ed } from '@/components/Ed';
 import { Block } from '@/components/Block';
@@ -40,6 +42,10 @@ export default function Tracking() {
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<TrackingResult | null>(null);
+  const [searched, setSearched] = useState('');
+  // "Suivi Luna v2" result view when the result can be read confidently;
+  // otherwise (null) the page keeps the plain list below, as before.
+  const view = useMemo(() => (result ? buildTrackingView(result, searched) : null), [result, searched]);
   const [hint, setHint] = useState(false);
   const [faqOpen, setFaqOpen] = useState<number | null>(0);
 
@@ -49,6 +55,7 @@ export default function Tracking() {
     setLoading(true);
     try {
       const r = await fetchTrackingStatus(code.trim(), lang);
+      setSearched(code.trim());
       setResult(r);
       trackEvent('tracking_search', {
         found: r.status === 'ok',
@@ -82,7 +89,18 @@ export default function Tracking() {
 
       {/* ── Search ── */}
       <div className="bg-luna-mist">
-        <section className="mx-auto max-w-[1220px] px-5 sm:px-8" style={{ paddingTop: 'clamp(40px,5vw,72px)', paddingBottom: 'clamp(48px,6vw,80px)' }}>
+        <section className="mx-auto max-w-[1220px] px-5 sm:px-8" style={{ paddingTop: view ? 0 : 'clamp(40px,5vw,72px)', paddingBottom: 'clamp(48px,6vw,80px)' }}>
+          {view ? (
+            <TrackingResultView
+              view={view}
+              title={(
+                <Ed page="tracking" field="page_title" as="h1" className="text-[26px] font-semibold leading-[1.2] tracking-[-.01em] text-luna-ink lg:text-[32px]">
+                  {pageTitle}
+                </Ed>
+              )}
+              search={{ code, setCode: (v) => { setCode(v); setHint(false); }, onSubmit, loading }}
+            />
+          ) : (
           <div className="flex flex-wrap items-stretch gap-[clamp(20px,2.5vw,32px)]">
             {/* Left: title + route band */}
             <div className="flex min-w-0 flex-1 basis-[min(100%,420px)] flex-col justify-center">
@@ -186,6 +204,7 @@ export default function Tracking() {
               )}
             </div>
           </div>
+          )}
         </section>
 
         {/* ── How to track ── */}

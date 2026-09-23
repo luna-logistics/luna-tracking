@@ -25,10 +25,28 @@ export type TrackingPosition = {
   date?: string;
   lieu?: string;
   poids?: number;
+  /** Legacy only: the bridge's parse of `libelle` (additive, optional). */
+  kind?: 'picked_up' | 'in_transit' | 'delivered' | 'note';
+  originCity?: string | null;
+  destinationCity?: string | null;
+};
+
+/** Native shipments only: the public fields the API already returns, kept
+ *  for the result view (map, status, details). Optional — older consumers
+ *  keep reading `positions`. */
+export type TrackingShipment = {
+  status: string | null;
+  mode: string | null;
+  carrier_name: string | null;
+  origin_city: string | null;
+  origin_country: string | null;
+  destination_city: string | null;
+  destination_country: string | null;
+  events: Array<{ kind: string; to_status: string | null; created_at: string }>;
 };
 
 export type TrackingResult =
-  | { status: 'ok'; positions: TrackingPosition[]; source: 'legacy' | 'luna' }
+  | { status: 'ok'; positions: TrackingPosition[]; source: 'legacy' | 'luna'; shipment?: TrackingShipment }
   | { status: 'not_found'; message: string }
   | { status: 'unavailable'; message: string };
 
@@ -59,7 +77,12 @@ async function fetchLegacyTracking(code: string, locale: 'fr' | 'en'): Promise<T
     const body = await res.json() as {
       data?: {
         positions?: Array<{ numero_colis: string; libelle: string }>;
-        events?: Array<{ occurred_at: string | null }>;
+        events?: Array<{
+          occurred_at: string | null;
+          kind?: TrackingPosition['kind'];
+          origin_city?: string | null;
+          destination_city?: string | null;
+        }>;
       };
     };
     const positions = body.data?.positions ?? [];
@@ -72,6 +95,9 @@ async function fetchLegacyTracking(code: string, locale: 'fr' | 'en'): Promise<T
         numeroColis: p.numero_colis,
         libelle: p.libelle,
         date: body.data?.events?.[i]?.occurred_at ?? undefined,
+        kind: body.data?.events?.[i]?.kind,
+        originCity: body.data?.events?.[i]?.origin_city ?? null,
+        destinationCity: body.data?.events?.[i]?.destination_city ?? null,
       })),
     };
   } catch {
@@ -90,6 +116,12 @@ async function fetchLunaNativeTracking(token: string, locale: 'fr' | 'en'): Prom
       data?: {
         reference?: string;
         status?: string;
+        mode?: string | null;
+        carrier_name?: string | null;
+        origin_city?: string | null;
+        origin_country?: string | null;
+        destination_city?: string | null;
+        destination_country?: string | null;
         events?: Array<{ kind: string; to_status: string | null; created_at: string }>;
       };
     };
@@ -101,9 +133,20 @@ async function fetchLunaNativeTracking(token: string, locale: 'fr' | 'en'): Prom
       if (e.kind === 'status_change') return (locale === 'en' ? 'Status: ' : 'Statut : ') + (e.to_status ?? '—');
       return e.kind;
     };
+    const d = body.data ?? {};
     return {
       status: 'ok',
       source: 'luna',
+      shipment: {
+        status: d.status ?? null,
+        mode: d.mode ?? null,
+        carrier_name: d.carrier_name ?? null,
+        origin_city: d.origin_city ?? null,
+        origin_country: d.origin_country ?? null,
+        destination_city: d.destination_city ?? null,
+        destination_country: d.destination_country ?? null,
+        events,
+      },
       positions: events.map((e) => ({
         numeroColis: body.data?.reference ?? '',
         libelle: label(e),
