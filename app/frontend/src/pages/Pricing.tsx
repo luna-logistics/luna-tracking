@@ -262,13 +262,13 @@ export default function Pricing() {
               <div className="grid gap-4 sm:grid-cols-3">
                 <div>
                   <Label htmlFor="weight" className="text-luna-navy">{t('pricing.weight_label')}</Label>
-                  <Input id="weight" name="weight" type="number" min="0" step="0.1" value={weight}
+                  <Input id="weight" name="weight" type="number" min="0" step="any" value={weight}
                     onChange={(e) => setWeight(e.target.value)}
                     placeholder={t('pricing.weight_placeholder')} className="mt-2" />
                 </div>
                 <div>
                   <Label htmlFor="volume" className="text-luna-navy">{t('pricing.volume_label')}</Label>
-                  <Input id="volume" name="volume" type="number" min="0" step="0.01" value={volume}
+                  <Input id="volume" name="volume" type="number" min="0" step="any" value={volume}
                     onChange={(e) => setVolume(e.target.value)}
                     placeholder={t('pricing.volume_placeholder')} className="mt-2" />
                 </div>
