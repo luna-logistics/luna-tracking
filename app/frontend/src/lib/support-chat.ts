@@ -1,4 +1,11 @@
+import i18n from 'i18next';
 import { supabase } from '@/lib/supabase';
+
+/** Site locale the visitor is using right now ('en' under /en, else 'fr').
+ *  Stored on every new conversation so the reply e-mail speaks it. */
+export function siteLanguage(): 'fr' | 'en' {
+  return i18n.language === 'en' ? 'en' : 'fr';
+}
 
 /** Support chat data layer. `sender_role` is trusted (stamped by a
  *  BEFORE INSERT trigger from is_admin(auth.uid()) — clients cannot
@@ -73,7 +80,7 @@ export async function createConversation(subject: string | null): Promise<Suppor
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('not_authenticated');
   const { data, error } = await supabase.from('support_conversations')
-    .insert({ user_id: user.id, subject: subject?.trim() || null })
+    .insert({ user_id: user.id, subject: subject?.trim() || null, language: siteLanguage() })
     .select().single();
   if (error) throw error;
   return data as SupportConversation;
@@ -248,6 +255,7 @@ export async function guestCreateConversation(input: {
     p_body: input.body,
     p_captcha: input.captcha ?? null,
     p_hp: input.hp ?? '',
+    p_language: siteLanguage(),
   });
   if (error) throw error;
   const row = Array.isArray(data) && data.length > 0 ? data[0] : null;

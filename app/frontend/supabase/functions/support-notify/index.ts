@@ -50,8 +50,9 @@ type Mail = {
   notifyEmail: string; fromAddress: string; enabled: boolean;
   /** Addresses to leave off this round (the staff member who replied). */
   exclude?: string[];
-  /** Client-facing message: rendered with the customer layout, not the office one. */
-  client?: { greeting: string; intro: string; preview: string; enNote: string; footer: string };
+  /** Client-facing message: rendered with the customer layout, not the office one.
+   *  `lang` = the conversation's language; `note` is optional. */
+  client?: { lang: 'fr' | 'en'; greeting: string; intro: string; preview: string; note: string | null; footer: string };
   /** Several reply-to addresses (client e-mails: replies reach the office list). */
   replyToList?: string[];
 };
@@ -59,7 +60,7 @@ type Mail = {
 function renderClientHtml(m: Mail): string {
   const c = m.client!;
   return `<!doctype html>
-<html><body style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#0f172a">
+<html lang="${c.lang}"><body style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#0f172a">
   <div style="background:#0b1f3a;color:white;padding:20px;border-radius:12px 12px 0 0">
     <p style="margin:0;font-weight:700;font-size:18px">${escapeHtml(m.heading)}</p>
     <p style="margin:4px 0 0;font-size:13px;opacity:0.85">Luna Tracking Logistics</p>
@@ -69,7 +70,7 @@ function renderClientHtml(m: Mail): string {
     <p style="margin:0 0 12px">${escapeHtml(c.intro)}</p>
     <div style="background:#f8fafc;border-left:3px solid #0b1f3a;padding:12px 16px;border-radius:6px;white-space:pre-wrap;margin-bottom:20px">${escapeHtml(c.preview)}</div>
     <a href="${m.cta.url}" style="display:inline-block;background:#0b1f3a;color:white;text-decoration:none;padding:10px 20px;border-radius:8px;font-weight:600">${escapeHtml(m.cta.label)}</a>
-    <p style="margin:20px 0 0;font-size:13px;color:#475569">${escapeHtml(c.enNote)}</p>
+    ${c.note ? `<p style="margin:20px 0 0;font-size:13px;color:#475569">${escapeHtml(c.note)}</p>` : ''}
     <p style="margin:16px 0 0;font-size:12px;color:#94a3b8">${escapeHtml(c.footer)}</p>
   </div>
 </body></html>`;
@@ -77,18 +78,15 @@ function renderClientHtml(m: Mail): string {
 
 function renderClientText(m: Mail): string {
   const c = m.client!;
-  return `${c.greeting}
-
-${c.intro}
-
-« ${c.preview} »
-
-${m.cta.label} : ${m.cta.url}
-
-${c.enNote}
-
-${c.footer}
-`;
+  const en = c.lang === 'en';
+  return [
+    c.greeting,
+    c.intro,
+    en ? `“${c.preview}”` : `« ${c.preview} »`,
+    `${m.cta.label}${en ? ': ' : ' : '}${m.cta.url}`,
+    c.note,
+    c.footer,
+  ].filter(Boolean).join('\n\n') + '\n';
 }
 
 function renderHtml(m: Mail): string {
@@ -120,10 +118,13 @@ function renderText(m: Mail): string {
 // deno-lint-ignore no-explicit-any
 async function buildMail(db: any, kind: Kind, id: string): Promise<Mail | null> {
   if (kind === 'client_reply') {
-    // The client learns that the team answered. Guest → one-click link with
-    // their guest_token (read at app start, then stripped from the URL);
-    // logged-in client → their account's conversation view (login required).
-    // Only a short preview of the reply — never the client's own messages.
+    // The client learns that the team answered — in the language the
+    // conversation was started in (support_conversations.language); older
+    // conversations without one get French + a short English note. Guest →
+    // one-click link with their guest_token (read at app start, then stripped
+    // from the URL); logged-in client → their account's conversation view
+    // (login required). Only a short preview of the reply — never the
+    // client's own messages.
     const { data, error } = await db.rpc('get_support_message_for_notify', { p_id: id });
     if (error) throw new Error(`rpc_failed: ${error.message}`);
     if (!data) return null;
@@ -131,32 +132,59 @@ async function buildMail(db: any, kind: Kind, id: string): Promise<Mail | null> 
       conversation_id: string; subject: string | null; body: string; is_guest: boolean;
       guest_token: string | null; client_account_type: string | null; sender_role: string;
       client_email: string | null; sender_name: string | null; notify_email: string; from_address: string;
+      language: string | null;
     };
     if (d.sender_role !== 'admin' || !d.client_email) return null;
+    const known: 'fr' | 'en' | null = d.language === 'en' || d.language === 'fr' ? d.language : null;
+    const en = known === 'en';
+    const business = d.client_account_type === 'business';
     const url = d.is_guest
-      ? (d.guest_token ? `${SITE_URL}/#conversation=${d.guest_token}` : `${SITE_URL}/contact`)
-      : `${SITE_URL}${d.client_account_type === 'business' ? '/entreprise/support' : '/compte/support'}?c=${d.conversation_id}`;
+      ? (d.guest_token ? `${SITE_URL}${en ? '/en' : '/'}#conversation=${d.guest_token}` : `${SITE_URL}${en ? '/en' : ''}/contact`)
+      : `${SITE_URL}${en ? (business ? '/en/business/support' : '/en/account/support') : (business ? '/entreprise/support' : '/compte/support')}?c=${d.conversation_id}`;
     const flat = d.body.replace(/\s+/g, ' ').trim();
     const preview = flat.length > 300 ? flat.slice(0, 300).trimEnd() + '…' : flat;
-    const topic = d.subject ? `« ${d.subject} »` : 'votre demande';
-    return {
-      subject: 'Nouvelle réponse à votre demande — Luna Tracking Logistics',
-      heading: 'Vous avez reçu une réponse',
+    const common = {
       replyTo: null,
       replyToList: d.notify_email.split(',').map((s) => s.trim()).filter(Boolean),
-      rows: [],
+      rows: [] as Array<[string, string]>,
       body: null,
-      cta: { label: d.is_guest ? 'Lire et répondre' : 'Lire et répondre depuis mon compte', url },
       notifyEmail: d.client_email,
       fromAddress: d.from_address,
       enabled: true,
+    };
+    if (en) {
+      return {
+        ...common,
+        subject: 'New reply to your request — Luna Tracking Logistics',
+        heading: 'You have a new reply',
+        cta: { label: d.is_guest ? 'Read and reply' : 'Read and reply in my account', url },
+        client: {
+          lang: 'en',
+          greeting: d.sender_name ? `Hello ${d.sender_name},` : 'Hello,',
+          intro: `The Luna Tracking Logistics team has replied to ${d.subject ? `“${d.subject}”` : 'your request'}. Preview:`,
+          preview,
+          note: d.is_guest ? null : 'You will be asked to sign in to your account first.',
+          footer: 'You are receiving this e-mail because you contacted Luna Tracking Logistics through our website.',
+        },
+      };
+    }
+    return {
+      ...common,
+      subject: 'Nouvelle réponse à votre demande — Luna Tracking Logistics',
+      heading: 'Vous avez reçu une réponse',
+      cta: { label: d.is_guest ? 'Lire et répondre' : 'Lire et répondre depuis mon compte', url },
       client: {
+        lang: 'fr',
         greeting: d.sender_name ? `Bonjour ${d.sender_name},` : 'Bonjour,',
-        intro: `L'équipe Luna Tracking Logistics a répondu à ${topic}. Aperçu :`,
+        intro: `L'équipe Luna Tracking Logistics a répondu à ${d.subject ? `« ${d.subject} »` : 'votre demande'}. Aperçu :`,
         preview,
-        enNote: d.is_guest
-          ? 'EN — Our team has replied to your request. Use the button above to read the full answer and reply.'
-          : 'EN — Our team has replied to your request. Sign in with the button above to read the full answer and reply.',
+        // Known French conversation: French only. Unknown (created before the
+        // language was stored): keep the short English note.
+        note: known === 'fr'
+          ? (d.is_guest ? null : 'Il vous sera demandé de vous connecter à votre compte.')
+          : (d.is_guest
+            ? 'EN — Our team has replied to your request. Use the button above to read the full answer and reply.'
+            : 'EN — Our team has replied to your request. Sign in with the button above to read the full answer and reply.'),
         footer: 'Vous recevez cet e-mail car vous avez contacté Luna Tracking Logistics via notre site.',
       },
     };

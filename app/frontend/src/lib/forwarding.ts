@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { siteLanguage } from '@/lib/support-chat';
 
 export const FORWARDING_STATUSES = ['new', 'contacted', 'quoted', 'closed'] as const;
 export type ForwardingStatus = (typeof FORWARDING_STATUSES)[number];
@@ -43,6 +44,7 @@ export async function submitForwardingRequest(req: NewForwardingRequest): Promis
     p_subject: req.subject,
     p_captcha: req.captcha ?? null,
     p_hp: req.hp ?? '',
+    p_language: siteLanguage(),
   });
   if (error) throw error;
   const row = (Array.isArray(data) ? data[0] : data) as (ForwardingSubmission & { error?: string | null }) | undefined;
