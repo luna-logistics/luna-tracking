@@ -73,6 +73,11 @@ export interface ShipmentInput {
   parcels?: number | null;    // count of identical parcels (default 1)
   origin?: string | null;     // default: corridor.origin
   destination?: string | null; // default: corridor.destination
+  /** Opt-in: when no L×l×h is given, derive the air volumetric weight from
+   *  `volumeM3` (same physics: cm³ / divisor). Off by default so the public
+   *  calculator's volume field stays a sea-only shortcut; the pro quote form,
+   *  which only knows total weight + total volume, turns it on. */
+  volumetricFromVolume?: boolean;
 }
 
 export interface BreakdownLine {
@@ -125,6 +130,7 @@ export interface NormalizedInput {
   perParcelVolumeM3: number | null;
   totalVolumeM3: number | null;
   dims: { lengthCm: number; widthCm: number; heightCm: number } | null;
+  volumetricFromVolume: boolean;
 }
 
 export interface QuoteResponse {
@@ -169,6 +175,7 @@ export function normalizeInput(input: ShipmentInput, config: PricingConfig): Nor
     perParcelVolumeM3,
     totalVolumeM3: perParcelVolumeM3 == null ? null : perParcelVolumeM3 * parcels,
     dims,
+    volumetricFromVolume: input.volumetricFromVolume === true,
   };
 }
 
@@ -223,7 +230,10 @@ function priceAir(mode: 'express' | 'cargo', n: NormalizedInput, config: Pricing
   let weightCents = n.totalWeightKg * rate;
   if (mode === 'express') weightCents = Math.max(config.modes.express.flatMinCents, weightCents);
 
-  const pv = volumetricWeightKg({ lengthCm: n.dims?.lengthCm, widthCm: n.dims?.widthCm, heightCm: n.dims?.heightCm }, config.volumetricDivisor);
+  let pv = volumetricWeightKg({ lengthCm: n.dims?.lengthCm, widthCm: n.dims?.widthCm, heightCm: n.dims?.heightCm }, config.volumetricDivisor);
+  if (pv == null && n.volumetricFromVolume && isPos(n.perParcelVolumeM3)) {
+    pv = (n.perParcelVolumeM3 * 1_000_000) / config.volumetricDivisor;
+  }
   const totalPv = pv == null ? null : pv * n.parcels;
 
   const lines: BreakdownLine[] = [

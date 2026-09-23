@@ -34,6 +34,8 @@ export type Quote = {
   weight_kg: number | null;
   volume_m3: number | null;
   package_count: number | null;
+  /** Shipment goes under customs → the grid's customs admin fee applies. */
+  under_customs: boolean;
   transport_cost: number;
   customer_price: number;
   platform_fee: number;
@@ -176,6 +178,7 @@ export function emptyQuote(currency: Currency = 'EUR'): QuoteInput {
     weight_kg: null,
     volume_m3: null,
     package_count: null,
+    under_customs: false,
     transport_cost: 0,
     customer_price: 0,
     platform_fee: 0,

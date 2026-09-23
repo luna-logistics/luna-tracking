@@ -132,6 +132,14 @@ describe('pricing engine — Brussels → Kinshasa', () => {
     expect(odd.lines.some((l) => l.key === 'volume')).toBe(true);
   });
 
+  it('volumetricFromVolume: 6 kg + 0.096 m³ (no dims) prices like the 60×40×40 carton; off by default', () => {
+    const on = computeQuote({ weightKg: 6, volumeM3: 0.096, volumetricFromVolume: true }, CONFIG);
+    expect(priced(on.express).totalCents).toBe(19300);
+    expect(priced(on.cargo).totalCents).toBe(18100);
+    const off = computeQuote({ weightKg: 6, volumeM3: 0.096 }, CONFIG);
+    expect(hasLine(priced(off.express), 'volumetric_diff')).toBe(false);
+  });
+
   it('bonus: a non-Kinshasa destination forces a quote on every mode', () => {
     const q = computeQuote({ weightKg: 10, destination: 'lubumbashi' }, CONFIG);
     for (const r of [q.express, q.cargo, q.sea]) {

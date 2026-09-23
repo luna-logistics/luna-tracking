@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Save, Loader2, Calculator } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Calculator, X } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,9 @@ import {
   emptyQuote, fetchQuote, upsertQuote, professionalMargin,
   type QuoteInput,
 } from '@/lib/quotes';
-import { calculateRates } from '@/lib/rates';
+import { fetchActivePricingConfig } from '@/lib/pricing/config';
+import { formatEuros, type PricingConfig } from '@/lib/pricing/engine';
+import { suggestFromGrid, type ProLine, type ProOption } from '@/lib/pricing/pro-suggest';
 import { fetchCustomers, type BusinessCustomer } from '@/lib/customers';
 import { CURRENCIES, type Currency } from '@/lib/businesses';
 import { SHIPMENT_DIRECTIONS, SHIPMENT_MODES } from '@/lib/shipment-status';
@@ -25,11 +27,14 @@ import { InfoHint } from '@/components/InfoHint';
 /**
  * Quote form. Full pricing panel with cost / customer price / platform
  * fee / professional margin — computed live, only shown to team members.
- * A "Suggest a rate" button consults the public calculate_rates() RPC
- * and copies the chosen price into transport_cost.
+ * "Suggest a rate" prices the quote with the SAME engine + active
+ * pricing_config row as the public /calculateur (lib/pricing/pro-suggest),
+ * shows every applicable product with its breakdown — or "sur devis" when
+ * the grid doesn't cover it — and copies the chosen price into transport_cost.
  */
 export default function BusinessQuoteForm() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang: 'fr' | 'en' = i18n.language === 'en' ? 'en' : 'fr';
   const { current } = useBusiness();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -40,6 +45,20 @@ export default function BusinessQuoteForm() {
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(isEdit);
   const [suggesting, setSuggesting] = useState(false);
+  const [gridConfig, setGridConfig] = useState<PricingConfig | null>(null);
+  const [showSuggest, setShowSuggest] = useState(false);
+
+  // Live: re-priced as the weight / volume / route / customs flag change.
+  const suggestion = useMemo(() => {
+    if (!showSuggest || !gridConfig) return null;
+    return suggestFromGrid({
+      mode: f.mode as 'air' | 'sea' | 'road',
+      originCountry: f.origin_country, destinationCountry: f.destination_country,
+      originCity: f.origin_city, destinationCity: f.destination_city,
+      weightKg: f.weight_kg, volumeM3: f.volume_m3, underCustoms: f.under_customs,
+    }, gridConfig);
+  }, [showSuggest, gridConfig, f.mode, f.origin_country, f.destination_country, f.origin_city,
+      f.destination_city, f.weight_kg, f.volume_m3, f.under_customs]);
 
   useEffect(() => {
     if (!current) return;
@@ -69,32 +88,25 @@ export default function BusinessQuoteForm() {
       toast.error(t('business_quote_form.suggest_needs_countries'));
       return;
     }
+    if (gridConfig) { setShowSuggest(true); return; }
     setSuggesting(true);
     try {
-      const rates = await calculateRates({
-        origin: f.origin_country,
-        destination: f.destination_country,
-        mode: f.mode,
-        weight_kg: f.weight_kg ?? 0,
-        volume_m3: f.volume_m3 ?? 0,
-      });
-      if (rates.length === 0) {
-        toast.info(t('business_quote_form.suggest_no_result'));
-        return;
-      }
-      const pick = rates[0];
-      setF((p) => ({
-        ...p,
-        transport_cost: Number(pick.customer_price),
-        currency: (pick.currency as Currency) ?? p.currency,
-        provider_code: pick.provider_code,
-      }));
-      toast.success(t('business_quote_form.suggest_applied', { code: pick.provider_code, price: pick.customer_price, currency: pick.currency }));
+      const cfg = await fetchActivePricingConfig();
+      if (!cfg) { toast.error(t('business_quote_form.suggest_config_error')); return; }
+      setGridConfig(cfg);
+      setShowSuggest(true);
     } catch (err) {
       toast.error(errorMessage(err, t('common.error_generic')));
     } finally {
       setSuggesting(false);
     }
+  };
+
+  const applyOption = (o: Extract<ProOption, { kind: 'price' }>) => {
+    setF((p) => ({ ...p, transport_cost: o.totalCents / 100, currency: 'EUR', provider_code: `grille-${o.mode}` }));
+    toast.success(t('business_quote_form.suggest_applied', {
+      code: t(`calc.mode_${o.mode}`), price: formatEuros(o.totalCents, lang), currency: '',
+    }));
   };
 
   const save = async (e: React.FormEvent) => {
@@ -186,6 +198,15 @@ export default function BusinessQuoteForm() {
                 <Input type="number" step="1" min="0" value={f.package_count ?? ''} onChange={(e) => setF((p) => ({ ...p, package_count: e.target.value === '' ? null : parseInt(e.target.value, 10) }))} />
               </Field>
             </div>
+            <label className="mt-3 flex items-start gap-2 text-sm text-slate-700 cursor-pointer">
+              <input type="checkbox" checked={f.under_customs}
+                onChange={(e) => setF((p) => ({ ...p, under_customs: e.target.checked }))}
+                className="mt-0.5 rounded border-slate-300 text-luna-navy focus:ring-luna-navy/20" />
+              <span>
+                <span className="font-medium text-luna-navy">{t('business_quote_form.field_under_customs')}</span>
+                <span className="block text-[11px] leading-snug text-slate-500">{t('business_quote_form.field_under_customs_hint')}</span>
+              </span>
+            </label>
           </Section>
 
           <Section title={t('business_quote_form.section_notes')}>
@@ -203,6 +224,9 @@ export default function BusinessQuoteForm() {
                   {t('business_quote_form.suggest_rate')}
                 </Button>
               </div>
+              {suggestion && (
+                <SuggestionPanel suggestion={suggestion} lang={lang} onApply={applyOption} onClose={() => setShowSuggest(false)} />
+              )}
               <Field label={t('business_quote_form.field_transport_cost')}>
                 <Input type="number" step="0.01" min="0" value={f.transport_cost} onChange={(e) => setF((p) => ({ ...p, transport_cost: Number(e.target.value) }))} required />
               </Field>
@@ -259,6 +283,77 @@ export default function BusinessQuoteForm() {
         </div>
       </form>
     </>
+  );
+}
+
+function lineLabel(l: ProLine, t: (k: string) => string): string {
+  const qty = (n?: number) => (n ?? 0).toLocaleString(undefined, { maximumFractionDigits: 3 });
+  switch (l.key) {
+    case 'weight': return `${t('calc.line_weight')} · ${qty(l.qtyKg)} kg`;
+    case 'volumetric_diff': return `${t('calc.line_volumetric_diff')} · ${qty(l.qtyKg)} kg`;
+    case 'volume': return `${t('calc.line_volume')} · ${qty(l.qtyM3)} m³`;
+    case 'carton_flat': return t('calc.line_carton_flat');
+    case 'handling': return t('calc.line_handling');
+    case 'customs_admin': return t('business_quote_form.line_customs_admin');
+  }
+}
+
+/** The grid's answer for this quote: one card per applicable product with the
+ *  line-by-line breakdown, or an explicit "sur devis" when the grid doesn't
+ *  cover it — never a silent 0. */
+function SuggestionPanel({ suggestion, lang, onApply, onClose }: {
+  suggestion: ReturnType<typeof suggestFromGrid>;
+  lang: 'fr' | 'en';
+  onApply: (o: Extract<ProOption, { kind: 'price' }>) => void;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2" aria-live="polite">
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-[11px] leading-snug text-slate-600">{t('business_quote_form.suggest_source')}</p>
+        <button type="button" onClick={onClose} aria-label={t('common.close')}
+          className="text-slate-400 hover:text-luna-navy rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-luna-navy/30">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      {suggestion.kind === 'no_grid_for_mode' ? (
+        <SurDevis text={t('business_quote_form.suggest_no_grid_road')} />
+      ) : suggestion.options.map((o) => (
+        <div key={o.mode} className="rounded-lg border border-slate-200 bg-white p-2.5">
+          <p className="text-xs font-semibold text-luna-navy">{t(`calc.mode_${o.mode}`)}</p>
+          {o.kind === 'empty' && <p className="mt-1 text-xs text-slate-600">{t('business_quote_form.suggest_empty')}</p>}
+          {o.kind === 'quote' && <SurDevis text={t(`business_quote_form.suggest_reason_${o.reason}`)} />}
+          {o.kind === 'price' && (
+            <>
+              <ul className="mt-1 space-y-0.5 text-[11px] text-slate-600">
+                {o.lines.map((l, i) => (
+                  <li key={i} className="flex justify-between gap-2">
+                    <span>{lineLabel(l, t)}</span>
+                    <span className="tabular-nums">{formatEuros(Math.round(l.cents), lang)}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-1.5 flex items-center justify-between gap-2">
+                <span className="text-sm font-bold text-luna-navy tabular-nums">{formatEuros(o.totalCents, lang)}</span>
+                <Button type="button" size="sm" variant="navy" className="h-7" onClick={() => onApply(o)}>
+                  {t('business_quote_form.suggest_apply')}
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SurDevis({ text }: { text: string }) {
+  const { t } = useTranslation();
+  return (
+    <div className="mt-1 rounded-md border border-amber-300 bg-amber-50 px-2 py-1.5 text-xs text-amber-900">
+      <span className="font-semibold">{t('business_quote_form.suggest_sur_devis')}</span> — {text}
+    </div>
   );
 }
 
