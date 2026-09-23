@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { fetchUnreadCount, subscribeToAllMessages } from '@/lib/support-chat';
+import { fetchUnreadCount, onUnreadChanged, subscribeToAllMessages } from '@/lib/support-chat';
 
 /** Global unread-messages badge for the current caller. Cheap: one
  *  RPC call on mount, then a single Realtime channel that fires only
@@ -25,6 +25,8 @@ export function useSupportUnread(): number {
     // already scopes correctly (client vs admin, own vs all) so a full
     // refresh is both simpler and always right.
     const unsub = subscribeToAllMessages(() => refresh());
+    // …and a read / delete in this tab (Realtime never reports those).
+    const offRead = onUnreadChanged(refresh);
 
     // Refresh when the tab comes back to focus (in case we missed a
     // realtime event while the browser tab was sleeping).
@@ -34,6 +36,7 @@ export function useSupportUnread(): number {
     return () => {
       cancelled = true;
       unsub();
+      offRead();
       document.removeEventListener('visibilitychange', onVis);
     };
   }, [user?.id]);

@@ -27,6 +27,8 @@ export type ConversationSummary = SupportConversation & {
   user_email: string | null;
   user_display_name: string | null;
   is_guest: boolean;
+  /** Set when staff deleted (soft) the conversation — only in the admin "deleted" view. */
+  deleted_at: string | null;
 };
 
 export const SUPPORT_ACCESS_MODES = ['everyone','authenticated','individual','business'] as const;
@@ -46,8 +48,8 @@ export type SupportMessage = {
 
 /** Admin variant: surfaces the error instead of an empty list, so a broken
  *  RPC is visible rather than looking like "no conversations". */
-export async function fetchConversationsStrict(): Promise<ConversationSummary[]> {
-  const { data, error } = await supabase.rpc('support_conversations_with_unread');
+export async function fetchConversationsStrict(deleted = false): Promise<ConversationSummary[]> {
+  const { data, error } = await supabase.rpc('support_conversations_with_unread', { p_deleted: deleted });
   if (error) throw error;
   return (data ?? []) as ConversationSummary[];
 }
@@ -110,7 +112,35 @@ export async function sendMessage(conversationId: string, body: string): Promise
 export async function markConversationRead(conversationId: string): Promise<number> {
   const { data, error } = await supabase.rpc('mark_conversation_read', { p_conversation: conversationId });
   if (error) { console.warn('[support] mark_read failed:', error.message); return 0; }
-  return (data as number) ?? 0;
+  const n = (data as number) ?? 0;
+  if (n > 0) announceUnreadChanged();
+  return n;
+}
+
+/** Soft-delete (admin only): the conversation leaves every list and badge;
+ *  messages and the send log are kept, and it can be restored. */
+export async function adminDeleteConversation(id: string): Promise<void> {
+  const { error } = await supabase.rpc('admin_delete_support_conversation', { p_id: id });
+  if (error) throw error;
+  announceUnreadChanged();
+}
+
+export async function adminRestoreConversation(id: string): Promise<void> {
+  const { error } = await supabase.rpc('admin_restore_support_conversation', { p_id: id });
+  if (error) throw error;
+  announceUnreadChanged();
+}
+
+// Every unread badge (dashboard sidebars, chat bubble) re-reads the server
+// count when a conversation is marked read or deleted in this tab — Realtime
+// only reports new messages, never a read.
+const UNREAD_EVENT = 'luna:support-unread-changed';
+export function announceUnreadChanged(): void {
+  window.dispatchEvent(new Event(UNREAD_EVENT));
+}
+export function onUnreadChanged(cb: () => void): () => void {
+  window.addEventListener(UNREAD_EVENT, cb);
+  return () => window.removeEventListener(UNREAD_EVENT, cb);
 }
 
 // ─── Unread badge (global) ───────────────────────────────────────
@@ -229,6 +259,16 @@ export async function guestCreateConversation(input: {
 export async function guestSendMessage(token: string, body: string): Promise<void> {
   const { error } = await supabase.rpc('guest_send_support_message', { p_token: token, p_body: body });
   if (error) throw error;
+}
+
+/** Mark staff replies read — only when the guest actually has the
+ *  conversation on screen (fetching no longer does it). */
+export async function guestMarkRead(token: string): Promise<number> {
+  const { data, error } = await supabase.rpc('guest_mark_support_read', { p_token: token });
+  if (error) { console.warn('[support] guest mark_read failed:', error.message); return 0; }
+  const n = (data as number) ?? 0;
+  if (n > 0) announceUnreadChanged();
+  return n;
 }
 
 export async function guestFetchConversation(token: string): Promise<GuestConversationView | null> {

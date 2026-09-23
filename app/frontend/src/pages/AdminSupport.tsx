@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MessageSquare, ArrowLeft, XCircle, RotateCcw, Search, UserRound, Shield, Mail, Save } from 'lucide-react';
+import { MessageSquare, ArrowLeft, XCircle, RotateCcw, Search, UserRound, Shield, Mail, Save, Trash2, ArchiveRestore } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,7 @@ import { ChatMessageList } from '@/components/ChatMessageList';
 import { ChatMessageInput } from '@/components/ChatMessageInput';
 import { OfficeNotificationLog } from '@/components/OfficeNotificationLog';
 import {
-  fetchConversationsStrict, setConversationStatus,
+  fetchConversationsStrict, setConversationStatus, adminDeleteConversation, adminRestoreConversation,
   fetchMessages, sendMessage, markConversationRead,
   subscribeToMessages, subscribeToConversations,
   fetchAccessMode, setAccessMode, SUPPORT_ACCESS_MODES,
@@ -40,6 +40,8 @@ export default function AdminSupport() {
   const inboxRef = useRef<HTMLDivElement>(null);
   const [q, setQ] = useState('');
   const [onlyUnread, setOnlyUnread] = useState(false);
+  // Soft-deleted conversations live in their own view (restorable).
+  const [showDeleted, setShowDeleted] = useState(false);
   const [mode, setMode] = useState<SupportAccessMode | null>(null);
   const [modeSaving, setModeSaving] = useState(false);
   const [notify, setNotify] = useState<SupportNotifyConfig | null>(null);
@@ -79,7 +81,7 @@ export default function AdminSupport() {
   const reload = async () => {
     setLoading(true);
     try {
-      setRows(await fetchConversationsStrict());
+      setRows(await fetchConversationsStrict(showDeleted));
       setListError(null);
     } catch (err) {
       setListError(errorMessage(err, t('common.error_generic')));
@@ -87,12 +89,12 @@ export default function AdminSupport() {
       setLoading(false);
     }
   };
-  useEffect(() => { void reload(); }, []);
+  useEffect(() => { void reload(); }, [showDeleted]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const unsub = subscribeToConversations(() => { void reload(); });
     return unsub;
-  }, []);
+  }, [showDeleted]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!selectedId) { setMessages([]); return; }
@@ -130,6 +132,27 @@ export default function AdminSupport() {
       const m = await sendMessage(selectedId, body);
       setMessages((prev) => prev.some((x) => x.id === m.id) ? prev : [...prev, m]);
     } catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); throw err; }
+  };
+
+  const removeConversation = async () => {
+    if (!selected) return;
+    if (!confirm(t('admin_support.delete_confirm', { name: selected.user_display_name || selected.user_email || selected.subject || '' }))) return;
+    try {
+      await adminDeleteConversation(selected.id);
+      setSelectedId(null);
+      await reload();
+      toast.success(t('admin_support.deleted_toast'));
+    } catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
+  };
+
+  const restoreConversation = async () => {
+    if (!selected) return;
+    try {
+      await adminRestoreConversation(selected.id);
+      setSelectedId(null);
+      await reload();
+      toast.success(t('admin_support.restored_toast'));
+    } catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
   };
 
   const flipStatus = async (next: ConversationStatus) => {
@@ -232,6 +255,12 @@ export default function AdminSupport() {
                 className="rounded border-slate-300 text-luna-navy focus:ring-luna-navy/20" />
               {t('admin_support.only_unread')}
             </label>
+            <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+              <input type="checkbox" checked={showDeleted} onChange={(e) => { setShowDeleted(e.target.checked); setSelectedId(null); }}
+                className="rounded border-slate-300 text-luna-navy focus:ring-luna-navy/20" />
+              <Trash2 className="h-3 w-3" aria-hidden="true" />
+              {t('admin_support.show_deleted')}
+            </label>
           </header>
           <div className="flex-1 overflow-y-auto">
             {loading && <div className="p-6 text-center text-sm text-slate-500">{t('common.loading')}</div>}
@@ -245,7 +274,7 @@ export default function AdminSupport() {
               </div>
             )}
             {!loading && !listError && filtered.length === 0 && (
-              <div className="p-6 text-center text-sm text-slate-500">{t('admin_support.empty')}</div>
+              <div className="p-6 text-center text-sm text-slate-500">{t(showDeleted ? 'admin_support.empty_deleted' : 'admin_support.empty')}</div>
             )}
             {filtered.map((r) => (
               <button key={r.id} type="button" onClick={() => setSelectedId(r.id)}
@@ -317,25 +346,46 @@ export default function AdminSupport() {
                     )}
                   </p>
                 </div>
-                {selected.status === 'open' ? (
-                  <Button size="sm" variant="ghost" onClick={() => void flipStatus('closed')}>
-                    <XCircle className="h-3.5 w-3.5" />{t('support_chat.close')}
+                {selected.deleted_at ? (
+                  <Button size="sm" variant="outline" onClick={() => void restoreConversation()}>
+                    <ArchiveRestore className="h-3.5 w-3.5" />{t('admin_support.restore')}
                   </Button>
                 ) : (
-                  <Button size="sm" variant="ghost" onClick={() => void flipStatus('open')}>
-                    <RotateCcw className="h-3.5 w-3.5" />{t('support_chat.reopen')}
-                  </Button>
+                  <>
+                    {selected.status === 'open' ? (
+                      <Button size="sm" variant="ghost" onClick={() => void flipStatus('closed')}>
+                        <XCircle className="h-3.5 w-3.5" />{t('support_chat.close')}
+                      </Button>
+                    ) : (
+                      <Button size="sm" variant="ghost" onClick={() => void flipStatus('open')}>
+                        <RotateCcw className="h-3.5 w-3.5" />{t('support_chat.reopen')}
+                      </Button>
+                    )}
+                    <Button size="sm" variant="ghost" className="text-red-700 hover:text-red-800 hover:bg-red-50"
+                      onClick={() => void removeConversation()} title={t('admin_support.delete_help')}>
+                      <Trash2 className="h-3.5 w-3.5" /><span className="hidden sm:inline">{t('admin_support.delete')}</span>
+                    </Button>
+                  </>
                 )}
               </header>
+              {selected.deleted_at && (
+                <p className="px-4 py-2 text-xs bg-red-50 text-red-800 border-b border-red-100">
+                  {t('admin_support.deleted_banner', { date: new Date(selected.deleted_at).toLocaleString(lang) })}
+                </p>
+              )}
               <ChatMessageList messages={messages} viewerRole="admin" />
-              <ChatMessageInput onSend={onSend} placeholder={t('admin_support.reply_placeholder')} />
+              {!selected.deleted_at && (
+                <ChatMessageInput onSend={onSend} placeholder={t('admin_support.reply_placeholder')} />
+              )}
             </>
           )}
           {!selected && (
             <div className="flex-1 flex items-center justify-center p-8 text-center text-slate-500">
               <div>
                 <MessageSquare className="h-10 w-10 mx-auto opacity-40" aria-hidden="true" />
-                <p className="mt-3 text-sm">{t('admin_support.pick_conversation')}</p>
+                <p className="mt-3 text-sm">
+                  {selectedId && !loading ? t('admin_support.not_in_view') : t('admin_support.pick_conversation')}
+                </p>
               </div>
             </div>
           )}

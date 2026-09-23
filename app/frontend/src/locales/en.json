@@ -694,7 +694,17 @@
     "log_no_body": "Content unavailable (request deleted).",
     "list_error": "Could not load conversations.",
     "log_delivery_note": "“Handed off” = accepted by the sending service (Resend). Delivery to the inbox is not tracked here yet: if an e-mail does not arrive, its content can still be read with “Read”.",
-    "client_email": "Client's e-mail"
+    "client_email": "Client's e-mail",
+    "show_deleted": "Deleted conversations",
+    "empty_deleted": "No deleted conversations.",
+    "delete": "Delete",
+    "delete_help": "Removes the conversation from the inbox and the counters. Recoverable from “Deleted conversations”.",
+    "delete_confirm": "Delete the conversation with {{name}}?\n\nIt disappears from the inbox, the counters and the client's account, and nobody can write in it any more. Messages and the send log are kept: you can restore it from “Deleted conversations”.",
+    "deleted_toast": "Conversation deleted — restorable from “Deleted conversations”.",
+    "restore": "Restore",
+    "restored_toast": "Conversation restored.",
+    "deleted_banner": "Conversation deleted on {{date}} — hidden from the client, read-only. Restore it to reply.",
+    "not_in_view": "This conversation is not in this view (it may have been deleted — tick “Deleted conversations”)."
   },
   "business_reports": {
     "meta_title": "Accounts & reports — Luna Tracking Logistics",

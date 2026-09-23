@@ -15,8 +15,8 @@ import {
   fetchAccessMode, fetchConversations, createConversation,
   fetchMessages, sendMessage, markConversationRead,
   subscribeToMessages, subscribeToConversations, fetchUnreadCount,
-  guestCreateConversation, guestSendMessage, guestFetchConversation,
-  readGuestToken, writeGuestToken,
+  guestCreateConversation, guestSendMessage, guestFetchConversation, guestMarkRead,
+  readGuestToken, writeGuestToken, onUnreadChanged,
   type SupportMessage, type GuestConversationView, type SupportAccessMode,
 } from '@/lib/support-chat';
 /**
@@ -86,7 +86,8 @@ export function SupportChatBubble() {
     };
     void tick();
     const id = window.setInterval(tick, 15000);
-    return () => { stopped = true; window.clearInterval(id); };
+    const offRead = onUnreadChanged(() => void tick());
+    return () => { stopped = true; window.clearInterval(id); offRead(); };
   }, [hidden, user?.id, open]);
 
   // If the admin locked support to a mode this visitor doesn't satisfy,
@@ -310,6 +311,15 @@ function GuestBubbleBody() {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [conv?.messages.length]);
+
+  // Staff replies count as read only once this open pane shows them (the
+  // closed bubble's badge poll never marks anything).
+  const unreadReplies = conv?.messages.filter((m) => m.sender_role === 'admin' && !m.read_at).length ?? 0;
+  useEffect(() => {
+    const token = readGuestToken();
+    if (!token || unreadReplies === 0 || document.visibilityState !== 'visible') return;
+    void guestMarkRead(token);
+  }, [unreadReplies, conv?.id]);
 
   const start = async (e: React.FormEvent) => {
     e.preventDefault();

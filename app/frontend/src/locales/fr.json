@@ -694,7 +694,17 @@
     "log_no_body": "Contenu indisponible (demande supprimée).",
     "list_error": "Impossible de charger les conversations.",
     "log_delivery_note": "« Transmis » = accepté par le service d’envoi (Resend). La remise dans la boîte de réception n’est pas encore suivie ici : si un e-mail n’arrive pas, le contenu reste lisible avec « Lire ».",
-    "client_email": "E-mail du client"
+    "client_email": "E-mail du client",
+    "show_deleted": "Conversations supprimées",
+    "empty_deleted": "Aucune conversation supprimée.",
+    "delete": "Supprimer",
+    "delete_help": "Retire la conversation de la boîte et des compteurs. Récupérable depuis « Conversations supprimées ».",
+    "delete_confirm": "Supprimer la conversation avec {{name}} ?\n\nElle disparaît de la boîte, des compteurs et de l'espace du client, et plus personne ne peut y écrire. Les messages et le journal d'envoi sont conservés : vous pourrez la restaurer depuis « Conversations supprimées ».",
+    "deleted_toast": "Conversation supprimée — restaurable depuis « Conversations supprimées ».",
+    "restore": "Restaurer",
+    "restored_toast": "Conversation restaurée.",
+    "deleted_banner": "Conversation supprimée le {{date}} — invisible pour le client, lecture seule. Restaurez-la pour y répondre.",
+    "not_in_view": "Cette conversation n'est pas dans cette vue (elle a peut-être été supprimée — cochez « Conversations supprimées »)."
   },
   "business_reports": {
     "meta_title": "Comptes & rapports — Luna Tracking Logistics",
