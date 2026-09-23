@@ -360,6 +360,7 @@ function ToolbarButton({
       className={`p-2 rounded hover:bg-slate-100 transition-colors ${active ? 'bg-luna-cyan/20 text-luna-navy' : 'text-luna-navy'}`}
       onClick={(e) => { e.preventDefault(); onClick(); }}
       title={title}
+      aria-label={title}
     >
       {children}
     </button>

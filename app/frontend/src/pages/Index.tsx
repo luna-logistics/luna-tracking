@@ -92,7 +92,7 @@ export default function Index() {
         className="relative bg-luna-ink"
         style={{
           backgroundImage:
-            "linear-gradient(100deg,rgba(10,22,80,.97) 0%,rgba(10,22,80,.9) 38%,rgba(13,46,107,.5) 66%,rgba(13,46,107,.1) 92%), url('/brand/hero-map.jpg')",
+            "linear-gradient(100deg,rgba(10,22,80,.97) 0%,rgba(10,22,80,.9) 38%,rgba(13,46,107,.5) 66%,rgba(13,46,107,.1) 92%), url('/brand/hero-map.webp')",
           backgroundSize: 'cover, cover',
           backgroundPosition: 'center, right center',
           backgroundRepeat: 'no-repeat, no-repeat',

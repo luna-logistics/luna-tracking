@@ -315,6 +315,9 @@ async function emitStaticRoute(key, def) {
 
     let html = setHtmlLang(shellHtml, lang);
     html = injectHead(html, head);
+    if (key === 'home') {
+      html = injectHead(html, '<link rel="preload" as="image" href="/brand/hero-map.webp" type="image/webp" fetchpriority="high" />');
+    }
     if (skel) html = injectBodySkeleton(html, skel);
     await writeHtml(urlPath, html);
   }

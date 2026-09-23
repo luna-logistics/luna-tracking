@@ -1,4 +1,3 @@
-import { Toaster } from '@/components/ui/sonner';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
@@ -15,8 +14,6 @@ import { DashboardFeaturesProvider } from '@/contexts/DashboardFeaturesContext';
 import { LangUrlProvider } from '@/contexts/LangUrlContext';
 import { HreflangTags } from '@/components/HreflangTags';
 import { PublicLayout } from '@/components/PublicLayout';
-import { SupportChatBubble } from '@/components/SupportChatBubble';
-import { SupportAdminNotifier } from '@/components/SupportAdminNotifier';
 import { ScrollToTop } from '@/components/ScrollToTop';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { AdminGate } from '@/components/AdminGate';
@@ -24,11 +21,11 @@ import { OnboardingGate, AccountTypeGate } from '@/components/AccountTypeGate';
 import { FeatureGate } from '@/components/FeatureGate';
 import { setVisitLanguage, ensureLanguageLoaded } from '@/i18n';
 
-// Eager: homepage + login (critical paths).
+// Eager: homepage only (critical LCP path).
 import Index from '@/pages/Index';
-import Login from '@/pages/Login';
 
 // Lazy: everything else.
+const Login = lazy(() => import('@/pages/Login'));
 const Tracking = lazy(() => import('@/pages/Tracking'));
 const PublicTracking = lazy(() => import('@/pages/PublicTracking'));
 const RateCalculator = lazy(() => import('@/pages/RateCalculator'));
@@ -94,6 +91,9 @@ const AdminDashboardConfig = lazy(() => import('@/pages/AdminDashboardConfig'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 const About = lazy(() => import('@/pages/About'));
 const LegalPage = lazy(() => import('@/pages/LegalPage'));
+const SupportChatBubble = lazy(() => import('@/components/SupportChatBubble').then(m => ({ default: m.SupportChatBubble })));
+const SupportAdminNotifier = lazy(() => import('@/components/SupportAdminNotifier').then(m => ({ default: m.SupportAdminNotifier })));
+const Toaster = lazy(() => import('@/components/ui/sonner').then(m => ({ default: m.Toaster })));
 
 const queryClient = new QueryClient();
 
@@ -299,8 +299,8 @@ const AppRoutes = () => (
     <LanguageSync />
     <ScrollToTop />
     <HreflangTags />
-    <SupportChatBubble />
-    <SupportAdminNotifier />
+    <Suspense fallback={null}><SupportChatBubble /></Suspense>
+    <Suspense fallback={null}><SupportAdminNotifier /></Suspense>
     <Routes>
       <Route path="/en/*" element={<PageRoutes lang="en" />} />
       <Route path="/*" element={<PageRoutes lang="fr" />} />
@@ -318,7 +318,7 @@ const App = () => (
             <DashboardFeaturesProvider>
             <SiteContentProvider>
               <CartProvider>
-                <Toaster richColors position="top-right" />
+                <Suspense fallback={null}><Toaster richColors position="top-right" /></Suspense>
                 <BrowserRouter>
                   <LangUrlProvider>
                     <AppRoutes />
