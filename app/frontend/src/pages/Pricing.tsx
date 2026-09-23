@@ -15,6 +15,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Ed } from '@/components/Ed';
 import { toast } from '@/components/ui/sonner';
 import { urlFor } from '@/lib/url/routes';
+import { fetchActivePricingConfig } from '@/lib/pricing/config';
+import { gridEstimateLines, quoteFor, tarifsEngineInput } from '@/lib/pricing/surfaces';
 import { FormShield, useFormShield } from '@/components/FormShield';
 import { submitErrorKey } from '@/lib/errors';
 import {
@@ -122,6 +124,16 @@ export default function Pricing() {
       phone ? `${t('pricing.phone_label')} : ${phone}` : null,
       message ? `\n${message}` : null,
     ].filter(Boolean);
+    // Grid figures for the office, from the SAME engine + pricing_config row as
+    // /calculateur and the pro tool. Best-effort: never blocks the request.
+    try {
+      const cfg = await fetchActivePricingConfig();
+      if (cfg && origin !== OTHER) {
+        const q = quoteFor(tarifsEngineInput({ originValue: origin, destinationSlug: destination, weight, volume }, cfg), cfg);
+        const est = gridEstimateLines(q, t, lang === 'en' ? 'en' : 'fr');
+        if (est.length) lines.push('', ...est);
+      }
+    } catch { /* estimate is optional */ }
     const body = lines.join('\n');
 
     setSubmitting(true);

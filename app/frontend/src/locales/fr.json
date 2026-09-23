@@ -273,8 +273,8 @@
     "quote_reason_over_max_weight": "Ce poids dépasse le barème en ligne ; un tarif dédié s'applique.",
     "quote_reason_over_max_volume": "Ce volume dépasse le barème en ligne ; un tarif dédié s'applique.",
     "quote_reason_ratio": "Le rapport poids/volume dépasse notre seuil ; une surcharge de manutention est estimée au cas par cas.",
-    "quote_subject": "Demande de devis — {{mode}} Bruxelles → Kinshasa",
-    "quote_intro": "Bonjour, je souhaite un devis pour un envoi en {{mode}} de Bruxelles vers Kinshasa.",
+    "quote_subject": "Demande de devis — {{mode}} Bruxelles → {{dest}}",
+    "quote_intro": "Bonjour, je souhaite un devis pour un envoi en {{mode}} de Bruxelles vers {{dest}}.",
     "quote_name": "Nom",
     "quote_email": "E-mail",
     "quote_message": "Précisions (facultatif)",
@@ -363,7 +363,9 @@
     "faq_more_lead": "Vous préparez un envoi de marchandises entre la Belgique et la RDC ? Retrouvez tous nos conseils pratiques sur",
     "faq_more_link": "le blog Luna Tracking Logistics",
     "sum_origin": "Départ",
-    "sum_dims": "Dimensions"
+    "sum_dims": "Dimensions",
+    "quote_dest_detail": "Destination précise (ville, pays)",
+    "quote_dest_detail_ph": "ex. Lubumbashi, RD Congo"
   },
   "pricing": {
     "meta_title": "Tarifs et devis — Luna Tracking Logistics",
@@ -2482,5 +2484,9 @@
   "form_shield": {
     "rate_limited": "Trop de demandes envoyées depuis votre connexion. Patientez quelques minutes puis réessayez, ou écrivez-nous à info@lunatrackinglogistics.com.",
     "captcha_failed": "La vérification anti-robot n'a pas abouti. Réessayez ; si le problème persiste, écrivez-nous à info@lunatrackinglogistics.com."
+  },
+  "grid_estimate": {
+    "title": "Estimation selon la grille publique (indicative) :",
+    "sur_devis": "sur devis"
   }
 }

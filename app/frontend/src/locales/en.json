@@ -273,8 +273,8 @@
     "quote_reason_over_max_weight": "This weight is above the online scale; a dedicated rate applies.",
     "quote_reason_over_max_volume": "This volume is above the online scale; a dedicated rate applies.",
     "quote_reason_ratio": "The weight-to-volume ratio exceeds our threshold; a handling surcharge is assessed case by case.",
-    "quote_subject": "Quote request — {{mode}} Brussels → Kinshasa",
-    "quote_intro": "Hello, I'd like a quote for a {{mode}} shipment from Brussels to Kinshasa.",
+    "quote_subject": "Quote request — {{mode}} Brussels → {{dest}}",
+    "quote_intro": "Hello, I would like a quote for a {{mode}} shipment from Brussels to {{dest}}.",
     "quote_name": "Name",
     "quote_email": "E-mail",
     "quote_message": "Details (optional)",
@@ -363,7 +363,9 @@
     "faq_more_lead": "Preparing a shipment of goods between Belgium and the DRC? Find all our practical tips on",
     "faq_more_link": "the Luna Tracking Logistics blog",
     "sum_origin": "Origin",
-    "sum_dims": "Dimensions"
+    "sum_dims": "Dimensions",
+    "quote_dest_detail": "Exact destination (city, country)",
+    "quote_dest_detail_ph": "e.g. Lubumbashi, DR Congo"
   },
   "pricing": {
     "meta_title": "Pricing & quote — Luna Tracking Logistics",
@@ -2482,5 +2484,9 @@
   "form_shield": {
     "rate_limited": "Too many requests from your connection. Please wait a few minutes and try again, or email info@lunatrackinglogistics.com.",
     "captcha_failed": "The anti-bot check did not go through. Please try again; if it keeps failing, email info@lunatrackinglogistics.com."
+  },
+  "grid_estimate": {
+    "title": "Estimate from the public rate grid (indicative):",
+    "sur_devis": "custom quote"
   }
 }

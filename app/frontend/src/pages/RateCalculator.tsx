@@ -18,6 +18,7 @@ import {
   type PricingConfig, type ModeResult, type PricedResult, type Mode, type QuoteReason,
 } from '@/lib/pricing/engine';
 import { fetchActivePricingConfig } from '@/lib/pricing/config';
+import { calculatorEngineInput, gridEstimateLines } from '@/lib/pricing/surfaces';
 
 /**
  * Shipping price calculator — Brussels → Kinshasa (/calculateur).
@@ -136,13 +137,11 @@ export default function RateCalculator() {
     return () => { alive = false; };
   }, []);
 
-  const input = useMemo(() => ({
-    weightKg: num(weight),
-    lengthCm: num(length), widthCm: num(width), heightCm: num(height),
-    parcels: num(parcels) || 1,
-    volumeM3: num(volume),
-    destination: destination === 'kinshasa' ? 'kinshasa' : 'autre',
-  }), [weight, length, width, height, parcels, volume, destination]);
+  // Shared builder (lib/pricing/surfaces) — same input rules as /tarifs and the
+  // pro tool, incl. volumetric weight from a typed volume when no dimensions.
+  const input = useMemo(
+    () => calculatorEngineInput({ weight, length, width, height, parcels, volume, destination }),
+    [weight, length, width, height, parcels, volume, destination]);
 
   const quote = useMemo(() => (config ? computeQuote(input, config) : null), [config, input]);
 
@@ -179,6 +178,13 @@ export default function RateCalculator() {
     setVolume(p.m3 != null ? String(p.m3) : '');
     setParcels('1');
   };
+
+  // What a quote request from this page carries beyond the summary: the
+  // destination choice (to name it correctly) and the grid's own figures.
+  const request = useMemo<QuoteRequestContext>(() => ({
+    destination,
+    estimate: quote ? gridEstimateLines(quote, t, lang) : [],
+  }), [destination, quote, t, lang]);
 
   const colResult = (m: Mode): ColState => {
     if (!config) return { kind: configError ? 'unavailable' : 'loading', mode: m };
@@ -286,6 +292,7 @@ export default function RateCalculator() {
                     <ModeColumn
                       key={m} mode={m} result={colResult(m)} index={i}
                       config={config} lang={lang} summaryLines={summaryLines} user={!!user} hasAnyInput={hasAnyInput}
+                      request={request}
                     />
                   ))}
                 </div>
@@ -408,9 +415,11 @@ function PresetBtn({ label, onClick }: { label: string; onClick: () => void }) {
   );
 }
 
-function ModeColumn({ mode, result, index, config, lang, summaryLines, user, hasAnyInput }: {
+type QuoteRequestContext = { destination: DestChoice; estimate: string[] };
+
+function ModeColumn({ mode, result, index, config, lang, summaryLines, user, hasAnyInput, request }: {
   mode: Mode; result: ColState; index: number; config: PricingConfig | null; lang: 'fr' | 'en';
-  summaryLines: string[]; user: boolean; hasAnyInput: boolean;
+  summaryLines: string[]; user: boolean; hasAnyInput: boolean; request: QuoteRequestContext;
 }) {
   const { t } = useTranslation();
   const transit = config ? transitTimeFor(config, mode) : null;
@@ -449,7 +458,7 @@ function ModeColumn({ mode, result, index, config, lang, summaryLines, user, has
       )}
 
       {result.kind === 'quote' && (
-        <QuotePanel mode={mode} reason={result.reason} summaryLines={summaryLines} user={user} />
+        <QuotePanel mode={mode} reason={result.reason} summaryLines={summaryLines} user={user} request={request} />
       )}
     </div>
   );
@@ -494,23 +503,34 @@ function PriceBody({ result, lang, transit }: { result: PricedResult; lang: 'fr'
   );
 }
 
-function QuotePanel({ mode, reason, summaryLines, user }: { mode: Mode; reason: QuoteReason; summaryLines: string[]; user: boolean }) {
+function QuotePanel({ mode, reason, summaryLines, user, request }: {
+  mode: Mode; reason: QuoteReason; summaryLines: string[]; user: boolean; request: QuoteRequestContext;
+}) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
+  const [destDetail, setDestDetail] = useState('');
   const [busy, setBusy] = useState(false);
+  const otherDest = request.destination === 'other';
   const [sent, setSent] = useState(false);
   const shield = useFormShield();
 
   const submit = async () => {
     if (!user && (!email.trim() || !name.trim())) return;
-    const subject = t('calc.quote_subject', { mode: t(`calc.mode_${mode}`) });
+    if (otherDest && !destDetail.trim()) return;
+    // Name the destination the visitor actually chose — the corridor was
+    // hardcoded before, so an "other destination" request arrived titled
+    // "Bruxelles → Kinshasa" with a "not covered" reason (23/09/2026).
+    const dest = otherDest ? destDetail.trim() : 'Kinshasa';
+    const subject = t('calc.quote_subject', { mode: t(`calc.mode_${mode}`), dest });
     const body = [
-      t('calc.quote_intro', { mode: t(`calc.mode_${mode}`) }), '',
+      t('calc.quote_intro', { mode: t(`calc.mode_${mode}`), dest }), '',
       ...summaryLines,
+      otherDest ? `${t('calc.quote_dest_detail')}: ${destDetail.trim()}` : null,
       `${t('calc.quote_reason_label')}: ${t(`calc.quote_reason_${reason}`)}`,
+      request.estimate.length ? ['', ...request.estimate].join('\n') : null,
       message.trim() ? `\n${message.trim()}` : null,
     ].filter((x) => x != null).join('\n');
     setBusy(true);
@@ -556,10 +576,16 @@ function QuotePanel({ mode, reason, summaryLines, user }: { mode: Mode; reason: 
               </label>
             </>
           )}
+          {otherDest && (
+            <label style={qLabel}>{t('calc.quote_dest_detail')} *
+              <input value={destDetail} onChange={(e) => setDestDetail(e.target.value)} required
+                placeholder={t('calc.quote_dest_detail_ph')} style={qInput} />
+            </label>
+          )}
           <label style={qLabel}>{t('calc.quote_message')}
             <textarea rows={3} value={message} onChange={(e) => setMessage(e.target.value)} placeholder={t('calc.quote_message')} style={{ ...qInput, resize: 'vertical' }} />
           </label>
-          <button type="button" onClick={submit} disabled={busy}
+          <button type="button" onClick={submit} disabled={busy || (otherDest && !destDetail.trim())}
             style={{ padding: '11px 16px', border: 0, borderRadius: 10, background: '#1FE0F0', color: '#002F67', fontSize: 15, fontWeight: 600, cursor: 'pointer', opacity: busy ? 0.7 : 1 }}>
             {busy ? t('calc.quote_sending') : t('calc.quote_submit')}
           </button>

@@ -14,6 +14,7 @@
  *     the quote is flagged "under customs"; the dossier fee is in every price.
  */
 import { computeQuote, type BreakdownLine, type Mode, type ModeResult, type PricingConfig, type QuoteReason } from './engine';
+import { BRUSSELS_RE as BRUSSELS, KINSHASA_RE as KINSHASA } from './surfaces';
 
 export type QuoteMode = 'air' | 'sea' | 'road';
 
@@ -41,8 +42,6 @@ export type ProSuggestion =
   | { kind: 'options'; options: ProOption[] }
   | { kind: 'no_grid_for_mode'; mode: QuoteMode };
 
-const BRUSSELS = /^(bruxelles|brussels|brussel|bxl)$/i;
-const KINSHASA = /^kinshasa$/i;
 
 /** City → engine corridor token. Blank = the corridor city of that country. */
 function cityToken(country: string | null, city: string | null, expectCountry: string, match: RegExp, token: string): string {
