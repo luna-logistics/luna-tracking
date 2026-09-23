@@ -78,6 +78,7 @@ describe('tracking view', () => {
     const v = buildTrackingView(native(), 'token-uuid')!;
     expect([v.number, v.status, v.mode, v.carrier]).toEqual(['SHP-000042', 'in_transit', 'sea', 'Maersk']);
     expect(v.times.confirmed).toBe('2026-09-03T07:02:00.000Z');
+    expect(v.times.draft).toBe('2026-09-02T08:14:00.000Z'); // from the 'created' event
     expect(v.route).toEqual({ dest: 'fih', reverse: false });
     expect(buildTrackingView(native({ mode: 'air', destination_city: 'Goma' }), 't')!.route).toEqual({ dest: 'gom', reverse: false });
     // Sea never goes to Goma on this map → no map rather than a wrong one.

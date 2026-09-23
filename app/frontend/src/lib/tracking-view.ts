@@ -141,7 +141,9 @@ function nativeView(s: TrackingShipment, typed: string): TrackingView | null {
   const times: TrackingView['times'] = {};
   let reachedBeforeCancel: TrackStep | null = null;
   for (const e of [...s.events].sort((a, b) => a.created_at.localeCompare(b.created_at))) {
-    if (e.kind !== 'status_change' || !e.to_status) continue;
+    // 'created' carries the status the shipment was created in (e.g. a
+    // quote accepted straight into 'confirmed') — a real, recorded time too.
+    if ((e.kind !== 'status_change' && e.kind !== 'created') || !e.to_status) continue;
     const st = e.to_status as TrackStep | 'cancelled';
     const at = new Date(e.created_at);
     if (!times[st] && !Number.isNaN(at.getTime())) times[st] = at.toISOString();
