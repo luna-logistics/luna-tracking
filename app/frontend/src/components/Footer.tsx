@@ -38,74 +38,96 @@ export function Footer() {
       {/* Wave transitions the off-white body ground INTO the navy footer */}
       <WaveDivider side="bottom" color="text-luna-ink" />
       <div className="bg-luna-ink text-[#B9C9E0]">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-12 grid gap-10 md:grid-cols-3">
-          <div>
-            {/* Navy-ready logo on a transparent ground (keyed from the on-navy
-                artwork), so it sits directly on the footer with no white box. */}
-            <img
-              src="/brand/luna-logo-on-navy.png"
-              alt={t('brand.name')}
-              className="w-[132px] h-auto block mb-4"
-              width={132}
-              height={143}
-            />
-            <p className="text-sm text-white/80 leading-relaxed">{t('footer.about_body')}</p>
-            <Link to={urlFor('about', lang)} className="mt-3 inline-block text-sm font-medium text-luna-aqua hover:text-white">
-              {t('nav.about')} →
-            </Link>
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-8 md:py-12">
+          {/* Mobile: logo + brand inline, 2-col links, compact contact */}
+          <div className="md:hidden">
+            <div className="flex items-center gap-3 mb-5">
+              <img src="/brand/luna-icon.png" alt="" aria-hidden="true" className="h-9 w-auto" width={36} height={36} />
+              <span className="text-[15px] font-semibold text-white">{t('brand.name')}</span>
+            </div>
+            <nav className="grid grid-cols-2 gap-x-6 gap-y-2 mb-5 text-sm">
+              <Link to={urlFor('tracking', lang)} className="text-white/80 hover:text-white">{t('nav.tracking')}</Link>
+              <Link to={urlFor('shopAndShip', lang)} className="text-white/80 hover:text-white">{t('nav.shop_and_ship')}</Link>
+              <Link to={urlFor('forwarding', lang)} className="text-white/80 hover:text-white">{t('nav.forwarding')}</Link>
+              <Link to={urlFor('blogIndex', lang)} className="text-white/80 hover:text-white">{t('nav.blog')}</Link>
+              <Link to={urlFor('pricing', lang)} className="text-white/80 hover:text-white">{t('nav.pricing')}</Link>
+              <Link to={urlFor('rateCalculator', lang)} className="text-white/80 hover:text-white">{t('nav.calculator')}</Link>
+              <Link to={urlFor('apiDocs', lang)} className="text-white/80 hover:text-white">{t('nav.api_docs')}</Link>
+              <Link to={urlFor('contact', lang)} className="text-white/80 hover:text-white">{t('nav.contact')}</Link>
+            </nav>
+            <div className="space-y-1.5 text-[13px] text-white/70">
+              <p>{email} · {address}</p>
+            </div>
           </div>
 
-          <div>
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-luna-aqua mb-3">
-              {t('footer.services_title')}
-            </h3>
-            <ul className="space-y-2 text-sm">
-              <li><Link to={urlFor('tracking', lang)} className="text-white/80 hover:text-white">{t('nav.tracking')}</Link></li>
-              <li><Link to={urlFor('shopAndShip', lang)} className="text-white/80 hover:text-white">{t('nav.shop_and_ship')}</Link></li>
-              <li><Link to={urlFor('forwarding', lang)} className="text-white/80 hover:text-white">{t('nav.forwarding')}</Link></li>
-              <li><Link to={urlFor('blogIndex', lang)} className="text-white/80 hover:text-white">{t('nav.blog')}</Link></li>
-              <li><Link to={urlFor('pricing', lang)} className="text-white/80 hover:text-white">{t('nav.pricing')}</Link></li>
-              <li><Link to={urlFor('rateCalculator', lang)} className="text-white/80 hover:text-white">{t('nav.calculator')}</Link></li>
-              <li><Link to={urlFor('apiDocs', lang)} className="text-white/80 hover:text-white">{t('nav.api_docs')}</Link></li>
-              <li><Link to={urlFor('contact', lang)} className="text-white/80 hover:text-white">{t('nav.contact')}</Link></li>
-            </ul>
-          </div>
+          {/* md+: original 3-column layout */}
+          <div className="hidden md:grid gap-10 md:grid-cols-3">
+            <div>
+              <img
+                src="/brand/luna-logo-on-navy.png"
+                alt={t('brand.name')}
+                className="w-[132px] h-auto block mb-4"
+                width={132}
+                height={143}
+              />
+              <p className="text-sm text-white/80 leading-relaxed">{t('footer.about_body')}</p>
+              <Link to={urlFor('about', lang)} className="mt-3 inline-block text-sm font-medium text-luna-aqua hover:text-white">
+                {t('nav.about')} →
+              </Link>
+            </div>
 
-          <div>
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-luna-aqua mb-3">
-              {t('footer.contact_title')}
-            </h3>
-            <ul className="space-y-2 text-sm text-white/85">
-              {phone && (
+            <div>
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-luna-aqua mb-3">
+                {t('footer.services_title')}
+              </h3>
+              <ul className="space-y-2 text-sm">
+                <li><Link to={urlFor('tracking', lang)} className="text-white/80 hover:text-white">{t('nav.tracking')}</Link></li>
+                <li><Link to={urlFor('shopAndShip', lang)} className="text-white/80 hover:text-white">{t('nav.shop_and_ship')}</Link></li>
+                <li><Link to={urlFor('forwarding', lang)} className="text-white/80 hover:text-white">{t('nav.forwarding')}</Link></li>
+                <li><Link to={urlFor('blogIndex', lang)} className="text-white/80 hover:text-white">{t('nav.blog')}</Link></li>
+                <li><Link to={urlFor('pricing', lang)} className="text-white/80 hover:text-white">{t('nav.pricing')}</Link></li>
+                <li><Link to={urlFor('rateCalculator', lang)} className="text-white/80 hover:text-white">{t('nav.calculator')}</Link></li>
+                <li><Link to={urlFor('apiDocs', lang)} className="text-white/80 hover:text-white">{t('nav.api_docs')}</Link></li>
+                <li><Link to={urlFor('contact', lang)} className="text-white/80 hover:text-white">{t('nav.contact')}</Link></li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-luna-aqua mb-3">
+                {t('footer.contact_title')}
+              </h3>
+              <ul className="space-y-2 text-sm text-white/85">
+                {phone && (
+                  <li className="flex items-start gap-2">
+                    <Phone className="h-4 w-4 mt-0.5 shrink-0 text-luna-sky" aria-hidden="true" />
+                    <a href={telUrl(phone)} className="hover:text-white">{phone}</a>
+                  </li>
+                )}
                 <li className="flex items-start gap-2">
-                  <Phone className="h-4 w-4 mt-0.5 shrink-0 text-luna-sky" aria-hidden="true" />
-                  <a href={telUrl(phone)} className="hover:text-white">{phone}</a>
+                  <Mail className="h-4 w-4 mt-0.5 shrink-0 text-luna-sky" aria-hidden="true" />
+                  <a href={`mailto:${email}`} className="hover:text-white break-all">
+                    {email}
+                  </a>
                 </li>
-              )}
-              <li className="flex items-start gap-2">
-                <Mail className="h-4 w-4 mt-0.5 shrink-0 text-luna-sky" aria-hidden="true" />
-                <a href={`mailto:${email}`} className="hover:text-white break-all">
-                  {email}
-                </a>
-              </li>
-              <li className="flex items-start gap-2">
-                <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-luna-sky" aria-hidden="true" />
-                <a href={mapsUrl(address)} target="_blank" rel="noopener noreferrer" className="hover:text-white">
-                  {address}
-                </a>
-              </li>
-              <li className="flex items-start gap-2">
-                <Instagram className="h-4 w-4 mt-0.5 shrink-0 text-luna-sky" aria-hidden="true" />
-                <a
-                  href="https://www.instagram.com/Luna_TrackingLogistics/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-white"
-                >
-                  {t('footer.instagram_handle')}
-                </a>
-              </li>
-            </ul>
+                <li className="flex items-start gap-2">
+                  <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-luna-sky" aria-hidden="true" />
+                  <a href={mapsUrl(address)} target="_blank" rel="noopener noreferrer" className="hover:text-white">
+                    {address}
+                  </a>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Instagram className="h-4 w-4 mt-0.5 shrink-0 text-luna-sky" aria-hidden="true" />
+                  <a
+                    href="https://www.instagram.com/Luna_TrackingLogistics/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-white"
+                  >
+                    {t('footer.instagram_handle')}
+                  </a>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
 

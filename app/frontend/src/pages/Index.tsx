@@ -175,7 +175,7 @@ export default function Index() {
         </div>
 
         {/* ── Service strip — carousel on mobile, grid on md+ ── */}
-        <div className="relative bg-luna-ink">
+        <div className="relative bg-luna-ink pb-[30px] md:pb-14 lg:pb-[clamp(52px,7vw,100px)]">
           {/* Mobile carousel */}
           <div className="md:hidden overflow-hidden">
             <div className="flex items-center justify-between px-4 pb-1.5">
