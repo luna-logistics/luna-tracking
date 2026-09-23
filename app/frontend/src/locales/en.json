@@ -1191,9 +1191,7 @@
   "shipment_mode": {
     "air": "Air",
     "sea": "Sea",
-    "road": "Road",
-    "rail": "Rail",
-    "multi": "Multimodal"
+    "road": "Road"
   },
   "charge_kind": {
     "transport": "Transport",

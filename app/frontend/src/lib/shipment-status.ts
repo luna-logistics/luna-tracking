@@ -47,5 +47,7 @@ export const SHIPMENT_STATUS_STYLES: Record<ShipmentStatus, string> = {
 export const SHIPMENT_DIRECTIONS = ['export', 'import', 'domestic'] as const;
 export type ShipmentDirection = typeof SHIPMENT_DIRECTIONS[number];
 
-export const SHIPMENT_MODES = ['air', 'sea', 'road', 'rail', 'multi'] as const;
+/** Modes Luna actually operates. Rail / multimodal were removed on
+ *  2026-09-23 (DB CHECKs on shipments, quotes, rate_rules match). */
+export const SHIPMENT_MODES = ['air', 'sea', 'road'] as const;
 export type ShipmentMode = typeof SHIPMENT_MODES[number];
