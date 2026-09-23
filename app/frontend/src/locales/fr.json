@@ -1799,7 +1799,9 @@
     "forwarding_status_new": "Nouveau",
     "forwarding_status_contacted": "Contacté",
     "forwarding_status_quoted": "Devis envoyé",
-    "forwarding_status_closed": "Clos"
+    "forwarding_status_closed": "Clos",
+    "forwarding_col_reference": "Référence",
+    "forwarding_open_conversation": "Ouvrir la conversation"
   },
   "shop": {
     "meta_title": "Achat & Envoi — Nous achetons pour vous en Belgique et livrons au Congo",
@@ -1971,7 +1973,8 @@
     "contact_addr_label": "Adresse",
     "contact_phone_label": "Téléphone",
     "contact_email_label": "E-mail",
-    "contact_insta_label": "Instagram"
+    "contact_insta_label": "Instagram",
+    "conv_subject": "Demande de réexpédition — {{origin}} → {{dest}}"
   },
   "account_orders": {
     "title": "Historique de mes commandes",

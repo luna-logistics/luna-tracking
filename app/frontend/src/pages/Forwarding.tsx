@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { trackEvent } from '@/lib/analytics';
+import { writeGuestToken } from '@/lib/support-chat';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, Plane, ArrowRight, Plus, Minus, Ban, Paperclip } from 'lucide-react';
@@ -84,7 +85,8 @@ export default function Forwarding() {
         quantity ? `${t('forwarding.f_qty_label')} ${quantity}` : '',
         detail.trim() ? `${t('forwarding.f_detail_label')} ${detail.trim()}` : '',
       ].filter(Boolean).join('\n');
-      await submitForwardingRequest({
+      const res = await submitForwardingRequest({
+        subject: t('forwarding.conv_subject', { origin: originLabel, dest: destLabel }),
         name: name.trim(),
         email: email.trim(),
         phone: phone.trim() || null,
@@ -92,7 +94,9 @@ export default function Forwarding() {
         description,
         estimated_value: estValue.trim() ? (Number(estValue.replace(/[^\d.]/g, '')) || null) : null,
       });
-      setReference(`REX-${Math.floor(Math.random() * 9000) + 1000}`);
+      // Follow-up happens in the support chat (bubble / /support) via this token.
+      if (res.guest_token) writeGuestToken(res.guest_token);
+      setReference(res.reference);
       setErrors({});
       setSent(true);
       trackEvent('reexpedition_requested', { origin_country: origin, destination: dest });

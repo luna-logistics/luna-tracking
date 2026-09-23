@@ -13,13 +13,38 @@ export type ForwardingRequest = {
   estimated_value: number | null;
   status: ForwardingStatus;
   created_at: string;
+  /** Server-generated `REX-XXXXXXXX`, unique — what the customer is shown. */
+  reference: string;
+  /** Linked support thread (null when guest support access was disabled). */
+  conversation_id: string | null;
 };
 
-export type NewForwardingRequest = Omit<ForwardingRequest, 'id' | 'created_at' | 'status'>;
+export type NewForwardingRequest =
+  Omit<ForwardingRequest, 'id' | 'created_at' | 'status' | 'reference' | 'conversation_id'> & { subject: string };
 
-export async function submitForwardingRequest(req: NewForwardingRequest): Promise<void> {
-  const { error } = await supabase.from('forwarding_requests').insert(req);
+export type ForwardingSubmission = {
+  reference: string;
+  conversation_id: string | null;
+  guest_token: string | null;
+};
+
+/** One transaction server-side: the forwarding row (reference generated
+ *  from its id), a support conversation + first message carrying the same
+ *  reference, and — for guests — the token to follow up in the chat. */
+export async function submitForwardingRequest(req: NewForwardingRequest): Promise<ForwardingSubmission> {
+  const { data, error } = await supabase.rpc('guest_submit_forwarding_request', {
+    p_name: req.name,
+    p_email: req.email,
+    p_phone: req.phone,
+    p_origin_country: req.origin_country,
+    p_description: req.description,
+    p_estimated_value: req.estimated_value,
+    p_subject: req.subject,
+  });
   if (error) throw error;
+  const row = (Array.isArray(data) ? data[0] : data) as ForwardingSubmission | undefined;
+  if (!row?.reference) throw new Error('forwarding_submit_no_reference');
+  return row;
 }
 
 export async function fetchAllForwardingRequests(): Promise<ForwardingRequest[]> {

@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
+import { MessageSquare } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/components/ui/sonner';
 import { fetchAllForwardingRequests, updateForwardingStatus, FORWARDING_STATUSES, type ForwardingRequest, type ForwardingStatus } from '@/lib/forwarding';
 import { cn } from '@/lib/utils';
+import { urlFor } from '@/lib/url/routes';
 
 const STATUS_STYLE: Record<ForwardingStatus, string> = {
   new:       'bg-blue-100 text-blue-900 ring-blue-300',
@@ -48,6 +51,7 @@ export default function AdminForwardingRequests() {
             <thead className="bg-slate-50 text-luna-navy">
               <tr>
                 <th className="text-left px-4 py-3 font-semibold">{t('admin.forwarding_col_date')}</th>
+                <th className="text-left px-4 py-3 font-semibold">{t('admin.forwarding_col_reference')}</th>
                 <th className="text-left px-4 py-3 font-semibold">{t('admin.forwarding_col_name')}</th>
                 <th className="text-left px-4 py-3 font-semibold">{t('admin.forwarding_col_contact')}</th>
                 <th className="text-left px-4 py-3 font-semibold">{t('admin.forwarding_col_origin')}</th>
@@ -61,6 +65,16 @@ export default function AdminForwardingRequests() {
                 <tr key={r.id} className="hover:bg-slate-50 align-top">
                   <td className="px-4 py-3 whitespace-nowrap text-slate-600">
                     {new Date(r.created_at).toLocaleDateString('fr-BE')}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <span className="font-mono text-xs font-semibold text-luna-navy">{r.reference}</span>
+                    {r.conversation_id && (
+                      <Link to={`${urlFor('adminSupport', 'fr')}?c=${r.conversation_id}`}
+                        className="mt-1 flex items-center gap-1 text-xs text-luna-blue hover:underline">
+                        <MessageSquare className="h-3 w-3" aria-hidden="true" />
+                        {t('admin.forwarding_open_conversation')}
+                      </Link>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-luna-navy">{r.name}</td>
                   <td className="px-4 py-3 text-xs">

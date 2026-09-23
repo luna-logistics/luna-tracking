@@ -30,7 +30,10 @@ import { cn } from '@/lib/utils';
 export default function AdminSupport() {
   const { t, i18n } = useTranslation();
   const [rows, setRows] = useState<ConversationSummary[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // ?c=<conversation id> deep link (e.g. from /admin/reexpedition).
+  const [selectedId, setSelectedId] = useState<string | null>(
+    () => new URLSearchParams(window.location.search).get('c'),
+  );
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');

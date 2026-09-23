@@ -1799,7 +1799,9 @@
     "forwarding_status_new": "New",
     "forwarding_status_contacted": "Contacted",
     "forwarding_status_quoted": "Quoted",
-    "forwarding_status_closed": "Closed"
+    "forwarding_status_closed": "Closed",
+    "forwarding_col_reference": "Reference",
+    "forwarding_open_conversation": "Open conversation"
   },
   "shop": {
     "meta_title": "Shop & Ship — We buy in Belgium and deliver to the DRC",
@@ -1971,7 +1973,8 @@
     "contact_addr_label": "Address",
     "contact_phone_label": "Phone",
     "contact_email_label": "Email",
-    "contact_insta_label": "Instagram"
+    "contact_insta_label": "Instagram",
+    "conv_subject": "Forwarding request — {{origin}} → {{dest}}"
   },
   "account_orders": {
     "title": "My order history",
