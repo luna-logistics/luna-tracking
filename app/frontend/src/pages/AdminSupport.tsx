@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/sonner';
 import { ChatMessageList } from '@/components/ChatMessageList';
 import { ChatMessageInput } from '@/components/ChatMessageInput';
+import { OfficeNotificationLog } from '@/components/OfficeNotificationLog';
 import {
   fetchConversations, setConversationStatus,
   fetchMessages, sendMessage, markConversationRead,
@@ -173,6 +174,7 @@ export default function AdminSupport() {
           </div>
         </section>
       )}
+      <OfficeNotificationLog onOpenConversation={setSelectedId} />
       <section className="mb-4 rounded-2xl border-2 border-amber-500 bg-amber-50 p-4">
         <header className="flex items-center gap-2 mb-2">
           <Shield className="h-4 w-4 text-amber-700" aria-hidden="true" />
