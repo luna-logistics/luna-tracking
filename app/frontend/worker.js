@@ -123,8 +123,10 @@ const ogStorePath = (lang) => `og/og-suivi-${lang}.jpg`;
 async function serveOgImage(request, env, lang) {
   if (env.SUPABASE_URL) {
     try {
-      const res = await fetch(`${env.SUPABASE_URL}/storage/v1/object/public/site-images/${ogStorePath(lang)}`,
-        { cf: { cacheTtl: 60, cacheEverything: true } });
+      // The query string is forwarded: the admin thumbnails add ?t=<time> so
+      // a just-regenerated image shows at once; crawlers (no query) get the
+      // storage CDN's copy, at most a minute old (uploaded max-age=60).
+      const res = await fetch(`${env.SUPABASE_URL}/storage/v1/object/public/site-images/${ogStorePath(lang)}${new URL(request.url).search}`);
       if (res.ok) {
         return new Response(res.body, {
           status: 200,
