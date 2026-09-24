@@ -42,44 +42,44 @@ begin
     jsonb_build_array(jsonb_build_object('product_id', p_on, 'slug', 'zz-test-on-en', 'name', 'HACK', 'quantity', 3, 'unit_price', 0.01)),
     0.03, 'paid', 'T', '0', 'A')
   returning * into o;
-  if o.total = 37.02 then ok := ok || 'total recomputed'; else bad := bad || format('total=%s (want 37.02)', o.total); end if;
-  if o.status = 'pending_payment' then ok := ok || 'status forced'; else bad := bad || format('status=%s', o.status); end if;
-  if (o.items->0->>'unit_price')::numeric = 12.34 and o.items->0->>'name' = 'Test EN' then ok := ok || 'line rebuilt (EN)';
+  if o.total = 37.02 then ok := ok || 'total recomputed'::text; else bad := bad || format('total=%s (want 37.02)', o.total); end if;
+  if o.status = 'pending_payment' then ok := ok || 'status forced'::text; else bad := bad || format('status=%s', o.status); end if;
+  if (o.items->0->>'unit_price')::numeric = 12.34 and o.items->0->>'name' = 'Test EN' then ok := ok || 'line rebuilt (EN)'::text;
   else bad := bad || format('line=%s', o.items->0); end if;
 
   -- 2. frozen afterwards
   begin
     update public.orders set total = 0.01 where id = o.id;
     -- authenticated non-admins are filtered by RLS (0 rows) — also acceptable
-    if (select total from public.orders where id = o.id) = 37.02 then ok := ok || 'total not updatable';
-    else bad := bad || 'total was updated'; end if;
+    if (select total from public.orders where id = o.id) = 37.02 then ok := ok || 'total not updatable'::text;
+    else bad := bad || 'total was updated'::text; end if;
   exception when others then
-    if sqlerrm like 'order_amounts_frozen%' then ok := ok || 'total frozen'; else bad := bad || ('update: ' || sqlerrm); end if;
+    if sqlerrm like 'order_amounts_frozen%' then ok := ok || 'total frozen'::text; else bad := bad || ('update: ' || sqlerrm); end if;
   end;
 
   -- 3. inactive product refused
   begin
     insert into public.orders (user_id, items, total, recipient_name, recipient_phone, recipient_address)
     values (uid, jsonb_build_array(jsonb_build_object('product_id', p_off, 'quantity', 1)), 0, 'T', '0', 'A');
-    bad := bad || 'inactive product accepted';
+    bad := bad || 'inactive product accepted'::text;
   exception when others then
-    if sqlerrm like 'order_product_unavailable%' then ok := ok || 'inactive refused'; else bad := bad || ('inactive: ' || sqlerrm); end if;
+    if sqlerrm like 'order_product_unavailable%' then ok := ok || 'inactive refused'::text; else bad := bad || ('inactive: ' || sqlerrm); end if;
   end;
 
   -- 4. bad quantity / empty cart refused
   begin
     insert into public.orders (user_id, items, total, recipient_name, recipient_phone, recipient_address)
     values (uid, jsonb_build_array(jsonb_build_object('product_id', p_on, 'quantity', 0)), 0, 'T', '0', 'A');
-    bad := bad || 'qty 0 accepted';
+    bad := bad || 'qty 0 accepted'::text;
   exception when others then
-    if sqlerrm like 'order_item_invalid%' then ok := ok || 'qty 0 refused'; else bad := bad || ('qty: ' || sqlerrm); end if;
+    if sqlerrm like 'order_item_invalid%' then ok := ok || 'qty 0 refused'::text; else bad := bad || ('qty: ' || sqlerrm); end if;
   end;
   begin
     insert into public.orders (user_id, items, total, recipient_name, recipient_phone, recipient_address)
     values (uid, '[]'::jsonb, 0, 'T', '0', 'A');
-    bad := bad || 'empty cart accepted';
+    bad := bad || 'empty cart accepted'::text;
   exception when others then
-    if sqlerrm like 'order_items_empty%' then ok := ok || 'empty refused'; else bad := bad || ('empty: ' || sqlerrm); end if;
+    if sqlerrm like 'order_items_empty%' then ok := ok || 'empty refused'::text; else bad := bad || ('empty: ' || sqlerrm); end if;
   end;
 
   if array_length(bad, 1) is null then

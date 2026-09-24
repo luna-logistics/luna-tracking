@@ -77,6 +77,8 @@ begin
   exception when insufficient_privilege then ok := array_append(ok, ('draft_invoice_from_shipment: non-member blocked')::text); end;
   begin perform public.issue_invoice(inv); bad := array_append(bad, ('issue_invoice: NON-MEMBER ALLOWED')::text);
   exception when insufficient_privilege then ok := array_append(ok, ('issue_invoice: non-member blocked')::text); end;
+  begin perform public.send_invoice(inv, 'fr'); bad := array_append(bad, ('send_invoice: NON-MEMBER ALLOWED')::text);
+  exception when insufficient_privilege then ok := array_append(ok, ('send_invoice: non-member blocked')::text); end;
   reset role;
 
   ------------------------------------------------------------ anonymous refused
@@ -88,6 +90,8 @@ begin
   exception when insufficient_privilege then ok := array_append(ok, ('rotate_webhook_secret: anon blocked')::text); end;
   begin perform public.draft_invoice_from_shipment(sid); bad := array_append(bad, ('draft_invoice_from_shipment: ANON ALLOWED')::text);
   exception when insufficient_privilege then ok := array_append(ok, ('draft_invoice_from_shipment: anon blocked')::text); end;
+  begin perform public.send_invoice(inv, 'fr'); bad := array_append(bad, ('send_invoice: ANON ALLOWED')::text);
+  exception when insufficient_privilege then ok := array_append(ok, ('send_invoice: anon blocked')::text); end;
   reset role;
 
   ------------------------------------- admin-only directories / support admin
