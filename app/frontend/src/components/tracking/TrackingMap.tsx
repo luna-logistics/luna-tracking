@@ -11,6 +11,8 @@ import { routeFraction, type TrackingView } from '@/lib/tracking-view';
  * either direction (view.route, lib/tracking-view) — with the travelled part
  * solid and the rest dashed, and a marker whose position is derived from the
  * status (indicative, never GPS). Animations stop under prefers-reduced-motion.
+ * view="preview" draws the no-search illustration (/suivi before a search,
+ * and the og:image generated from it): both air corridors, nothing travelled.
  *
  * Map data: equirectangular, standard parallel 20° (x = 1081.0 + 9.397·lon,
  * y = 620 − 10·lat — fits every drawn city to 0.1). Goma and its air route
@@ -69,31 +71,45 @@ const COUNTRY_LABELS: [string, string, number, number, 1 | 'sea', 0 | 1][] = [
   ['CÔTE D’IVOIRE', 'CÔTE D’IVOIRE', 1028, 546, 'sea', 0], ['GHANA', 'GHANA', 1072, 520, 'sea', 0],
 ];
 
-export function TrackingMap({ data, view, variant, lang, labels }: {
+type MapView = Pick<TrackingView, 'mode' | 'status' | 'reachedBeforeCancel' | 'route'>;
+
+/** The no-search state on /suivi (and the og:image drawn from it): both air
+ *  corridors, nothing travelled, a static plane — an illustration of what the
+ *  tool shows, never any real shipment's position. */
+const PREVIEW: MapView = { mode: 'air', status: 'in_transit', reachedBeforeCancel: null, route: { dest: 'fih', reverse: false } };
+const PREVIEW_FRAC = 0.46;
+
+export function TrackingMap({ data, view, variant, lang, labels, alt }: {
   data: MapData;
-  view: TrackingView;
+  /** A result's view, or 'preview' for the neutral no-search illustration. */
+  view: MapView | 'preview';
   variant: 'desktop' | 'mobile';
   lang: 'fr' | 'en';
   labels: { bru: string; be: string; cd: string; matadi: string };
+  /** Text alternative; without it the map is decorative (the result panel
+   *  next to it already says everything in words). */
+  alt?: string;
 }) {
+  const preview = view === 'preview';
+  const v = preview ? PREVIEW : view;
   const mob = variant === 'mobile';
-  const sea = view.mode === 'sea';
-  const cancelled = view.status === 'cancelled';
-  const delivered = view.status === 'delivered';
-  const step = cancelled ? (view.reachedBeforeCancel ?? 'confirmed') : view.status;
-  const r = view.route!;
+  const sea = v.mode === 'sea';
+  const cancelled = v.status === 'cancelled';
+  const delivered = v.status === 'delivered';
+  const step = cancelled ? (v.reachedBeforeCancel ?? 'confirmed') : v.status;
+  const r = v.route!;
   const goma = r.dest === 'gom';
   const line = sea ? data.sea.pts : goma ? data.airGoma.pts : data.air.pts;
   const pts = r.reverse ? [...line].reverse() : line;
-  const pos = along(pts, routeFraction(step as Exclude<typeof step, 'cancelled'>, view.mode, data.sea.matadiFrac));
-  const done: Pt[] = [...pts.slice(0, pos.i), [pos.x, pos.y]];
-  const rest: Pt[] = [[pos.x, pos.y], ...pts.slice(pos.i)];
+  const pos = along(pts, preview ? PREVIEW_FRAC : routeFraction(step as Exclude<typeof step, 'cancelled'>, v.mode, data.sea.matadiFrac));
+  const done: Pt[] = preview ? [] : [...pts.slice(0, pos.i), [pos.x, pos.y]];
+  const rest: Pt[] = preview ? pts : [[pos.x, pos.y], ...pts.slice(pos.i)];
   const moving = !delivered && !cancelled;
   const s = mob ? 1.35 : 1;
   const sw = mob ? 3.2 : 2.6;
-  const Icon = delivered ? Check : cancelled ? X : view.mode === 'air' ? Plane : sea ? Ship : Package;
+  const Icon = delivered ? Check : cancelled ? X : v.mode === 'air' ? Plane : sea ? Ship : Package;
   // lucide's Plane points up-right (-45°): turn it along the route.
-  const rot = moving && view.mode === 'air' ? pos.ang + 45 : 0;
+  const rot = moving && v.mode === 'air' ? pos.ang + 45 : 0;
   const { bru: o, mat: mt } = data.cities;
   const k = goma ? data.cities.gom : data.cities.fih;
   const destName = goma ? 'Goma' : 'Kinshasa';
@@ -116,7 +132,7 @@ export function TrackingMap({ data, view, variant, lang, labels }: {
 
   return (
     <svg viewBox={mob ? '840 70 600 725' : '125 10 1520 760'} preserveAspectRatio="xMidYMid slice"
-      className="absolute inset-0 block h-full w-full" role="img" aria-hidden="true">
+      className="absolute inset-0 block h-full w-full" {...(alt ? { role: 'img', 'aria-label': alt } : { 'aria-hidden': true })}>
       <style>{`
         @keyframes ltlPulse { 0% { transform: scale(1); opacity: .75 } 100% { transform: scale(2.6); opacity: 0 } }
         @keyframes ltlDash { to { stroke-dashoffset: -20 } }
@@ -137,6 +153,13 @@ export function TrackingMap({ data, view, variant, lang, labels }: {
         <path d={toD(rest)} fill="none" stroke={cancelled ? '#B3C3D8' : '#2E6FD1'} strokeWidth={sw} strokeDasharray="2 8"
           strokeLinecap="round" className={moving ? 'ltl-dash' : undefined} />
       )}
+      {preview && (
+        <>
+          <path d={toD(data.airGoma.pts)} fill="none" stroke="#2E6FD1" strokeWidth={sw} strokeDasharray="2 8"
+            strokeLinecap="round" className="ltl-dash" />
+          <circle cx={data.cities.gom[0]} cy={data.cities.gom[1]} r={mob ? 8 : 6} fill="#ffffff" stroke="#0A1650" strokeWidth={mob ? 3.2 : 2.6} />
+        </>
+      )}
       <circle cx={o[0]} cy={o[1]} r={mob ? 8 : 6} fill="#ffffff" stroke="#0A1650" strokeWidth={mob ? 3.2 : 2.6} />
       <circle cx={k[0]} cy={k[1]} r={mob ? 8 : 6} fill="#ffffff" stroke="#0A1650" strokeWidth={mob ? 3.2 : 2.6} />
       <g>
@@ -148,6 +171,7 @@ export function TrackingMap({ data, view, variant, lang, labels }: {
         {text(o[0] + (mob ? 18 : 16), o[1] + (mob ? 30 : 26), labels.be, cf + 1, { fontWeight: 600, letterSpacing: 1.2, strokeWidth: 3 })}
         {text(o[0] + (mob ? 18 : 16), o[1] + (mob ? 7 : 6), labels.bru, big, { fontWeight: 600 })}
         {text(kx, k[1] + (mob ? -14 : 5), destName, big, { fontWeight: 600, ...(goma ? { textAnchor: 'end' } : {}) })}
+        {preview && text(data.cities.gom[0] - 16, data.cities.gom[1] + (mob ? -14 : 5), 'Goma', big, { fontWeight: 600, textAnchor: 'end' })}
         {sea && (
           <>
             <circle cx={mt[0]} cy={mt[1]} r={mob ? 4.5 : 3.5} fill="#0A1650" />
@@ -156,7 +180,7 @@ export function TrackingMap({ data, view, variant, lang, labels }: {
         )}
       </g>
       <g transform={`translate(${pos.x.toFixed(1)} ${pos.y.toFixed(1)}) scale(${s})`}>
-        {moving && <circle r={20} fill="none" stroke="#2E6FD1" strokeWidth={2} className="ltl-pulse" />}
+        {moving && !preview && <circle r={20} fill="none" stroke="#2E6FD1" strokeWidth={2} className="ltl-pulse" />}
         <circle r={30} fill="#0A1650" opacity={0.12} />
         <circle r={20} fill={delivered ? '#1FE0F0' : cancelled ? '#ffffff' : '#0A1650'}
           stroke={delivered ? '#0A1650' : cancelled ? '#8FA3BF' : '#ffffff'} strokeWidth={3} />

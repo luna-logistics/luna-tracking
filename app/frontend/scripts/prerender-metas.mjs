@@ -192,10 +192,23 @@ function readI18n(lang, page, field) {
   return (p && typeof p === 'object') ? p[field] : undefined;
 }
 
+/** Pages whose og:image is generated in the repo from the page itself — used
+ *  when the admin hasn't uploaded a `${page}_hero` / `${page}_og` image.
+ *  tracking: the no-search route map (scripts/og-suivi-image.tsx, `pnpm
+ *  og:suivi`), also the image of every shared tracking link. */
+const REPO_OG = {
+  tracking: {
+    url: (lang) => `${SITE_URL}/brand/og-suivi-${lang}.jpg`,
+    alt: (lang) => overrideOr('tracking', lang, 'map_alt', readI18n(lang, 'tracking', 'map_alt')),
+  },
+};
+const ownOgImage = (pageKey) => imagesByKey.get(`${pageKey}_hero`) ?? imagesByKey.get(`${pageKey}_og`);
+
 function heroOgImage(pageKey, lang) {
-  // Prefer the page's own hero image, then its OG slot, then the site fallback.
-  return imagesByKey.get(`${pageKey}_hero`)
-      ?? imagesByKey.get(`${pageKey}_og`)
+  // Prefer the page's own hero image, then its OG slot, then a repo-generated
+  // image for that page, then the site fallback.
+  return ownOgImage(pageKey)
+      ?? REPO_OG[pageKey]?.url(lang)
       ?? imagesByKey.get('home_og')
       ?? ogFallback(lang);
 }
@@ -207,6 +220,7 @@ function heroOgImageAlt(pageKey, lang, fallback) {
     const key = `image::${lang}::${pageKey}${suffix}_alt`;
     if (overrides.has(key)) return overrides.get(key);
   }
+  if (!ownOgImage(pageKey) && REPO_OG[pageKey]) return REPO_OG[pageKey].alt(lang) ?? fallback;
   const home = overrides.get(`image::${lang}::home_og_alt`);
   return home ?? fallback;
 }

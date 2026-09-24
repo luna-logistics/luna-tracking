@@ -81,7 +81,7 @@ export default function PublicTracking() {
   if (!loading && view) {
     return (
       <div className="min-h-[70vh] bg-luna-mist">
-        <SEO title={t('public_tracking.meta_title')} noindex />
+        <SEO title={t('public_tracking.meta_title')} image={`https://lunatrackinglogistics.com/brand/og-suivi-${i18n.language === 'en' ? 'en' : 'fr'}.jpg`} imageAlt={t('tracking.map_alt')} noindex />
         <section className="mx-auto max-w-[1220px] px-5 sm:px-8" style={{ paddingBottom: 'clamp(48px,6vw,80px)' }}>
           <TrackingResultView
             view={view}
@@ -99,7 +99,7 @@ export default function PublicTracking() {
 
   return (
     <div className="min-h-[70vh] bg-slate-50">
-      <SEO title={t('public_tracking.meta_title')} noindex />
+      <SEO title={t('public_tracking.meta_title')} image={`https://lunatrackinglogistics.com/brand/og-suivi-${i18n.language === 'en' ? 'en' : 'fr'}.jpg`} imageAlt={t('tracking.map_alt')} noindex />
       <div className="max-w-3xl mx-auto px-4 py-10">
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-bold text-luna-navy inline-flex items-center gap-2">

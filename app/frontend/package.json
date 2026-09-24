@@ -17,7 +17,8 @@
     "probe": "node scripts/scrape.mjs probe",
     "scrape": "node scripts/scrape.mjs scrape",
     "resume": "node scripts/scrape.mjs resume",
-    "indexnow": "node scripts/indexnow-submit.mjs"
+    "indexnow": "node scripts/indexnow-submit.mjs",
+    "og:suivi": "vite-node scripts/og-suivi-image.tsx"
   },
   "dependencies": {
     "@fontsource/poppins": "^5.3.0",
@@ -80,6 +81,7 @@
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
     "vite": "^5.4.1",
+    "vite-node": "2.1.9",
     "vitest": "^2.1.9",
     "wrangler": "^3.90.0"
   }

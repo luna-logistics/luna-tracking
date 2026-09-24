@@ -27,7 +27,7 @@ type Icon = ComponentType<LucideProps>;
 type StepState = 'done' | 'current' | 'final' | 'future' | 'unknown' | 'cancelled';
 type StepRow = { key: string; label: string; icon: Icon; state: StepState; caption: string };
 
-function useIsDesktop(): boolean {
+export function useIsDesktop(): boolean {
   const q = '(min-width: 1024px)';
   const [m, setM] = useState(() => typeof window !== 'undefined' && window.matchMedia(q).matches);
   useEffect(() => {
