@@ -22,8 +22,8 @@ const RESEND_KEY   = Deno.env.get('RESEND_API_KEY') ?? '';
 const FROM_FALLBACK = 'Luna Support <support@lunatrackinglogistics.com>';
 const SITE_URL     = Deno.env.get('SITE_URL') ?? 'https://lunatrackinglogistics.com';
 
-type Kind = 'support_message' | 'forwarding_request' | 'order' | 'client_reply';
-const KINDS: Kind[] = ['support_message', 'forwarding_request', 'order', 'client_reply'];
+type Kind = 'support_message' | 'forwarding_request' | 'order' | 'client_reply' | 'invoice';
+const KINDS: Kind[] = ['support_message', 'forwarding_request', 'order', 'client_reply', 'invoice'];
 
 const cors = {
   'Access-Control-Allow-Origin':  '*',
@@ -186,6 +186,58 @@ async function buildMail(db: any, kind: Kind, id: string): Promise<Mail | null> 
             ? 'EN — Our team has replied to your request. Use the button above to read the full answer and reply.'
             : 'EN — Our team has replied to your request. Sign in with the button above to read the full answer and reply.'),
         footer: 'Vous recevez cet e-mail car vous avez contacté Luna Tracking Logistics via notre site.',
+      },
+    };
+  }
+
+  if (kind === 'invoice') {
+    // Customer-facing: the invoice + its payment page (/facture/<token>),
+    // queued by send_invoice() (platform business only). Written in the
+    // language the staff member picked when sending. A cancelled/draft
+    // invoice (changed after queueing) is skipped, never mailed.
+    const { data, error } = await db.rpc('get_invoice_notify_payload', { p_invoice: id });
+    if (error) throw new Error(`rpc_failed: ${error.message}`);
+    if (!data) return null;
+    const d = data as {
+      number: string | null; status: string; currency: string; total: number; due_on: string | null;
+      payment_token: string | null; customer_email: string | null; customer_name: string | null;
+      supplier_name: string; payable: boolean; language: string; from_address: string; reply_to: string;
+    };
+    if (!d.customer_email || !d.payment_token || !d.number) return null;
+    if (!['issued', 'overdue', 'paid'].includes(d.status)) return null;
+    const en = d.language === 'en';
+    const amount = `${Number(d.total).toFixed(2)} ${d.currency}`;
+    const due = d.due_on ? new Date(`${d.due_on}T12:00:00`).toLocaleDateString(en ? 'en-GB' : 'fr-BE') : null;
+    const url = `${SITE_URL}${en ? '/en/invoice/' : '/facture/'}${d.payment_token}`;
+    const payNow = d.payable && d.status !== 'paid';
+    return {
+      subject: en ? `Invoice ${d.number} — ${d.supplier_name}` : `Facture ${d.number} — ${d.supplier_name}`,
+      heading: en ? `Invoice ${d.number}` : `Facture ${d.number}`,
+      replyTo: null,
+      replyToList: d.reply_to.split(',').map((s) => s.trim()).filter(Boolean),
+      rows: [],
+      body: null,
+      cta: {
+        label: payNow ? (en ? 'View and pay the invoice' : 'Voir et payer la facture') : (en ? 'View the invoice' : 'Voir la facture'),
+        url,
+      },
+      notifyEmail: d.customer_email,
+      fromAddress: d.from_address,
+      enabled: true,
+      client: {
+        lang: en ? 'en' : 'fr',
+        greeting: d.customer_name ? (en ? `Hello ${d.customer_name},` : `Bonjour ${d.customer_name},`) : (en ? 'Hello,' : 'Bonjour,'),
+        intro: en
+          ? `Please find below your invoice from ${d.supplier_name}${d.status === 'paid' ? ' (already paid — thank you).' : due ? `, due by ${due}.` : '.'}`
+          : `Veuillez trouver ci-dessous votre facture de ${d.supplier_name}${d.status === 'paid' ? ' (déjà réglée — merci).' : due ? `, à régler avant le ${due}.` : '.'}`,
+        preview: en ? `Invoice ${d.number} — ${amount}` : `Facture ${d.number} — ${amount}`,
+        note: payNow
+          ? (en ? 'Pay securely online from that page, or by bank transfer using the reference on the invoice. You can also print it or save it as PDF there.'
+                : 'Réglez en ligne de façon sécurisée depuis cette page, ou par virement avec la référence indiquée sur la facture. Vous pouvez aussi l’y imprimer ou l’enregistrer en PDF.')
+          : (en ? 'You can print it or save it as PDF from that page.' : 'Vous pouvez l’imprimer ou l’enregistrer en PDF depuis cette page.'),
+        footer: en
+          ? `You are receiving this e-mail because ${d.supplier_name} sent you an invoice. Reply to this e-mail for any question.`
+          : `Vous recevez cet e-mail car ${d.supplier_name} vous a adressé une facture. Répondez à cet e-mail pour toute question.`,
       },
     };
   }
