@@ -47,6 +47,11 @@ export type Invoice = {
   payment_terms: string | null;
   payment_reference: string | null;
   notes: string | null;
+  /** Online payment (Stripe) — only the platform business, see send_invoice(). */
+  payment_token: string | null;
+  sent_at: string | null;
+  sent_language: 'fr' | 'en' | null;
+  paid_via: 'stripe' | 'manual' | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -65,7 +70,9 @@ export type InvoiceLine = {
   updated_at: string;
 };
 
-export type InvoiceInput = Omit<Invoice, 'id' | 'business_id' | 'number' | 'subtotal' | 'vat_total' | 'total' | 'created_by' | 'created_at' | 'updated_at'> & { id?: string };
+export type InvoiceInput = Omit<Invoice,
+  'id' | 'business_id' | 'number' | 'subtotal' | 'vat_total' | 'total' | 'created_by' | 'created_at' | 'updated_at'
+  | 'payment_token' | 'sent_at' | 'sent_language' | 'paid_via'> & { id?: string };
 export type InvoiceLineInput = Omit<InvoiceLine, 'id' | 'invoice_id' | 'created_at' | 'updated_at'> & { id?: string };
 
 /** An invoice is "overdue" when it has been issued (not paid/cancelled)
