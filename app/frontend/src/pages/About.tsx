@@ -118,6 +118,14 @@ export default function About() {
                   </div>
                 ))}
               </dl>
+              {/* Agency credit — editorial, followed link (the footer one is nofollow). */}
+              <p className="mt-5 pt-4 border-t border-slate-200 text-sm text-slate-600">
+                {t('about.credit_before')}
+                <a href="https://eloshon.com" target="_blank" rel="noopener" className="font-medium text-luna-blue hover:underline">
+                  Eloshon
+                </a>
+                {t('about.credit_after')}
+              </p>
             </div>
           </div>
         </section>

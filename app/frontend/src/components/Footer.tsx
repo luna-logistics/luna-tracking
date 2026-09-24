@@ -147,7 +147,14 @@ export function Footer() {
               )}
             </p>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <span>{t('footer.legal', { year })}</span>
+              <span>
+                {t('footer.legal', { year })}
+                {' · '}
+                {t('footer.powered_by')}{' '}
+                <a href="https://eloshon.com" target="_blank" rel="nofollow noopener" className="hover:text-white underline-offset-2 hover:underline">
+                  eloshon.com
+                </a>
+              </span>
               <nav aria-label={t('footer.legal_title')} className="flex flex-wrap gap-x-4 gap-y-1">
                 {legalLinks.map((l) => (
                   <Link key={l.to} to={l.to} className="hover:text-white underline-offset-2 hover:underline">
