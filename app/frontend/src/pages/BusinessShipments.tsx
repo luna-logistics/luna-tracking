@@ -1,14 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Package, Plus, Search, ArrowRight, Copy } from 'lucide-react';
+import { Package, Plus, Search, ArrowRight, Copy, CopyPlus, Trash2, ArchiveRestore } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ShipmentStatusBadge } from '@/components/ShipmentStatusBadge';
+import { RowActionsMenu } from '@/components/RowActionsMenu';
+import { toast } from '@/components/ui/sonner';
+import { errorMessage } from '@/lib/errors';
 import { useBusiness } from '@/contexts/BusinessContext';
-import { fetchShipments, fetchTemplates, type Shipment, type ShipmentTemplate } from '@/lib/shipments';
+import {
+  fetchShipments, fetchTemplates, fetchDeletedShipments, deleteShipment, restoreShipment, deleteTemplate,
+  type Shipment, type ShipmentTemplate, type DeletedShipment,
+} from '@/lib/shipments';
 import { fetchCustomers, type BusinessCustomer } from '@/lib/customers';
 import { SHIPMENT_STATUSES, SHIPMENT_DIRECTIONS, type ShipmentStatus, type ShipmentDirection } from '@/lib/shipment-status';
 
@@ -18,13 +24,16 @@ type DirectionFilter = 'all' | ShipmentDirection;
 /**
  * Shipment list with search + status/direction filters + a sidecar
  * "Templates" section (create-from-template shortcut). Row click opens
- * the detail; separate quick "Duplicate" action creates a fresh
- * shipment pre-populated from the row.
+ * the detail. Each row's "…" menu: Duplicate (new shipment pre-filled from
+ * it, `new?from=<id>`) and Delete (soft, confirmed, restorable from the
+ * "Supprimées" view — same pattern as the /admin/support inbox).
  */
 export default function BusinessShipments() {
   const { t } = useTranslation();
   const { current, can } = useBusiness();
-  const [rows, setRows] = useState<Shipment[]>([]);
+  const navigate = useNavigate();
+  const [rows, setRows] = useState<Array<Shipment | DeletedShipment>>([]);
+  const [showDeleted, setShowDeleted] = useState(false);
   const [customers, setCustomers] = useState<BusinessCustomer[]>([]);
   const [templates, setTemplates] = useState<ShipmentTemplate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,19 +42,44 @@ export default function BusinessShipments() {
   const [direction, setDirection] = useState<DirectionFilter>('all');
 
   const canWrite = can('shipments.write');
+  const canDelete = can('shipments.delete');
 
   const reload = async () => {
     if (!current) return;
     setLoading(true);
     const [s, c, tpl] = await Promise.all([
-      fetchShipments(current.id),
+      showDeleted ? fetchDeletedShipments(current.id) : fetchShipments(current.id),
       fetchCustomers(current.id),
       fetchTemplates(current.id),
     ]);
     setRows(s); setCustomers(c); setTemplates(tpl);
     setLoading(false);
   };
-  useEffect(() => { void reload(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [current?.id]);
+  useEffect(() => { void reload(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [current?.id, showDeleted]);
+
+  const removeShipment = async (s: { id: string; reference: string }) => {
+    if (!confirm(t('business_shipments.delete_confirm', { ref: s.reference }))) return;
+    try {
+      await deleteShipment(s.id);
+      toast.success(t('business_shipments.deleted_toast', { ref: s.reference }));
+      await reload();
+    } catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
+  };
+  const restore = async (s: { id: string; reference: string }) => {
+    try {
+      await restoreShipment(s.id);
+      toast.success(t('business_shipments.restored_toast', { ref: s.reference }));
+      await reload();
+    } catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
+  };
+  const removeTemplate = async (tpl: ShipmentTemplate) => {
+    if (!confirm(t('business_shipments.template_delete_confirm', { name: tpl.name }))) return;
+    try {
+      await deleteTemplate(tpl.id);
+      toast.success(t('business_shipments.template_deleted_toast'));
+      setTemplates((list) => list.filter((x) => x.id !== tpl.id));
+    } catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
+  };
 
   const customerName = (id: string | null) =>
     id ? (customers.find((c) => c.id === id)?.display_name ?? '—') : '—';
@@ -57,8 +91,9 @@ export default function BusinessShipments() {
       if (direction !== 'all' && s.direction !== direction) return false;
       if (!query) return true;
       const custName = customerName(s.customer_id).toLowerCase();
+      const extra = 'tracking_number' in s ? [s.tracking_number, s.carrier_name] : [];
       return [
-        s.reference, s.tracking_number, s.carrier_name, s.origin_city,
+        s.reference, ...extra, s.origin_city,
         s.destination_city, custName,
       ].some((f) => (f ?? '').toString().toLowerCase().includes(query));
     });
@@ -90,14 +125,19 @@ export default function BusinessShipments() {
           </h2>
           <div className="flex gap-2 overflow-x-auto pb-2">
             {templates.map((tpl) => (
-              <Link key={tpl.id} to={`new?template=${tpl.id}`}
-                className="shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 hover:border-luna-blue/40 hover:bg-luna-navy/[0.02]">
-                <div className="flex items-center gap-2 text-sm text-luna-navy">
-                  <Copy className="h-3.5 w-3.5" />
-                  <span className="font-medium">{tpl.name}</span>
-                </div>
-                {tpl.description && <div className="text-[11px] text-slate-500 mt-0.5">{tpl.description}</div>}
-              </Link>
+              <div key={tpl.id} className="shrink-0 flex items-start rounded-xl border border-slate-200 bg-white hover:border-luna-blue/40 hover:bg-luna-navy/[0.02]">
+                <Link to={`new?template=${tpl.id}`} className="px-3 py-2">
+                  <div className="flex items-center gap-2 text-sm text-luna-navy">
+                    <Copy className="h-3.5 w-3.5" />
+                    <span className="font-medium">{tpl.name}</span>
+                  </div>
+                  {tpl.description && <div className="text-[11px] text-slate-500 mt-0.5">{tpl.description}</div>}
+                </Link>
+                {canWrite && (
+                  <RowActionsMenu size="sm" className="mr-1 mt-1.5" label={t('business_shipments.row_actions', { name: tpl.name })}
+                    actions={[{ key: 'delete', label: t('business_shipments.template_delete'), icon: Trash2, danger: true, onSelect: () => void removeTemplate(tpl) }]} />
+                )}
+              </div>
             ))}
           </div>
         </section>
@@ -127,6 +167,13 @@ export default function BusinessShipments() {
             ))}
           </SelectContent>
         </Select>
+        {canDelete && (
+          <Button type="button" size="sm" variant={showDeleted ? 'navy' : 'outline'} aria-pressed={showDeleted}
+            onClick={() => setShowDeleted((v) => !v)}>
+            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+            {t(showDeleted ? 'business_shipments.show_active' : 'business_shipments.show_deleted')}
+          </Button>
+        )}
         <span className="text-xs text-slate-500 ml-auto">{filtered.length} / {rows.length}</span>
       </div>
 
@@ -139,20 +186,25 @@ export default function BusinessShipments() {
               <th className="text-left px-4 py-3 font-semibold">{t('business_shipments.col_route')}</th>
               <th className="text-left px-4 py-3 font-semibold">{t('business_shipments.col_mode')}</th>
               <th className="text-left px-4 py-3 font-semibold">{t('business_shipments.col_status')}</th>
-              <th className="text-right px-4 py-3 font-semibold">{t('business_shipments.col_updated')}</th>
+              <th className="text-right px-4 py-3 font-semibold">{t(showDeleted ? 'business_shipments.col_deleted' : 'business_shipments.col_updated')}</th>
+              <th className="w-10 px-2 py-3"><span className="sr-only">{t('business_shipments.col_actions')}</span></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {loading && <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-500">{t('common.loading')}</td></tr>}
+            {loading && <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-500">{t('common.loading')}</td></tr>}
             {!loading && filtered.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-10 text-center text-slate-500">{t('business_shipments.empty')}</td></tr>
+              <tr><td colSpan={7} className="px-4 py-10 text-center text-slate-500">{t(showDeleted ? 'business_shipments.empty_deleted' : 'business_shipments.empty')}</td></tr>
             )}
             {filtered.map((s) => (
               <tr key={s.id} className="hover:bg-slate-50">
                 <td className="px-4 py-3">
-                  <Link to={s.id} className="font-mono text-sm font-semibold text-luna-navy hover:underline">
-                    {s.reference}
-                  </Link>
+                  {showDeleted ? (
+                    <span className="font-mono text-sm font-semibold text-slate-500 line-through decoration-slate-300">{s.reference}</span>
+                  ) : (
+                    <Link to={s.id} className="font-mono text-sm font-semibold text-luna-navy hover:underline">
+                      {s.reference}
+                    </Link>
+                  )}
                   <div className="text-[11px] text-slate-500 uppercase">
                     {t(`shipment_direction.${s.direction}`)}
                   </div>
@@ -168,7 +220,16 @@ export default function BusinessShipments() {
                 <td className="px-4 py-3 text-slate-700 text-sm">{t(`shipment_mode.${s.mode}`)}</td>
                 <td className="px-4 py-3"><ShipmentStatusBadge status={s.status} /></td>
                 <td className="px-4 py-3 text-right text-xs text-slate-500 whitespace-nowrap">
-                  {new Date(s.updated_at).toLocaleDateString()}
+                  {new Date('deleted_at' in s && s.deleted_at ? s.deleted_at : s.updated_at).toLocaleDateString()}
+                </td>
+                <td className="px-2 py-3 text-right">
+                  <RowActionsMenu label={t('business_shipments.row_actions', { name: s.reference })}
+                    actions={showDeleted
+                      ? (canDelete ? [{ key: 'restore', label: t('business_shipments.restore'), icon: ArchiveRestore, onSelect: () => void restore(s) }] : [])
+                      : [
+                          ...(canWrite ? [{ key: 'duplicate', label: t('business_shipments.duplicate'), icon: CopyPlus, onSelect: () => navigate(`new?from=${s.id}`) }] : []),
+                          ...(canDelete ? [{ key: 'delete', label: t('business_shipments.delete'), icon: Trash2, danger: true, onSelect: () => void removeShipment(s) }] : []),
+                        ]} />
                 </td>
               </tr>
             ))}

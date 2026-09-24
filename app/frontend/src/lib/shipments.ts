@@ -42,6 +42,10 @@ export type Shipment = {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  /** Soft delete (delete_shipment / restore_shipment). RLS hides deleted
+   *  rows, so every shipment read through the table API has these null. */
+  deleted_at: string | null;
+  deleted_by: string | null;
 };
 
 /** Package kinds on a packing list (DB CHECK mirrors this). */
@@ -100,7 +104,7 @@ export type TemplateData = Partial<ShipmentInput> & { packages?: PackingLine[] }
 export type ShipmentInput = Omit<
   Shipment,
   'id' | 'business_id' | 'reference' | 'tracking_token' | 'tracking_enabled'
-    | 'created_by' | 'created_at' | 'updated_at'
+    | 'created_by' | 'created_at' | 'updated_at' | 'deleted_at' | 'deleted_by'
 > & { id?: string };
 
 // ─── Shipments CRUD ───────────────────────────────────────────────────
@@ -149,9 +153,29 @@ export async function updateShipmentStatus(id: string, status: ShipmentStatus) {
   if (error) throw error;
 }
 
+/** Soft delete: the shipment leaves every list, report and its public link,
+ *  restorable from the list's "Supprimées" view. Role-checked server-side
+ *  (owner/admin/manager/operations or platform admin); hard DELETE is not
+ *  granted to clients at all. */
 export async function deleteShipment(id: string) {
-  const { error } = await supabase.from('shipments').delete().eq('id', id);
+  const { error } = await supabase.rpc('delete_shipment', { p_id: id });
   if (error) throw error;
+}
+
+export async function restoreShipment(id: string) {
+  const { error } = await supabase.rpc('restore_shipment', { p_id: id });
+  if (error) throw error;
+}
+
+export type DeletedShipment = Pick<Shipment,
+  'id' | 'reference' | 'status' | 'direction' | 'mode' | 'customer_id'
+  | 'origin_city' | 'origin_country' | 'destination_city' | 'destination_country' | 'updated_at'
+> & { deleted_at: string };
+
+export async function fetchDeletedShipments(businessId: string): Promise<DeletedShipment[]> {
+  const { data, error } = await supabase.rpc('list_deleted_shipments', { p_business: businessId });
+  if (error) { console.warn('[shipments] fetchDeleted failed:', error.message); return []; }
+  return (data ?? []) as DeletedShipment[];
 }
 
 // ─── Public tracking link (opt-in per shipment) ───────────────────────

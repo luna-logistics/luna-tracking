@@ -474,6 +474,7 @@ const listShipments: Handler = async (ctx) => {
   let q = ctx.supabase.from('shipments')
     .select('id, reference, status, direction, mode, currency, origin_city, origin_country, destination_city, destination_country, estimated_delivery, created_at')
     .eq('business_id', businessId)
+    .is('deleted_at', null) // soft-deleted shipments never leave the API
     .order('created_at', { ascending: false })
     .limit(limit);
   if (status) q = q.eq('status', status);
@@ -487,7 +488,7 @@ const getShipment: Handler = async (ctx) => {
   const scopeErr = requireScope(ctx, 'shipments.read'); if (scopeErr) return scopeErr;
   const id = ctx.segments[1];
   if (!isUuid(id)) return fail('bad_id', 'invalid shipment id', 400);
-  let q = ctx.supabase.from('shipments').select('*').eq('id', id);
+  let q = ctx.supabase.from('shipments').select('*').eq('id', id).is('deleted_at', null);
   // API-key auth uses a service-role client; RLS is bypassed, so
   // enforce the business scope explicitly.
   if (ctx.auth.kind === 'api_key') q = q.eq('business_id', ctx.auth.business_id);

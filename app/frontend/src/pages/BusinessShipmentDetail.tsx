@@ -6,7 +6,7 @@ import {
   Plus, Trash2, Save, Loader2, MapPin, CheckCircle2, Circle,
   Files, Upload, Download, FileText, Image as ImageIcon,
   History, MessageSquarePlus, FilePlus, FileMinus, Sparkles,
-  Share2, Copy, RotateCcw, Check,
+  Share2, Copy, CopyPlus, RotateCcw, Check,
 } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,7 @@ import {
   fetchShipment, fetchPackages, fetchCharges,
   upsertPackage, deletePackage, upsertCharge, deleteCharge,
   updateShipmentStatus, sumBillable, computePackageTotals, PACKAGE_TYPES, type PackageType,
-  setTrackingEnabled, rotateTrackingToken,
+  setTrackingEnabled, rotateTrackingToken, deleteShipment,
   type Shipment, type ShipmentPackage, type ShipmentCharge, type ChargeKind,
 } from '@/lib/shipments';
 import {
@@ -51,6 +51,7 @@ type Tab = 'overview' | 'packages' | 'charges' | 'documents' | 'activity';
 export default function BusinessShipmentDetail() {
   const { t } = useTranslation();
   const { can } = useBusiness();
+  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [shipment, setShipment] = useState<Shipment | null>(null);
   const [customer, setCustomer] = useState<BusinessCustomer | null>(null);
@@ -83,6 +84,7 @@ export default function BusinessShipmentDetail() {
   useEffect(() => { void reload(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [id]);
 
   const canWrite = can('shipments.write');
+  const canDelete = can('shipments.delete');
 
   if (loading) return <div className="py-16 text-center text-slate-500">{t('common.loading')}</div>;
   if (!shipment) return (
@@ -96,6 +98,18 @@ export default function BusinessShipmentDetail() {
     try {
       await updateShipmentStatus(shipment.id, s);
       await reload();
+    } catch (err) {
+      toast.error(errorMessage(err, t('common.error_generic')));
+    }
+  };
+
+  // Soft delete (restorable from the list's "Supprimées" view).
+  const remove = async () => {
+    if (!confirm(t('business_shipments.delete_confirm', { ref: shipment.reference }))) return;
+    try {
+      await deleteShipment(shipment.id);
+      toast.success(t('business_shipments.deleted_toast', { ref: shipment.reference }));
+      navigate('..');
     } catch (err) {
       toast.error(errorMessage(err, t('common.error_generic')));
     }
@@ -123,6 +137,14 @@ export default function BusinessShipmentDetail() {
             <Button asChild variant="outline" size="sm">
               <Link to="edit"><Pencil className="h-3.5 w-3.5" />{t('business_shipment_detail.edit')}</Link>
             </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link to={`../new?from=${shipment.id}`}><CopyPlus className="h-3.5 w-3.5" />{t('business_shipments.duplicate')}</Link>
+            </Button>
+            {canDelete && (
+              <Button type="button" variant="ghost" size="sm" className="text-red-600 hover:bg-red-50" onClick={() => void remove()}>
+                <Trash2 className="h-3.5 w-3.5" />{t('business_shipments.delete')}
+              </Button>
+            )}
           </div>
         )}
       </div>

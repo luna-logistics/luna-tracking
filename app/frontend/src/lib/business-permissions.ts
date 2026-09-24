@@ -23,6 +23,7 @@ export type BusinessAction =
   | 'clients.write'
   | 'shipments.read'
   | 'shipments.write'
+  | 'shipments.delete'         // soft delete / restore (delete_shipment RPC)
   | 'quotes.read'
   | 'quotes.write'
   | 'invoices.read'
@@ -38,7 +39,7 @@ const R = {
     'members.read', 'members.invite', 'members.update_role', 'members.remove',
     'settings.billing',
     'clients.read', 'clients.write',
-    'shipments.read', 'shipments.write',
+    'shipments.read', 'shipments.write', 'shipments.delete',
     'quotes.read', 'quotes.write',
     'invoices.read', 'invoices.write',
     'expenses.read', 'expenses.write',
@@ -48,7 +49,7 @@ const R = {
     'business.update',
     'members.read', 'members.invite', 'members.update_role', 'members.remove',
     'clients.read', 'clients.write',
-    'shipments.read', 'shipments.write',
+    'shipments.read', 'shipments.write', 'shipments.delete',
     'quotes.read', 'quotes.write',
     'invoices.read', 'invoices.write',
     'expenses.read', 'expenses.write',
@@ -57,7 +58,7 @@ const R = {
   manager:    new Set<BusinessAction>([
     'members.read',
     'clients.read', 'clients.write',
-    'shipments.read', 'shipments.write',
+    'shipments.read', 'shipments.write', 'shipments.delete',
     'quotes.read', 'quotes.write',
     'invoices.read',
     'expenses.read',
@@ -75,7 +76,7 @@ const R = {
   operations: new Set<BusinessAction>([
     'members.read',
     'clients.read',
-    'shipments.read', 'shipments.write',
+    'shipments.read', 'shipments.write', 'shipments.delete',
     'quotes.read',
   ]),
   viewer:     new Set<BusinessAction>([

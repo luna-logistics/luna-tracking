@@ -3,7 +3,7 @@
 --
 -- Covers the 10 RPCs fixed on 2026-09-23/24 (NULL-unsafe
 -- `business_role() NOT IN` guards), the admin-only user directory and
--- support soft-delete, + a sweep that fails if ANY public SECURITY DEFINER
+-- support soft-delete, shipment soft-delete (2026-09-24), + a sweep that fails if ANY public SECURITY DEFINER
 -- function still contains that guard shape.
 --
 -- Run: Supabase SQL editor, or `psql "$DB_URL" -f supabase/tests/rpc_role_guards.sql`.
@@ -19,7 +19,7 @@ declare
   stranger  uuid := '00000000-0000-0000-0000-00000000dead';
   ok        text[] := '{}';
   bad       text[] := '{}';
-  sid uuid; qid uuid; qid2 uuid; key_id uuid; ep_id uuid; del_id uuid; inv uuid; tok uuid; sec text;
+  sid uuid; sid2 uuid; qid uuid; qid2 uuid; key_id uuid; ep_id uuid; del_id uuid; inv uuid; tok uuid; sec text;
   r record; n int;
 begin
   select m.user_id, m.business_id into owner_uid, biz
@@ -27,8 +27,10 @@ begin
   if owner_uid is null then raise exception 'RPC GUARD TEST FAILED: no owner membership to test with'; end if;
 
   -- Fixtures owned by the member's business (as the migration owner, RLS off).
+  insert into public.shipments (business_id, direction, mode, status, currency, tracking_enabled)
+    values (biz, 'export', 'air', 'draft', 'EUR', true) returning id into sid;
   insert into public.shipments (business_id, direction, mode, status, currency)
-    values (biz, 'export', 'air', 'draft', 'EUR') returning id into sid;
+    values (biz, 'export', 'air', 'draft', 'EUR') returning id into sid2;
   insert into public.quotes (business_id, direction, mode, currency) values (biz, 'export', 'air', 'EUR') returning id into qid;
   insert into public.quotes (business_id, direction, mode, currency) values (biz, 'export', 'air', 'EUR') returning id into qid2;
 
@@ -102,6 +104,66 @@ begin
   set local role anon;
   begin perform public.admin_list_users(); bad := array_append(bad, ('admin_list_users: ANON ALLOWED')::text);
   exception when insufficient_privilege then ok := array_append(ok, ('admin_list_users: anon blocked')::text); end;
+  reset role;
+
+  ------------------------------------------ shipment soft delete / restore
+  -- Member (owner): delete columns can't be written directly, hard DELETE is
+  -- gone, delete_shipment hides the row everywhere (list, public link, RPCs),
+  -- list_deleted_shipments shows it, restore_shipment brings it back.
+  perform set_config('request.jwt.claims', json_build_object('sub', owner_uid, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  begin
+    begin
+      update public.shipments set deleted_at = now() where id = sid;
+      bad := array_append(bad, ('shipments.deleted_at: DIRECT UPDATE ALLOWED')::text);
+    exception when insufficient_privilege then ok := array_append(ok, ('shipments.deleted_at: direct update blocked')::text); end;
+    delete from public.shipments where id = sid;
+    get diagnostics n = row_count;
+    if n > 0 then bad := array_append(bad, ('shipments: HARD DELETE ALLOWED')::text);
+    else ok := array_append(ok, ('shipments: hard delete refused')::text); end if;
+    if public.get_public_shipment(tok) is null then bad := array_append(bad, ('fixture: public link should resolve before delete')::text); end if;
+    perform public.delete_shipment(sid);              ok := array_append(ok, ('delete_shipment: member OK')::text);
+    select count(*) into n from public.shipments where id = sid;
+    if n <> 0 then bad := array_append(bad, ('deleted shipment still visible through RLS')::text);
+    else ok := array_append(ok, ('deleted shipment hidden by RLS')::text); end if;
+    if public.get_public_shipment(tok) is not null then bad := array_append(bad, ('deleted shipment: PUBLIC LINK STILL RESOLVES')::text);
+    else ok := array_append(ok, ('deleted shipment: public link dead')::text); end if;
+    begin perform public.rotate_shipment_tracking_token(sid); bad := array_append(bad, ('rotate token on DELETED shipment allowed')::text);
+    exception when others then ok := array_append(ok, ('rotate token on deleted shipment refused')::text); end;
+    select count(*) into n from public.list_deleted_shipments(biz) where id = sid;
+    if n <> 1 then bad := array_append(bad, ('list_deleted_shipments: missing the deleted row')::text);
+    else ok := array_append(ok, ('list_deleted_shipments: member OK')::text); end if;
+  exception when others then
+    bad := array_append(bad, (('shipment soft-delete member path broke: ' || sqlstate || ' ' || sqlerrm))::text);
+  end;
+  reset role;
+
+  perform set_config('request.jwt.claims', json_build_object('sub', stranger, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  begin perform public.delete_shipment(sid2); bad := array_append(bad, ('delete_shipment: NON-MEMBER ALLOWED')::text);
+  exception when insufficient_privilege then ok := array_append(ok, ('delete_shipment: non-member blocked')::text); end;
+  begin perform public.restore_shipment(sid); bad := array_append(bad, ('restore_shipment: NON-MEMBER ALLOWED')::text);
+  exception when insufficient_privilege then ok := array_append(ok, ('restore_shipment: non-member blocked')::text); end;
+  begin perform public.list_deleted_shipments(biz); bad := array_append(bad, ('list_deleted_shipments: NON-MEMBER ALLOWED')::text);
+  exception when insufficient_privilege then ok := array_append(ok, ('list_deleted_shipments: non-member blocked')::text); end;
+  reset role;
+
+  perform set_config('request.jwt.claims', '{"role":"anon"}', true);
+  set local role anon;
+  begin perform public.delete_shipment(sid2); bad := array_append(bad, ('delete_shipment: ANON ALLOWED')::text);
+  exception when insufficient_privilege then ok := array_append(ok, ('delete_shipment: anon blocked')::text); end;
+  reset role;
+
+  perform set_config('request.jwt.claims', json_build_object('sub', owner_uid, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  begin
+    perform public.restore_shipment(sid);
+    select count(*) into n from public.shipments where id = sid;
+    if n <> 1 then bad := array_append(bad, ('restore_shipment: row not visible again')::text);
+    else ok := array_append(ok, ('restore_shipment: member OK')::text); end if;
+  exception when others then
+    bad := array_append(bad, (('restore_shipment member path broke: ' || sqlstate || ' ' || sqlerrm))::text);
+  end;
   reset role;
 
   ------------------------------------------------ sweep: no NULL-unsafe guards

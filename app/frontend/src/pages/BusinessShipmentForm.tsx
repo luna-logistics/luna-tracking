@@ -29,7 +29,8 @@ import { errorMessage } from '@/lib/errors';
 /**
  * Create / edit a shipment.
  *
- * On create, `?template=<id>` pre-fills from a shipment_template's data.
+ * On create, `?template=<id>` pre-fills from a shipment_template's data and
+ * `?from=<shipment id>` duplicates an existing shipment (same fields).
  * A "Save as template" button captures the current form state minus
  * status/dates as a reusable template — the exact anti-double-saisie
  * feature pro users came here for.
@@ -72,13 +73,41 @@ export default function BusinessShipmentForm() {
           }
         });
       }
+      // Duplicate (`?from=<shipment id>`, list row menu / detail): same
+      // fields a template keeps — parties, route, mode, carrier, packing
+      // list — never the source's reference, status, dates, carrier
+      // tracking number or public tracking link.
+      const fromId = search.get('from');
+      if (fromId) {
+        setLoading(true);
+        void Promise.all([fetchShipment(fromId), fetchPackages(fromId)]).then(([s, pkgs]) => {
+          if (s) {
+            const {
+              id: _id, business_id: _bid, reference: _ref, created_by: _cb, created_at: _ca, updated_at: _ua,
+              tracking_token: _tt, tracking_enabled: _te, deleted_at: _da, deleted_by: _db,
+              status: _s, actual_pickup: _ap, actual_delivery: _ad, estimated_pickup: _ep, estimated_delivery: _ed,
+              tracking_number: _tn, total_weight_kg: _tw, total_volume_m3: _tv, ...copy
+            } = s;
+            setF((p) => ({ ...p, ...copy, status: 'draft' }));
+            if (pkgs.length) {
+              setLines(pkgs.map((p) => ({
+                package_type: p.package_type, quantity: p.quantity,
+                length_cm: p.length_cm, width_cm: p.width_cm, height_cm: p.height_cm, weight_kg: p.weight_kg,
+              })));
+            }
+          }
+          setLoading(false);
+        });
+        return;
+      }
       setLoading(false);
       return;
     }
 
     Promise.all([fetchShipment(id!), fetchPackages(id!)]).then(([s, pkgs]) => {
       if (s) {
-        const { id: _id, business_id: _bid, reference: _ref, created_by: _cb, created_at: _ca, updated_at: _ua, ...rest } = s;
+        const { id: _id, business_id: _bid, reference: _ref, created_by: _cb, created_at: _ca, updated_at: _ua,
+          deleted_at: _da, deleted_by: _db, ...rest } = s;
         setF(rest);
       }
       setLines(pkgs.map((p) => ({
