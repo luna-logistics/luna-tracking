@@ -23,6 +23,8 @@
 
 name = "luna-tracking"
 compatibility_date = "2026-01-01"
+# nodejs_compat: @cloudflare/puppeteer (Browser Rendering, og:image regeneration).
+compatibility_flags = ["nodejs_compat"]
 main = "worker.js"
 
 [assets]
@@ -43,3 +45,9 @@ html_handling = "drop-trailing-slash"
 # survive every deploy, CI or a manual `wrangler deploy`. Don't also declare
 # them in [vars] or pass --var (same name as a secret = deploy error).
 # Without them the worker still works: share links get /suivi's own tags.
+
+# Cloudflare Browser Rendering (headless Chrome) — used only by
+# POST /api/og/suivi/regenerate in worker.js (the admin's "Régénérer l'image
+# de preview"). @cloudflare/puppeteer needs nodejs_compat (set at the top).
+[browser]
+binding = "BROWSER"

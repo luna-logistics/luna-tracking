@@ -28,6 +28,7 @@ import Index from '@/pages/Index';
 // Lazy: everything else.
 const Login = lazy(() => import('@/pages/Login'));
 const Tracking = lazy(() => import('@/pages/Tracking'));
+const OgSuivi = lazy(() => import('@/pages/OgSuivi'));
 const PublicTracking = lazy(() => import('@/pages/PublicTracking'));
 const RateCalculator = lazy(() => import('@/pages/RateCalculator'));
 const ApiDocs = lazy(() => import('@/pages/ApiDocs'));
@@ -156,6 +157,8 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
           <Route path="/" element={<PublicLayout><Index /></PublicLayout>} />
           <Route path={t('/suivi', '/tracking')} element={<PublicLayout><Tracking /></PublicLayout>} />
           <Route path={t('/suivi/lien/:token', '/tracking/link/:token')} element={<PublicLayout><PublicTracking /></PublicLayout>} />
+          {/* og:image render page (screenshotted, never linked) — no site chrome. */}
+          <Route path="/og/suivi" element={<OgSuivi />} />
           <Route path={t('/calculateur', '/calculator')} element={<PublicLayout><RateCalculator /></PublicLayout>} />
           <Route path={t('/docs/api', '/docs/api')} element={<PublicLayout><ApiDocs /></PublicLayout>} />
           <Route path={t('/tarifs', '/pricing')} element={<PublicLayout><Pricing /></PublicLayout>} />

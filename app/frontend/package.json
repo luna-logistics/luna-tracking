@@ -18,7 +18,7 @@
     "scrape": "node scripts/scrape.mjs scrape",
     "resume": "node scripts/scrape.mjs resume",
     "indexnow": "node scripts/indexnow-submit.mjs",
-    "og:suivi": "vite-node scripts/og-suivi-image.tsx"
+    "og:suivi": "node scripts/og-suivi-image.mjs"
   },
   "dependencies": {
     "@fontsource/poppins": "^5.3.0",
@@ -54,6 +54,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@cloudflare/puppeteer": "^1.4.0",
     "@eslint/js": "^9.9.0",
     "@tailwindcss/typography": "^0.5.15",
     "@testing-library/jest-dom": "^7.0.1",
@@ -81,7 +82,6 @@
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
     "vite": "^5.4.1",
-    "vite-node": "2.1.9",
     "vitest": "^2.1.9",
     "wrangler": "^3.90.0"
   }

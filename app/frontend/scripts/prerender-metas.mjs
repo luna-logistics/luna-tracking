@@ -192,10 +192,13 @@ function readI18n(lang, page, field) {
   return (p && typeof p === 'object') ? p[field] : undefined;
 }
 
-/** Pages whose og:image is generated in the repo from the page itself — used
- *  when the admin hasn't uploaded a `${page}_hero` / `${page}_og` image.
- *  tracking: the no-search route map (scripts/og-suivi-image.tsx, `pnpm
- *  og:suivi`), also the image of every shared tracking link. */
+/** Pages whose og:image is generated from the page itself — used when the
+ *  admin hasn't uploaded a `${page}_hero` / `${page}_og` image.
+ *  tracking: the no-search route map, rendered by /og/suivi and screenshotted
+ *  server-side (/admin/contenus → "Régénérer l'image de preview", worker.js);
+ *  the URL stays /brand/og-suivi-{lang}.jpg (the Worker serves the latest
+ *  generated image, else the committed .default.jpg). Also the image of every
+ *  shared tracking link. */
 const REPO_OG = {
   tracking: {
     url: (lang) => `${SITE_URL}/brand/og-suivi-${lang}.jpg`,

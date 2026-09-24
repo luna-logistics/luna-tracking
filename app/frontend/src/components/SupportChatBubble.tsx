@@ -34,6 +34,7 @@ const HIDDEN_PREFIXES = [
   '/inscription', '/en/signup',
   '/mot-de-passe-oublie', '/en/forgot-password',
   '/auth/callback',
+  '/og', '/en/og', // og:image render pages (screenshotted)
 ];
 
 const OPEN_STORAGE_KEY = BUBBLE_OPEN_KEY;

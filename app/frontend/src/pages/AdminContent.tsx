@@ -9,6 +9,7 @@ import { toast } from '@/components/ui/sonner';
 import { EDITABLE_PAGES, type EditablePage, type EditableField } from '@/lib/editable-content';
 import { HeroBackgroundEditor } from '@/components/HeroBackgroundEditor';
 import { ImageAltPair } from '@/components/ImageAltPair';
+import { OgPreviewRegenerator } from '@/components/OgPreviewRegenerator';
 import { optimizeImage } from '@/lib/optimize-image';
 import {
   saveSiteContent, saveSiteImage, deleteSiteImage, uploadSiteImage,
@@ -102,6 +103,7 @@ function PageEditor({ page, uiLang }: { page: EditablePage; uiLang: 'fr' | 'en' 
           </div>
         </section>
       )}
+      {page.key === 'tracking' && <OgPreviewRegenerator />}
       {page.images.length > 0 && (
         <section>
           <h2 className="text-lg font-semibold text-luna-navy mb-3">

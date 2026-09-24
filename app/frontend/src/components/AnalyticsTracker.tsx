@@ -3,7 +3,8 @@ import { useLocation } from 'react-router-dom';
 import { initAnalytics, trackPageView, analyticsEnabled } from '@/lib/analytics';
 
 // Staff back-office traffic would skew visitor stats.
-const EXCLUDED = /^\/(en\/)?admin(\/|$)/;
+// Admin + the og:image render pages (visited by the screenshot browser).
+const EXCLUDED = /^\/(en\/)?(admin|og)(\/|$)/;
 // main.tsx sets this placeholder on non-prerendered URLs until Helmet runs.
 const PLACEHOLDER_TITLE = 'Chargement…';
 const POLL_MS = 100;
