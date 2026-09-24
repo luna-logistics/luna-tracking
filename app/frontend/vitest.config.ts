@@ -6,6 +6,9 @@ import path from 'path';
 // `// @vitest-environment jsdom` (@testing-library/react is installed).
 export default defineConfig({
   resolve: { alias: { '@': path.resolve(__dirname, './src') } },
+  // Same JSX runtime as the app build (react-jsx): component tests render
+  // .tsx without importing React.
+  esbuild: { jsx: 'automatic' },
   test: {
     environment: 'node',
     include: ['src/**/*.test.{ts,tsx}'],

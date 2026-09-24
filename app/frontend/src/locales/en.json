@@ -118,7 +118,7 @@
     "unavailable_title": "Tracking temporarily unavailable",
     "unavailable_body": "Our online tracking service is not live yet. Email us at info@lunatrackinglogistics.com with your tracking number and we will reply promptly.",
     "empty_result": "No shipment found for that tracking number. Check it or contact us.",
-    "map_alt": "Map illustrating the freight route between Belgium and Congo: Brussels to Kinshasa and Goma",
+    "map_alt": "Map illustrating the freight routes between Belgium and Congo: by air from Brussels to Kinshasa and Goma, by sea from Antwerp to Kinshasa via Matadi",
     "map_preview_note": "Illustrative map",
     "og_tagline": "Belgium ⇄ DR Congo · air and sea freight",
     "no_account_note": "No sign-up needed — tracking is available right away.",
@@ -2589,6 +2589,7 @@
     "sur_devis": "custom quote"
   },
   "tracking_v2": {
+    "anr": "Antwerp",
     "field_label": "Tracking number",
     "track_btn": "Track",
     "bru": "Brussels",

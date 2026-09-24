@@ -90,7 +90,7 @@ export default function Tracking() {
   const desktop = useIsDesktop();
   const map = useTrackingMap(!view);
   const mapAlt = useContent('tracking', 'map_alt', t('tracking.map_alt'));
-  const mapLabels = { bru: t('tracking_v2.bru'), be: t('tracking_v2.be'), cd: t('tracking_v2.cd'), matadi: 'Matadi' };
+  const mapLabels = { bru: t('tracking_v2.bru'), anr: t('tracking_v2.anr'), be: t('tracking_v2.be'), cd: t('tracking_v2.cd'), matadi: 'Matadi' };
 
   const header = (
     <div className="max-w-[46em]">

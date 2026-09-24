@@ -118,7 +118,7 @@
     "unavailable_title": "Suivi temporairement indisponible",
     "unavailable_body": "Notre service de suivi en ligne n'est pas encore actif. Contactez-nous à info@lunatrackinglogistics.com avec votre numéro de suivi et nous vous répondrons rapidement.",
     "empty_result": "Aucun colis trouvé pour ce numéro de suivi. Vérifiez-le ou contactez-nous.",
-    "map_alt": "Carte illustrant le trajet de fret entre la Belgique et le Congo : Bruxelles vers Kinshasa et Goma",
+    "map_alt": "Carte illustrant les trajets de fret entre la Belgique et le Congo : par avion de Bruxelles vers Kinshasa et Goma, par bateau d'Anvers vers Kinshasa via Matadi",
     "map_preview_note": "Carte illustrative",
     "og_tagline": "Belgique ⇄ RD Congo · aérien et maritime",
     "no_account_note": "Aucune inscription nécessaire — le suivi est accessible immédiatement.",
@@ -2589,6 +2589,7 @@
     "sur_devis": "sur devis"
   },
   "tracking_v2": {
+    "anr": "Anvers",
     "field_label": "Numéro de suivi",
     "track_btn": "Suivre",
     "bru": "Bruxelles",

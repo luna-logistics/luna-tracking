@@ -23,7 +23,7 @@ export default function OgSuivi() {
   const [fonts, setFonts] = useState(false);
   useEffect(() => { void document.fonts.ready.then(() => setFonts(true)); }, []);
 
-  const labels = { bru: t('tracking_v2.bru'), be: t('tracking_v2.be'), cd: t('tracking_v2.cd'), matadi: 'Matadi' };
+  const labels = { bru: t('tracking_v2.bru'), anr: t('tracking_v2.anr'), be: t('tracking_v2.be'), cd: t('tracking_v2.cd'), matadi: 'Matadi' };
   return (
     <>
       <Helmet><meta name="robots" content="noindex" /></Helmet>

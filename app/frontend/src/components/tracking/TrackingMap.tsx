@@ -25,7 +25,7 @@ export type MapData = {
   sea: { pts: Pt[]; matadiFrac: number };
   air: { pts: Pt[] };
   airGoma: { pts: Pt[] };
-  cities: { bru: Pt; mat: Pt; fih: Pt; gom: Pt };
+  cities: { bru: Pt; anr: Pt; mat: Pt; fih: Pt; gom: Pt };
   countries: { id?: string; n: string; d: string; c: number }[];
 };
 
@@ -73,11 +73,26 @@ const COUNTRY_LABELS: [string, string, number, number, 1 | 'sea', 0 | 1][] = [
 
 type MapView = Pick<TrackingView, 'mode' | 'status' | 'reachedBeforeCancel' | 'route'>;
 
-/** The no-search state on /suivi (and the og:image drawn from it): both air
- *  corridors, nothing travelled, a static plane — an illustration of what the
- *  tool shows, never any real shipment's position. */
+/** The no-search state on /suivi (and the og:image drawn from it): every
+ *  service at once — air Bruxelles → Kinshasa and Goma (plane), sea Anvers →
+ *  Matadi → Kinshasa (ship) — nothing travelled, static markers. An
+ *  illustration of what the tool shows, never any real shipment's position.
+ *  A real result draws only its own route and its own mode's icon. */
 const PREVIEW: MapView = { mode: 'air', status: 'in_transit', reachedBeforeCancel: null, route: { dest: 'fih', reverse: false } };
 const PREVIEW_FRAC = 0.46;
+const PREVIEW_SEA_FRAC = 0.4; // off the West African coast, level with the plane
+
+/** The sea leg from the port: the stored polyline starts in Brussels and
+ *  passes exactly through Antwerp, so the voyage is that line from Antwerp on. */
+function seaFromAntwerp(data: MapData): Pt[] {
+  const [ax, ay] = data.cities.anr;
+  let j = 0, best = Infinity;
+  data.sea.pts.slice(0, 30).forEach(([x, y], i) => {
+    const d = Math.hypot(x - ax, y - ay);
+    if (d < best) { best = d; j = i; }
+  });
+  return [data.cities.anr, ...data.sea.pts.slice(j + 1)];
+}
 
 export function TrackingMap({ data, view, variant, lang, labels, alt }: {
   data: MapData;
@@ -85,7 +100,7 @@ export function TrackingMap({ data, view, variant, lang, labels, alt }: {
   view: MapView | 'preview';
   variant: 'desktop' | 'mobile';
   lang: 'fr' | 'en';
-  labels: { bru: string; be: string; cd: string; matadi: string };
+  labels: { bru: string; anr: string; be: string; cd: string; matadi: string };
   /** Text alternative; without it the map is decorative (the result panel
    *  next to it already says everything in words). */
   alt?: string;
@@ -99,7 +114,8 @@ export function TrackingMap({ data, view, variant, lang, labels, alt }: {
   const step = cancelled ? (v.reachedBeforeCancel ?? 'confirmed') : v.status;
   const r = v.route!;
   const goma = r.dest === 'gom';
-  const line = sea ? data.sea.pts : goma ? data.airGoma.pts : data.air.pts;
+  const seaLine = seaFromAntwerp(data);
+  const line = sea ? seaLine : goma ? data.airGoma.pts : data.air.pts;
   const pts = r.reverse ? [...line].reverse() : line;
   const pos = along(pts, preview ? PREVIEW_FRAC : routeFraction(step as Exclude<typeof step, 'cancelled'>, v.mode, data.sea.matadiFrac));
   const done: Pt[] = preview ? [] : [...pts.slice(0, pos.i), [pos.x, pos.y]];
@@ -110,7 +126,11 @@ export function TrackingMap({ data, view, variant, lang, labels, alt }: {
   const Icon = delivered ? Check : cancelled ? X : v.mode === 'air' ? Plane : sea ? Ship : Package;
   // lucide's Plane points up-right (-45°): turn it along the route.
   const rot = moving && v.mode === 'air' ? pos.ang + 45 : 0;
-  const { bru: o, mat: mt } = data.cities;
+  const { mat: mt, anr } = data.cities;
+  // Origin: Antwerp (the port) for sea, Brussels for air.
+  const o = sea ? anr : data.cities.bru;
+  const originName = sea ? labels.anr : labels.bru;
+  const shipPos = preview ? along(seaLine, PREVIEW_SEA_FRAC) : null;
   const k = goma ? data.cities.gom : data.cities.fih;
   const destName = goma ? 'Goma' : 'Kinshasa';
   // Goma sits on the eastern border: its label goes to the left (inside DRC).
@@ -128,6 +148,21 @@ export function TrackingMap({ data, view, variant, lang, labels, alt }: {
     <text key={key} x={x} y={y} textAnchor="middle" fill={hl ? '#0A1650' : '#4A5A75'} fontFamily={FONT}
       fontSize={hl ? cf + 1 : cf} fontWeight={hl ? 600 : 500} letterSpacing={1.2} stroke="#ffffff" strokeOpacity={0.85}
       strokeWidth={3} strokeLinejoin="round" paintOrder="stroke">{str}</text>
+  );
+
+  // The position marker (plane / ship / package / check / cross) — one look
+  // for every mode, so the preview's plane and ship read as a pair.
+  const marker = (p: { x: number; y: number }, MarkIcon: typeof Icon, angle: number, pulse: boolean) => (
+    <g transform={`translate(${p.x.toFixed(1)} ${p.y.toFixed(1)}) scale(${s})`}>
+      {pulse && <circle r={20} fill="none" stroke="#2E6FD1" strokeWidth={2} className="ltl-pulse" />}
+      <circle r={30} fill="#0A1650" opacity={0.12} />
+      <circle r={20} fill={delivered ? '#1FE0F0' : cancelled ? '#ffffff' : '#0A1650'}
+        stroke={delivered ? '#0A1650' : cancelled ? '#8FA3BF' : '#ffffff'} strokeWidth={3} />
+      <g transform={angle ? `rotate(${angle.toFixed(0)})` : undefined}>
+        <MarkIcon x={-11} y={-11} width={22} height={22} strokeWidth={2.2}
+          color={delivered ? '#0A1650' : cancelled ? '#4A5A75' : '#1FE0F0'} aria-hidden="true" />
+      </g>
+    </g>
   );
 
   return (
@@ -157,6 +192,8 @@ export function TrackingMap({ data, view, variant, lang, labels, alt }: {
         <>
           <path d={toD(data.airGoma.pts)} fill="none" stroke="#2E6FD1" strokeWidth={sw} strokeDasharray="2 8"
             strokeLinecap="round" className="ltl-dash" />
+          <path d={toD(seaLine)} fill="none" stroke="#2E6FD1" strokeWidth={sw} strokeDasharray="2 8"
+            strokeLinecap="round" className="ltl-dash" />
           <circle cx={data.cities.gom[0]} cy={data.cities.gom[1]} r={mob ? 8 : 6} fill="#ffffff" stroke="#0A1650" strokeWidth={mob ? 3.2 : 2.6} />
         </>
       )}
@@ -167,28 +204,25 @@ export function TrackingMap({ data, view, variant, lang, labels, alt }: {
           const show = mob ? m === 1 : d === 1 || (d === 'sea' && sea);
           return show ? country(fr, x, y, lang === 'en' ? en : fr) : null;
         })}
-        {country('cd', 1352, 700, labels.cd, true)}
+        {country('cd', 1352, mob && preview ? 730 : 700, labels.cd, true)}
         {text(o[0] + (mob ? 18 : 16), o[1] + (mob ? 30 : 26), labels.be, cf + 1, { fontWeight: 600, letterSpacing: 1.2, strokeWidth: 3 })}
-        {text(o[0] + (mob ? 18 : 16), o[1] + (mob ? 7 : 6), labels.bru, big, { fontWeight: 600 })}
-        {text(kx, k[1] + (mob ? -14 : 5), destName, big, { fontWeight: 600, ...(goma ? { textAnchor: 'end' } : {}) })}
+        {text(o[0] + (mob ? 18 : 16), o[1] + (mob ? 7 : 6), originName, big, { fontWeight: 600 })}
+        {/* Antwerp is ~45 km from Brussels — the same dot at this scale — so in
+            the preview it is named on the other side of it. */}
+        {preview && text(anr[0] - (mob ? 18 : 16), anr[1] + (mob ? 7 : 6), labels.anr, big, { fontWeight: 600, textAnchor: 'end' })}
+        {/* Mobile preview names both Goma and Kinshasa: Kinshasa goes under its
+            dot so the two labels don't stack into one ambiguous pair. */}
+        {text(kx, k[1] + (mob ? (preview ? 28 : -14) : 5), destName, big, { fontWeight: 600, ...(goma ? { textAnchor: 'end' } : {}) })}
         {preview && text(data.cities.gom[0] - 16, data.cities.gom[1] + (mob ? -14 : 5), 'Goma', big, { fontWeight: 600, textAnchor: 'end' })}
-        {sea && (
+        {(sea || preview) && (
           <>
             <circle cx={mt[0]} cy={mt[1]} r={mob ? 4.5 : 3.5} fill="#0A1650" />
             {text(mt[0] - 12, mt[1] + (mob ? 30 : 24), labels.matadi, small, { textAnchor: 'end', fontWeight: 500 })}
           </>
         )}
       </g>
-      <g transform={`translate(${pos.x.toFixed(1)} ${pos.y.toFixed(1)}) scale(${s})`}>
-        {moving && !preview && <circle r={20} fill="none" stroke="#2E6FD1" strokeWidth={2} className="ltl-pulse" />}
-        <circle r={30} fill="#0A1650" opacity={0.12} />
-        <circle r={20} fill={delivered ? '#1FE0F0' : cancelled ? '#ffffff' : '#0A1650'}
-          stroke={delivered ? '#0A1650' : cancelled ? '#8FA3BF' : '#ffffff'} strokeWidth={3} />
-        <g transform={rot ? `rotate(${rot.toFixed(0)})` : undefined}>
-          <Icon x={-11} y={-11} width={22} height={22} strokeWidth={2.2}
-            color={delivered ? '#0A1650' : cancelled ? '#4A5A75' : '#1FE0F0'} aria-hidden="true" />
-        </g>
-      </g>
+      {shipPos && marker(shipPos, Ship, 0, false)}
+      {marker(pos, Icon, rot, moving && !preview)}
     </svg>
   );
 }

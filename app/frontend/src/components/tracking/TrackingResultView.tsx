@@ -125,7 +125,7 @@ export function TrackingResultView({ view, title, search }: {
       toast.success(t('tracking_v2.share_copied'));
     } catch { /* share sheet dismissed */ }
   };
-  const mapLabels = { bru: t('tracking_v2.bru'), be: t('tracking_v2.be'), cd: t('tracking_v2.cd'), matadi: 'Matadi' };
+  const mapLabels = { bru: t('tracking_v2.bru'), anr: t('tracking_v2.anr'), be: t('tracking_v2.be'), cd: t('tracking_v2.cd'), matadi: 'Matadi' };
   const contactHref = urlFor('contact', lang);
 
   const chip = (size: 'd' | 'm') => (
