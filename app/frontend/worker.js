@@ -47,6 +47,65 @@ async function serveNeutralShell(request, env) {
   return new Response(stripped.body, { status: 200, headers });
 }
 
+// ─── Shared tracking links: crawler-visible preview tags ────────────────
+// /suivi/lien/:token can't be prerendered per token, so it used to fall
+// into the neutral shell above — WhatsApp & co. saw no og:* at all.
+// scripts/prerender-metas.mjs emits one generic template per language at
+// /_share/public-tracking-{lang}; a live token gets that template (og:url
+// rewritten to the shared URL), anything else gets /suivi's own prerendered
+// page. Only generic copy is ever emitted — the RPC result is used as a
+// yes/no and discarded, since the preview is public to whoever sees the link.
+const SHARE_LINK = /^\/(?:suivi\/lien|en\/tracking\/link)\/([^/]+)\/?$/;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function tokenIsLive(token, env) {
+  if (!UUID.test(token) || !env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) return false;
+  try {
+    const res = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/get_public_shipment`, {
+      method: 'POST',
+      headers: {
+        apikey: env.SUPABASE_ANON_KEY,
+        authorization: `Bearer ${env.SUPABASE_ANON_KEY}`,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({ p_token: token }),
+      // Crawlers give up after a few seconds; better the /suivi tags than none.
+      signal: AbortSignal.timeout(2500),
+    });
+    if (!res.ok) return false;
+    return (await res.json()) !== null;
+  } catch (err) {
+    console.error('[worker] share-link token check failed:', err && err.message ? err.message : err);
+    return false;
+  }
+}
+
+async function serveShareLink(request, env, token) {
+  const url = new URL(request.url);
+  const lang = url.pathname.startsWith('/en/') ? 'en' : 'fr';
+  const live = await tokenIsLive(token, env);
+
+  const assetUrl = new URL(url.origin);
+  assetUrl.pathname = live ? `/_share/public-tracking-${lang}` : (lang === 'en' ? '/en/tracking' : '/suivi');
+  const asset = await env.ASSETS.fetch(assetUrl.toString());
+  if (!asset.ok) return serveNeutralShell(request, env);
+
+  const shareUrl = `${url.origin}${url.pathname.replace(/\/$/, '')}`;
+  const body = live
+    ? new HTMLRewriter()
+        .on('meta[property="og:url"]', { element(el) { el.setAttribute('content', shareUrl); } })
+        .transform(asset).body
+    : asset.body;
+  return new Response(body, {
+    status: 200,
+    headers: {
+      'content-type': 'text/html; charset=utf-8',
+      'x-robots-tag': 'noindex',
+      'x-luna-fallback': live ? 'share-link' : 'share-link-invalid',
+    },
+  });
+}
+
 // Login-only areas + auth screens. Mirrors the noindex list in
 // public/_headers and the Disallow list in public/robots.txt.
 const PRIVATE_PATH = /^\/(?:admin|compte|entreprise|auth|connexion|inscription|mot-de-passe-oublie|en\/(?:account|business|login|signup|forgot-password))(?:\/|$)/;
@@ -62,6 +121,9 @@ export default {
 
       const method = request.method.toUpperCase();
       if (method !== 'GET' && method !== 'HEAD') return first;
+
+      const share = SHARE_LINK.exec(new URL(request.url).pathname);
+      if (share) return await serveShareLink(request, env, share[1]);
 
       return await serveNeutralShell(request, env);
     } catch (err) {

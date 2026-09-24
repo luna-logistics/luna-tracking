@@ -36,3 +36,10 @@ not_found_handling = "none"
 # 307-redirects to `/en/shop-and-ship`, then the assets binding serves
 # `en/shop-and-ship/index.html` from the prerender.
 html_handling = "drop-trailing-slash"
+
+
+# worker.js also reads SUPABASE_URL + SUPABASE_ANON_KEY (to confirm a shared
+# tracking link's token is live before serving its preview tags). They are
+# passed with --var at deploy time from the same GitHub secrets the build
+# uses (.github/workflows/deploy.yml), not declared here. Without them the
+# worker still works: share links just get /suivi's own preview tags.

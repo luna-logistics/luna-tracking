@@ -37,6 +37,9 @@
   X-Robots-Tag: noindex
 /en/account/*
   X-Robots-Tag: noindex
+# Share-link head templates — worker.js serves them for /suivi/lien/:token.
+/_share/*
+  X-Robots-Tag: noindex
 /connexion
   X-Robots-Tag: noindex
 /inscription

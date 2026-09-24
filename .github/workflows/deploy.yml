@@ -93,10 +93,14 @@ jobs:
         # cloudflare/wrangler-action@v3 because that action tries to
         # re-install wrangler via pnpm at run time and hits pnpm 11's
         # ignored-builds exit — hosting our own version is simpler.
-        run: pnpm exec wrangler deploy
+        # SUPABASE_URL/ANON_KEY: worker.js confirms shared tracking-link
+        # tokens before serving their preview tags (see wrangler.toml).
+        run: pnpm exec wrangler deploy --var "SUPABASE_URL:$SUPABASE_URL" --var "SUPABASE_ANON_KEY:$SUPABASE_ANON_KEY"
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - name: Wait for CF edge to propagate
         # Cloudflare Workers-with-Assets propagation is fast (~30s) but not

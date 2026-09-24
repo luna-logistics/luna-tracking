@@ -153,7 +153,8 @@ function metaTagsFor({ lang, title, description, canonical, ogImage, ogImageAlt,
   const parts = [];
   parts.push(`<title ${RH}>${escapeHtml(title)}</title>`);
   if (description) parts.push(`<meta ${RH} name="description" content="${escapeHtml(description)}" />`);
-  parts.push(`<link ${RH} rel="canonical" href="${escapeHtml(canonical)}" />`);
+  if (extra?.noindex) parts.push(`<meta ${RH} name="robots" content="noindex" />`);
+  else parts.push(`<link ${RH} rel="canonical" href="${escapeHtml(canonical)}" />`);
   for (const alt of hreflangs) {
     parts.push(`<link ${RH} rel="alternate" hreflang="${alt.hreflang}" href="${escapeHtml(alt.href)}" />`);
   }
@@ -323,6 +324,35 @@ async function emitStaticRoute(key, def) {
   }
 }
 
+/**
+ * Share-link head template (/suivi/lien/:token, /en/tracking/link/:token).
+ *
+ * A per-shipment token can't be enumerated at build time, so instead of a
+ * file per URL we emit ONE template per language at a non-routed path;
+ * worker.js serves it for any token it confirms live, rewriting og:url to
+ * the requested URL. The preview is visible to anyone the link is sent
+ * to, so it carries generic copy only — never shipment or client data.
+ * No canonical/hreflang/JSON-LD: the page is private (noindex).
+ */
+async function emitShareLinkTemplate() {
+  for (const lang of ['fr', 'en']) {
+    const title       = overrideOr('public_tracking', lang, 'meta_title',       readI18n(lang, 'public_tracking', 'meta_title') ?? SITE_NAME);
+    const description = overrideOr('public_tracking', lang, 'meta_description', readI18n(lang, 'public_tracking', 'intro') ?? '');
+    const head = metaTagsFor({
+      lang, title, description,
+      canonical: `${SITE_URL}${urlFor('publicTracking', lang)}`,
+      ogImage: heroOgImage('tracking', lang),
+      ogImageAlt: heroOgImageAlt('tracking', lang, title),
+      hreflangs: [],
+      extra: { noindex: true },
+    });
+    let html = setHtmlLang(shellHtml, lang);
+    html = injectHead(html, head);
+    html = injectBodySkeleton(html, { h1: readI18n(lang, 'public_tracking', 'heading') });
+    await writeHtml(`/_share/public-tracking-${lang}`, html);
+  }
+}
+
 async function emitBlogPost(row) {
   for (const lang of ['fr', 'en']) {
     const slug = lang === 'en' ? row.slug_en : row.slug_fr;
@@ -480,6 +510,7 @@ for (const [key, def] of Object.entries(ROUTES)) {
   await emitStaticRoute(key, def);
   if (def.indexable) count += def.bilingual ? 2 : 1;
 }
+await emitShareLinkTemplate(); count += 2;
 for (const row of blogRows)   { await emitBlogPost(row);   count += (row.slug_fr ? 1 : 0) + (row.slug_en ? 1 : 0); }
 for (const row of customRows) { await emitCustomPage(row); count += (row.slug_fr ? 1 : 0) + (row.slug_en ? 1 : 0); }
 for (const row of productRows){ await emitProduct(row);    count += (row.slug_fr ? 1 : 0) + (row.slug_en ? 1 : 0); }
