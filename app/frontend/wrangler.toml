@@ -37,9 +37,9 @@ not_found_handling = "none"
 # `en/shop-and-ship/index.html` from the prerender.
 html_handling = "drop-trailing-slash"
 
-
 # worker.js also reads SUPABASE_URL + SUPABASE_ANON_KEY (to confirm a shared
 # tracking link's token is live before serving its preview tags). They are
-# passed with --var at deploy time from the same GitHub secrets the build
-# uses (.github/workflows/deploy.yml), not declared here. Without them the
-# worker still works: share links just get /suivi's own preview tags.
+# Worker SECRETS (`wrangler secret put`), set once in Cloudflare: secrets
+# survive every deploy, CI or a manual `wrangler deploy`. Don't also declare
+# them in [vars] or pass --var (same name as a secret = deploy error).
+# Without them the worker still works: share links get /suivi's own tags.
