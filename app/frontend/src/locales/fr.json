@@ -857,7 +857,29 @@
     "print_peppol_endpoint": "Peppol :",
     "print_subtotal": "Sous-total HT",
     "print_vat": "TVA",
-    "print_total": "Total TTC"
+    "print_total": "Total TTC",
+    "send_title": "Envoyer au client",
+    "send_intro": "La facture et un lien de paiement en ligne seront envoyés à {{email}}.",
+    "send_lang": "Langue de l'e-mail",
+    "send": "Envoyer par e-mail",
+    "resend": "Renvoyer",
+    "send_confirm": "Envoyer la facture et le lien de paiement à {{email}} ?",
+    "resend_confirm": "Renvoyer la facture et le lien de paiement à {{email}} ?",
+    "sent_ok": "Facture envoyée à {{email}}.",
+    "sent_on": "Dernier envoi : {{date}}",
+    "copy_link": "Copier le lien de paiement",
+    "link_copied": "Lien copié.",
+    "paid_via_stripe": "Payée en ligne (Stripe)",
+    "paid_via_manual": "Marquée payée manuellement",
+    "err_invoice_locked": "Une facture émise ne peut plus être modifiée. Pour corriger, annulez-la puis créez une nouvelle facture.",
+    "err_invoice_issue_via_rpc": "Utilisez le bouton « Émettre » : c'est lui qui attribue le numéro de facture.",
+    "err_invoice_status_terminal": "Cette facture est déjà payée ou annulée : son statut ne peut plus changer.",
+    "err_invoice_payment_fields_readonly": "Ces informations de paiement sont gérées automatiquement et ne peuvent pas être modifiées à la main.",
+    "err_invoice_payment_not_enabled": "L'envoi par e-mail et le paiement en ligne ne sont pas activés pour cette entreprise.",
+    "err_invoice_no_customer_email": "Aucune adresse e-mail valide pour le client. Ajoutez-la dans le bloc « Client » de la facture (brouillon) ou transmettez la facture autrement.",
+    "err_invoice_not_issued": "Émettez d'abord la facture avant de l'envoyer.",
+    "err_invoice_already_settled": "Cette facture est déjà payée ou annulée.",
+    "err_insufficient_role": "Votre rôle dans l'entreprise ne permet pas cette action (propriétaire, admin, manager ou comptabilité requis)."
   },
   "expense_kind": {
     "transport": "Transport",
@@ -2098,7 +2120,11 @@
     "col_total": "Total",
     "col_status": "Statut",
     "items_summary_one": "{{count}} article",
-    "items_summary_other": "{{count}} articles"
+    "items_summary_other": "{{count}} articles",
+    "pay": "Payer",
+    "payment_received": "Paiement reçu, merci ! Votre commande est confirmée et notre équipe lance les achats.",
+    "payment_confirming": "Paiement effectué — confirmation en cours. Cette page se met à jour automatiquement dans quelques secondes.",
+    "payment_cancelled": "Paiement annulé : rien n'a été débité. Votre commande reste en attente de paiement — vous pouvez la régler à tout moment avec le bouton « Payer »."
   },
   "blog": {
     "meta_title": "Blog — Luna Tracking Logistics",
@@ -2645,5 +2671,17 @@
     "head_in_transit_nocity": "Votre colis est en route",
     "head_delivered_nocity": "Votre colis a été livré",
     "tz_local": "Heure locale ({{city}})"
+  },
+  "public_invoice": {
+    "not_found_title": "Facture introuvable",
+    "not_found_body": "Ce lien de facture n'est pas valide. Vérifiez qu'il est complet (copié en entier depuis l'e-mail) ou contactez-nous : nous vous renverrons la facture.",
+    "contact": "Nous contacter",
+    "pay": "Payer {{amount}}",
+    "secure_note": "Paiement sécurisé par Stripe. Vos données bancaires ne transitent jamais par notre site.",
+    "paid_notice": "Cette facture a été réglée le {{date}}. Merci !",
+    "payment_confirming": "Paiement effectué — confirmation en cours. Cette page se met à jour automatiquement.",
+    "payment_cancelled": "Paiement annulé : rien n'a été débité. Vous pouvez réessayer quand vous le souhaitez.",
+    "cancelled_notice": "Cette facture a été annulée : aucun paiement n'est attendu. Contactez-nous en cas de question.",
+    "not_payable_notice": "Le paiement en ligne n’est pas disponible pour cette facture : réglez-la par virement avec la référence indiquée."
   }
 }

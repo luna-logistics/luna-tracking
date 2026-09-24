@@ -166,6 +166,56 @@ export async function draftInvoiceFromShipment(shipmentId: string): Promise<stri
   return data as string;
 }
 
+// ─── Online payment + e-mail (platform business only) ─────────────
+
+/** The business allowed to send invoices by e-mail and take online payment
+ *  (platform_settings.stripe_invoice_business_id). null = feature off. */
+export async function fetchPaymentBusinessId(): Promise<string | null> {
+  const { data, error } = await supabase.from('platform_settings')
+    .select('value').eq('key', 'stripe_invoice_business_id').maybeSingle();
+  if (error) { console.warn('[invoices] payment business lookup failed:', error.message); return null; }
+  return typeof data?.value === 'string' && data.value ? data.value : null;
+}
+
+/** E-mails the invoice + payment link to customer_party.email (in `lang`).
+ *  Re-sending is allowed. Returns the payment token. */
+export async function sendInvoice(id: string, lang: 'fr' | 'en'): Promise<string> {
+  const { data, error } = await supabase.rpc('send_invoice', { p_invoice: id, p_lang: lang });
+  if (error) throw error;
+  return data as string;
+}
+
+export function invoicePaymentUrl(token: string, lang: 'fr' | 'en'): string {
+  return `${window.location.origin}${lang === 'en' ? `/en/invoice/${token}` : `/facture/${token}`}`;
+}
+
+/** What the customer's /facture/<token> page receives. */
+export type PublicInvoice = Pick<Invoice,
+  'number' | 'status' | 'currency' | 'issued_on' | 'due_on' | 'paid_on' | 'paid_via' | 'subtotal' | 'vat_total' | 'total'
+  | 'supplier_party' | 'customer_party' | 'payment_terms' | 'payment_reference' | 'notes'> & {
+  payable: boolean;
+  lines: Array<Pick<InvoiceLine, 'description' | 'quantity' | 'unit_price' | 'vat_pct'>>;
+};
+
+export async function fetchInvoiceByToken(token: string): Promise<PublicInvoice | null> {
+  const { data, error } = await supabase.rpc('get_invoice_by_token', { p_token: token });
+  if (error) { console.warn('[invoices] by-token failed:', error.message); return null; }
+  return (data as PublicInvoice) ?? null;
+}
+
+const INVOICE_ERROR_CODES = [
+  'invoice_locked', 'invoice_issue_via_rpc', 'invoice_status_terminal', 'invoice_payment_fields_readonly',
+  'invoice_payment_not_enabled', 'invoice_no_customer_email', 'invoice_not_issued', 'invoice_already_settled',
+  'insufficient_role',
+] as const;
+
+/** i18n key (business_invoices.err_*) for a DB refusal, or null. */
+export function invoiceErrorKey(err: unknown): string | null {
+  const m = err && typeof err === 'object' && 'message' in err ? String((err as { message: unknown }).message) : '';
+  const code = INVOICE_ERROR_CODES.find((c) => m.startsWith(c));
+  return code ? `business_invoices.err_${code}` : null;
+}
+
 export function emptyInvoice(currency: Currency = 'EUR'): InvoiceInput {
   return {
     customer_id: null,

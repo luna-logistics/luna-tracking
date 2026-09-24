@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Pencil, Trash2, CheckCircle2, Send, Printer, Loader2, XCircle } from 'lucide-react';
+import { ArrowLeft, Pencil, Trash2, CheckCircle2, Send, Printer, Loader2, XCircle, Mail, Copy } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/sonner';
@@ -9,6 +9,7 @@ import { useBusiness } from '@/contexts/BusinessContext';
 import {
   fetchInvoice, fetchInvoiceLines, issueInvoice, deleteInvoice, updateInvoiceStatus,
   isInvoiceOverdue, INVOICE_STATUS_STYLES, type Invoice, type InvoiceLine, type Party,
+  fetchPaymentBusinessId, sendInvoice, invoicePaymentUrl, invoiceErrorKey,
 } from '@/lib/invoices';
 import { fetchCustomer, type BusinessCustomer } from '@/lib/customers';
 import { errorMessage } from '@/lib/errors';
@@ -31,12 +32,16 @@ export default function BusinessInvoiceDetail() {
   const [busy, setBusy] = useState(false);
   const lang = i18n.language.startsWith('en') ? 'en' : 'fr';
   const canWrite = can('invoices.write');
+  const [payBizId, setPayBizId] = useState<string | null>(null);
+  const [sendLang, setSendLang] = useState<'fr' | 'en'>(lang);
 
   const reload = async () => {
     if (!id) return;
     setLoading(true);
-    const inv = await fetchInvoice(id);
+    const [inv, pb] = await Promise.all([fetchInvoice(id), fetchPaymentBusinessId()]);
     setInvoice(inv);
+    setPayBizId(pb);
+    if (inv?.sent_language) setSendLang(inv.sent_language);
     if (inv) {
       const [ls, c] = await Promise.all([
         fetchInvoiceLines(inv.id),
@@ -56,33 +61,57 @@ export default function BusinessInvoiceDetail() {
     </div>
   );
 
+  // DB refusals (lock, not enabled, no e-mail…) get their specific wording.
+  const fail = (err: unknown) => {
+    const key = invoiceErrorKey(err);
+    toast.error(key ? t(key) : errorMessage(err, t('common.error_generic')));
+  };
   const issue = async () => {
     if (!confirm(t('business_invoices.issue_confirm'))) return;
     setBusy(true);
     try { const no = await issueInvoice(invoice.id); toast.success(t('business_invoices.issued', { number: no })); await reload(); }
-    catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
+    catch (err) { fail(err); }
     finally { setBusy(false); }
   };
   const markPaid = async () => {
     if (!confirm(t('business_invoices.mark_paid_confirm'))) return;
     setBusy(true);
     try { await updateInvoiceStatus(invoice.id, 'paid', { paid_on: new Date().toISOString().slice(0, 10) }); await reload(); }
-    catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
+    catch (err) { fail(err); }
     finally { setBusy(false); }
   };
   const cancel = async () => {
     if (!confirm(t('business_invoices.cancel_confirm'))) return;
     setBusy(true);
     try { await updateInvoiceStatus(invoice.id, 'cancelled'); await reload(); }
-    catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
+    catch (err) { fail(err); }
     finally { setBusy(false); }
   };
   const remove = async () => {
     if (!confirm(t('business_invoices.delete_confirm'))) return;
     setBusy(true);
     try { await deleteInvoice(invoice.id); toast.success(t('business_invoices.deleted')); navigate('..'); }
-    catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); setBusy(false); }
+    catch (err) { fail(err); setBusy(false); }
   };
+  const send = async () => {
+    const email = invoice.customer_party?.email?.trim();
+    if (!confirm(t(invoice.sent_at ? 'business_invoices.resend_confirm' : 'business_invoices.send_confirm', { email: email ?? '—' }))) return;
+    setBusy(true);
+    try { await sendInvoice(invoice.id, sendLang); toast.success(t('business_invoices.sent_ok', { email })); await reload(); }
+    catch (err) { fail(err); }
+    finally { setBusy(false); }
+  };
+  const copyLink = async () => {
+    if (!invoice.payment_token) return;
+    try {
+      await navigator.clipboard.writeText(invoicePaymentUrl(invoice.payment_token, sendLang));
+      toast.success(t('business_invoices.link_copied'));
+    } catch { toast.error(t('common.error_generic')); }
+  };
+
+  // Online payment / e-mail: platform business only (decision (a)), issued invoices.
+  const onlineEnabled = !!payBizId && payBizId === invoice.business_id;
+  const sendable = onlineEnabled && (invoice.status === 'issued' || invoice.status === 'overdue');
 
   const cur = invoice.currency;
   const fmtDate = (v: string | null) => v ? new Date(v).toLocaleDateString(lang) : '—';
@@ -105,6 +134,11 @@ export default function BusinessInvoiceDetail() {
         {isInvoiceOverdue(invoice) && (
           <span className="rounded-full bg-red-100 text-red-800 px-2 py-0.5 text-[11px] font-semibold">
             {t('business_invoices.overdue_badge')}
+          </span>
+        )}
+        {invoice.status === 'paid' && invoice.paid_via && (
+          <span className="text-xs text-slate-500">
+            {t(invoice.paid_via === 'stripe' ? 'business_invoices.paid_via_stripe' : 'business_invoices.paid_via_manual')}
           </span>
         )}
         {canWrite && (
@@ -139,6 +173,42 @@ export default function BusinessInvoiceDetail() {
           </div>
         )}
       </div>
+
+      {/* Send by e-mail + online payment link (screen only) */}
+      {canWrite && sendable && (
+        <section aria-labelledby="send-title" className="print:hidden mb-4 rounded-2xl border-2 border-luna-blue/30 bg-luna-blue/5 p-4">
+          <h2 id="send-title" className="font-semibold text-luna-navy flex items-center gap-2">
+            <Mail className="h-4 w-4" aria-hidden="true" />{t('business_invoices.send_title')}
+          </h2>
+          <p className="mt-1 text-sm text-slate-600">
+            {invoice.customer_party?.email
+              ? t('business_invoices.send_intro', { email: invoice.customer_party.email })
+              : t('business_invoices.err_invoice_no_customer_email')}
+          </p>
+          {invoice.sent_at && (
+            <p className="mt-1 text-xs text-slate-500">
+              {t('business_invoices.sent_on', { date: new Date(invoice.sent_at).toLocaleString(lang === 'en' ? 'en-GB' : 'fr-BE') })}
+            </p>
+          )}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <label className="text-sm text-slate-700" htmlFor="send-lang">{t('business_invoices.send_lang')}</label>
+            <select id="send-lang" value={sendLang} onChange={(e) => setSendLang(e.target.value === 'en' ? 'en' : 'fr')}
+              className="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm">
+              <option value="fr">Français</option>
+              <option value="en">English</option>
+            </select>
+            <Button size="sm" variant="navy" onClick={send} disabled={busy || !invoice.customer_party?.email}>
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Send className="h-4 w-4" aria-hidden="true" />}
+              {t(invoice.sent_at ? 'business_invoices.resend' : 'business_invoices.send')}
+            </Button>
+            {invoice.payment_token && (
+              <Button size="sm" variant="outline" onClick={copyLink}>
+                <Copy className="h-3.5 w-3.5" aria-hidden="true" />{t('business_invoices.copy_link')}
+              </Button>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Print-friendly invoice body */}
       <style>{`

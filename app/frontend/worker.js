@@ -219,7 +219,8 @@ async function regenerateOg(request, env) {
 
 // Login-only areas + auth screens (+ the og:image render pages). Mirrors the
 // noindex list in public/_headers and the Disallow list in public/robots.txt.
-const PRIVATE_PATH = /^\/(?:admin|compte|entreprise|auth|connexion|inscription|mot-de-passe-oublie|og|en\/(?:account|business|login|signup|forgot-password|og))(?:\/|$)/;
+// + /facture/:token (a customer's invoice page: personal data, never indexed).
+const PRIVATE_PATH = /^\/(?:admin|compte|entreprise|auth|connexion|inscription|mot-de-passe-oublie|og|facture|en\/(?:account|business|login|signup|forgot-password|og|invoice))(?:\/|$)/;
 function isPrivatePath(pathname) {
   return PRIVATE_PATH.test(pathname);
 }

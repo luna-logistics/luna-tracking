@@ -857,7 +857,29 @@
     "print_peppol_endpoint": "Peppol:",
     "print_subtotal": "Subtotal",
     "print_vat": "VAT",
-    "print_total": "Total"
+    "print_total": "Total",
+    "send_title": "Send to the customer",
+    "send_intro": "The invoice and an online payment link will be sent to {{email}}.",
+    "send_lang": "E-mail language",
+    "send": "Send by e-mail",
+    "resend": "Send again",
+    "send_confirm": "Send the invoice and payment link to {{email}}?",
+    "resend_confirm": "Send the invoice and payment link to {{email}} again?",
+    "sent_ok": "Invoice sent to {{email}}.",
+    "sent_on": "Last sent: {{date}}",
+    "copy_link": "Copy payment link",
+    "link_copied": "Link copied.",
+    "paid_via_stripe": "Paid online (Stripe)",
+    "paid_via_manual": "Marked as paid manually",
+    "err_invoice_locked": "An issued invoice can no longer be edited. To correct it, cancel it and create a new invoice.",
+    "err_invoice_issue_via_rpc": "Use the \"Issue\" button: it assigns the invoice number.",
+    "err_invoice_status_terminal": "This invoice is already paid or cancelled: its status can no longer change.",
+    "err_invoice_payment_fields_readonly": "These payment details are managed automatically and cannot be edited by hand.",
+    "err_invoice_payment_not_enabled": "E-mail sending and online payment are not enabled for this business.",
+    "err_invoice_no_customer_email": "No valid e-mail address for the customer. Add it in the invoice's \"Customer\" block (draft) or send the invoice another way.",
+    "err_invoice_not_issued": "Issue the invoice before sending it.",
+    "err_invoice_already_settled": "This invoice is already paid or cancelled.",
+    "err_insufficient_role": "Your role in the business does not allow this (owner, admin, manager or accounting required)."
   },
   "expense_kind": {
     "transport": "Transport",
@@ -2098,7 +2120,11 @@
     "col_total": "Total",
     "col_status": "Status",
     "items_summary_one": "{{count}} item",
-    "items_summary_other": "{{count}} items"
+    "items_summary_other": "{{count}} items",
+    "pay": "Pay",
+    "payment_received": "Payment received, thank you! Your order is confirmed and our team is starting the purchases.",
+    "payment_confirming": "Payment made — confirming. This page will update by itself in a few seconds.",
+    "payment_cancelled": "Payment cancelled: nothing was charged. Your order is still awaiting payment — you can pay it any time with the \"Pay\" button."
   },
   "blog": {
     "meta_title": "Blog — Luna Tracking Logistics",
@@ -2645,5 +2671,17 @@
     "head_in_transit_nocity": "Your parcel is on its way",
     "head_delivered_nocity": "Your parcel has been delivered",
     "tz_local": "Local time ({{city}})"
+  },
+  "public_invoice": {
+    "not_found_title": "Invoice not found",
+    "not_found_body": "This invoice link isn't valid. Check it is complete (copied in full from the e-mail) or contact us: we'll send the invoice again.",
+    "contact": "Contact us",
+    "pay": "Pay {{amount}}",
+    "secure_note": "Secure payment by Stripe. Your card details never pass through our site.",
+    "paid_notice": "This invoice was paid on {{date}}. Thank you!",
+    "payment_confirming": "Payment made — confirming. This page will update by itself.",
+    "payment_cancelled": "Payment cancelled: nothing was charged. You can try again whenever you like.",
+    "cancelled_notice": "This invoice was cancelled: no payment is expected. Contact us if you have any question.",
+    "not_payable_notice": "Online payment is not available for this invoice: please pay by bank transfer using the reference shown."
   }
 }

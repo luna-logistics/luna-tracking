@@ -1,27 +1,80 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Package } from 'lucide-react';
+import { CheckCircle2, CreditCard, Info, Loader2, Package } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
+import { toast } from '@/components/ui/sonner';
 import { fetchMyOrders, type Order } from '@/lib/orders';
+import { initiatePayment } from '@/lib/payment';
 import { OrderStatusBadge } from '@/components/OrderStatusBadge';
 import { urlFor } from '@/lib/url/routes';
 
 export default function AccountOrders() {
   const { t, i18n } = useTranslation();
   const lang = i18n.language === 'en' ? 'en' : 'fr';
+  const [params, setParams] = useSearchParams();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [paying, setPaying] = useState<string | null>(null);
+
+  // Return from Stripe Checkout: ?paiement=ok|annule&commande=<id>. The order
+  // turns "paid" only when the webhook lands, which can take a few seconds —
+  // so on success we poll briefly instead of showing a stale "pending".
+  const returnState = params.get('paiement');
+  const returnOrder = params.get('commande');
 
   useEffect(() => {
-    fetchMyOrders().then((o) => { setOrders(o); setLoading(false); });
-  }, []);
+    let cancelled = false;
+    let tries = 0;
+    const load = async () => {
+      const o = await fetchMyOrders();
+      if (cancelled) return;
+      setOrders(o); setLoading(false);
+      const target = o.find((x) => x.id === returnOrder);
+      if (returnState === 'ok' && target?.status === 'pending_payment' && tries++ < 10) {
+        setTimeout(load, 2000);
+      }
+    };
+    void load();
+    return () => { cancelled = true; };
+  }, [returnState, returnOrder]);
+
+  const dismissReturn = () => { params.delete('paiement'); params.delete('commande'); setParams(params, { replace: true }); };
+
+  const pay = async (o: Order) => {
+    setPaying(o.id);
+    const res = await initiatePayment(o, lang);
+    if (res.status === 'redirect') { window.location.href = res.url; return; }
+    toast[res.status === 'deferred' ? 'info' : 'error'](res.message);
+    setPaying(null);
+  };
+
+  const returned = orders.find((o) => o.id === returnOrder);
 
   return (
     <>
       <SEO title={t('account_orders.title')} noindex />
       <h1 className="text-2xl font-bold text-luna-navy">{t('account_orders.title')}</h1>
+
+      {returnState === 'ok' && (
+        <div role="status" className="mt-4 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+          <CheckCircle2 className="h-5 w-5 shrink-0" aria-hidden="true" />
+          <div className="flex-1">
+            {returned?.status === 'pending_payment'
+              ? t('account_orders.payment_confirming')
+              : t('account_orders.payment_received')}
+          </div>
+          <button type="button" onClick={dismissReturn} className="text-emerald-800 underline">{t('common.close')}</button>
+        </div>
+      )}
+      {returnState === 'annule' && (
+        <div role="status" className="mt-4 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <Info className="h-5 w-5 shrink-0" aria-hidden="true" />
+          <div className="flex-1">{t('account_orders.payment_cancelled')}</div>
+          <button type="button" onClick={dismissReturn} className="text-amber-800 underline">{t('common.close')}</button>
+        </div>
+      )}
 
       {loading ? (
         <div className="mt-6 py-12 text-center text-slate-500">{t('common.loading')}</div>
@@ -35,7 +88,7 @@ export default function AccountOrders() {
           </Button>
         </div>
       ) : (
-        <div className="mt-6 rounded-2xl border border-slate-200 bg-white overflow-hidden">
+        <div className="mt-6 rounded-2xl border border-slate-200 bg-white overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-luna-navy">
               <tr>
@@ -65,7 +118,17 @@ export default function AccountOrders() {
                       {Number(o.total).toFixed(2)} €
                     </td>
                     <td className="px-4 py-3">
-                      <OrderStatusBadge status={o.status} />
+                      <div className="flex flex-wrap items-center gap-2">
+                        <OrderStatusBadge status={o.status} />
+                        {o.status === 'pending_payment' && (
+                          <Button size="sm" variant="navy" onClick={() => pay(o)} disabled={paying !== null}>
+                            {paying === o.id
+                              ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                              : <CreditCard className="h-3.5 w-3.5" aria-hidden="true" />}
+                            {t('account_orders.pay')}
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );

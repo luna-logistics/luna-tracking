@@ -14,7 +14,7 @@ import { useBusiness } from '@/contexts/BusinessContext';
 import {
   emptyInvoice, fetchInvoice, upsertInvoice,
   fetchInvoiceLines, upsertInvoiceLine, deleteInvoiceLine,
-  type InvoiceInput, type InvoiceLine, type Party,
+  type InvoiceInput, type InvoiceLine, type Party, invoiceErrorKey,
 } from '@/lib/invoices';
 import { CURRENCIES, type Currency } from '@/lib/businesses';
 import { supabase } from '@/lib/supabase';
@@ -64,7 +64,10 @@ export default function BusinessInvoiceForm() {
       const saved = await upsertInvoice(current.id, f);
       toast.success(t('business_invoices.saved'));
       navigate(`../${saved.id}`);
-    } catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
+    } catch (err) {
+      const key = invoiceErrorKey(err);
+      toast.error(key ? t(key) : errorMessage(err, t('common.error_generic')));
+    }
     finally { setBusy(false); }
   };
 

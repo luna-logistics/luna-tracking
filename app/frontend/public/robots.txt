@@ -15,5 +15,7 @@ Disallow: /compte$
 Disallow: /compte/
 Disallow: /en/account$
 Disallow: /en/account/
+Disallow: /facture/
+Disallow: /en/invoice/
 
 Sitemap: https://lunatrackinglogistics.com/sitemap.xml
