@@ -39,7 +39,8 @@
     "legal_title": "Legal",
     "company_number_label": "Company number (BCE)",
     "vat_label": "VAT",
-    "registered_office_label": "Registered office"
+    "registered_office_label": "Registered office",
+    "powered_by": "Powered by"
   },
   "home": {
     "meta_title": "Luna Tracking Logistics — Belgium-DRC freight, transparent tracking",
@@ -2527,7 +2528,9 @@
     "cta_title": "Let's talk about your shipment",
     "cta_body": "A quote within one business day, no commitment.",
     "cta_quote": "Request a quote",
-    "cta_contact": "Contact us"
+    "cta_contact": "Contact us",
+    "credit_before": "The Luna website and tracking platform were designed and built by the web agency ",
+    "credit_after": "."
   },
   "feature_gate": {
     "disabled_title": "Feature disabled",

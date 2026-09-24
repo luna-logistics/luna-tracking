@@ -10,7 +10,16 @@
 # wrangler misclassify this as a Pages project. The [assets] block below is
 # what identifies it as a Workers-with-assets deployment.
 #
-# Deploy from this machine:
+# Deploys run from Cloudflare Workers Builds (Git integration). Settings →
+# Build → Build configuration must be:
+#   Root directory   app/frontend   (package.json lives here, not at repo root)
+#   Build command    pnpm install --frozen-lockfile && pnpm build
+#   Deploy command   npx wrangler deploy            (production branch: main)
+#   Version command  npx wrangler versions upload   (other branches / PRs —
+#                    uploads a version without replacing production)
+# plus VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY as build variables.
+#
+# Manual deploy from a machine still works:
 #   cd app/frontend
 #   pnpm build
 #   npx wrangler deploy
