@@ -1935,6 +1935,7 @@
     "cart_price_changed": "Prix modifié : {{old}} € → {{new}} €",
     "cart_price_changed_note": "Le prix de certains produits a changé. Le panier a été mis à jour au prix actuel.",
     "cart_all_unavailable": "Aucun produit disponible dans le panier.",
+    "order_product_unavailable": "Un produit de votre panier n'est plus disponible. Le panier a été mis à jour : vérifiez-le puis validez à nouveau.",
     "cart_total": "Total",
     "cart_checkout": "Passer à la commande",
     "checkout_title": "Finaliser la commande",

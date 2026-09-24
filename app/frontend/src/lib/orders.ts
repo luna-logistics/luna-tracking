@@ -36,11 +36,26 @@ export type Order = {
   created_at: string;
 };
 
-export type NewOrder = Omit<Order, 'id' | 'created_at' | 'status'> & { status?: OrderStatus };
+/** Lines only need `product_id`, `quantity` and the slug the customer shopped
+ *  with: the `orders_reprice` trigger rebuilds price, name and total from the
+ *  catalogue and forces `pending_payment`. Never send a total or a status. */
+export type NewOrder = Omit<Order, 'id' | 'created_at' | 'status' | 'total' | 'items'> & {
+  items: Array<Pick<OrderItem, 'product_id' | 'slug' | 'quantity'>>;
+};
+
+/** Thrown when the server refuses a line (product removed/deactivated since
+ *  the cart was built, or a malformed quantity). */
+export class OrderRejectedError extends Error {
+  constructor(public reason: 'product_unavailable' | 'invalid') { super(reason); }
+}
 
 export async function createOrder(order: NewOrder): Promise<Order> {
   const { data, error } = await supabase.from('orders').insert(order).select().single();
-  if (error) throw error;
+  if (error) {
+    if (error.message?.startsWith('order_product_unavailable')) throw new OrderRejectedError('product_unavailable');
+    if (/^order_item(s)?_/.test(error.message ?? '')) throw new OrderRejectedError('invalid');
+    throw error;
+  }
   return data as Order;
 }
 

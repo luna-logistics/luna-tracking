@@ -17,7 +17,7 @@ import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchActiveProducts, fetchProductCategories, productName, productSlug, categoryName, type Product, type ProductCategory } from '@/lib/products';
 import { fetchDestinationCities, type DestinationCity } from '@/lib/cities';
-import { createOrder, type OrderItem } from '@/lib/orders';
+import { createOrder, OrderRejectedError } from '@/lib/orders';
 import { initiatePayment } from '@/lib/payment';
 import { productUrl, urlFor } from '@/lib/url/routes';
 import { useContent, useSiteImage } from '@/contexts/SiteContentContext';
@@ -91,15 +91,13 @@ export default function ShopAndShip() {
     if (availableRows.length === 0) { toast.error(t('shop.cart_all_unavailable')); return; }
     setSubmitting(true);
     try {
-      // Checkout only available lines, at the current (revalidated) price.
-      const items: OrderItem[] = availableRows.map((r) => ({
-        product_id: r.l.product_id, slug: r.l.slug, name: r.l.name, quantity: r.l.quantity, unit_price: r.newPrice,
-      }));
+      // Checkout only available lines. Prices and the total are NOT sent: the
+      // server rebuilds them from the catalogue (orders_reprice trigger).
       // (cart line's `slug` is the language-specific slug captured at add time)
+      const items = availableRows.map((r) => ({ product_id: r.l.product_id, slug: r.l.slug, quantity: r.l.quantity }));
       const order = await createOrder({
         user_id: user.id,
         items,
-        total: revalidatedTotal,
         recipient_name: String(form.get('recipient_name') ?? ''),
         recipient_phone: String(form.get('recipient_phone') ?? ''),
         recipient_city_id: String(form.get('recipient_city_id') ?? '') || null,
@@ -110,7 +108,7 @@ export default function ShopAndShip() {
       trackEvent('courses_order_submitted', {
         item_count: items.reduce((n, i) => n + i.quantity, 0),
         line_count: items.length,
-        value: revalidatedTotal,
+        value: Number(order.total),
         currency: 'EUR',
       });
       const pay = await initiatePayment(order, lang);
@@ -121,7 +119,14 @@ export default function ShopAndShip() {
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('[shop] checkout failed', err);
-      toast.error(t('common.error_generic'));
+      if (err instanceof OrderRejectedError && err.reason === 'product_unavailable') {
+        // A product went inactive between page load and submit: reload the
+        // catalogue so the cart flags it, and say why instead of a generic error.
+        toast.error(t('shop.order_product_unavailable'));
+        void fetchActiveProducts().then(setProducts);
+      } else {
+        toast.error(t('common.error_generic'));
+      }
     } finally {
       setSubmitting(false);
     }
