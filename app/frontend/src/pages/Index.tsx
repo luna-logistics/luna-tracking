@@ -101,12 +101,8 @@ export default function Index() {
         {/* Hero content */}
         <div className="relative mx-auto max-w-[1220px] px-4 pt-5 pb-[18px] md:px-[26px] md:py-10 lg:px-10 lg:pt-[84px] lg:pb-[100px]">
           <div className="min-w-0 max-w-full lg:max-w-[min(560px,58%)]">
-            {/* Eyebrow */}
-            <p className="mb-2 text-[10px] font-semibold tracking-[0.2em] text-luna-aqua lg:mb-5 lg:text-[13px]">
-              {t('home.hero_eyebrow').toUpperCase()}
-            </p>
-
-            {/* H1 */}
+            {/* H1 (the "LUNA TRACKING LOGISTICS" eyebrow was removed 2026-09-25:
+                the brand is already in the header logo) */}
             <Ed page="home" field="hero_title" as="h1" className="mb-[7px] block text-[25px] font-semibold leading-[1.18] tracking-[-.01em] text-white md:mb-3.5 md:text-[30px] lg:mb-5 lg:text-[32px] lg:leading-[1.2]">
               {heroTitle}
             </Ed>
