@@ -750,7 +750,8 @@
     "restored_toast": "Conversation restored.",
     "deleted_banner": "Conversation deleted on {{date}} — hidden from the client, read-only. Restore it to reply.",
     "not_in_view": "This conversation is not in this view (it may have been deleted — tick “Deleted conversations”).",
-    "row_actions": "Actions for the conversation with {{name}}"
+    "row_actions": "Actions for the conversation with {{name}}",
+    "notify_summary_off": "notifications off"
   },
   "business_reports": {
     "meta_title": "Accounts & reports — Luna Tracking Logistics",
@@ -2507,7 +2508,9 @@
     "required": "This field is required",
     "email_invalid": "Invalid email address",
     "close": "Close",
-    "more_info": "More information"
+    "more_info": "More information",
+    "collapse": "Collapse",
+    "expand": "Expand"
   },
   "guest_support": {
     "email_label": "Your email",

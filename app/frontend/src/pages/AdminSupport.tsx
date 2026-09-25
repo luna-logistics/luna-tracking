@@ -9,6 +9,7 @@ import { toast } from '@/components/ui/sonner';
 import { ChatMessageList } from '@/components/ChatMessageList';
 import { ChatMessageInput } from '@/components/ChatMessageInput';
 import { OfficeNotificationLog } from '@/components/OfficeNotificationLog';
+import { CollapsiblePanel } from '@/components/CollapsiblePanel';
 import { ConversationRowMenu } from '@/components/ConversationRowMenu';
 import {
   fetchConversationsStrict, setConversationStatus, adminDeleteConversation, adminRestoreConversation,
@@ -171,11 +172,12 @@ export default function AdminSupport() {
     <>
       <SEO title={t('admin_support.meta_title')} noindex />
       {notify && (
-        <section className="mb-4 rounded-2xl border-2 border-amber-500 bg-amber-50 p-4">
-          <header className="flex items-center gap-2 mb-2">
-            <Mail className="h-4 w-4 text-amber-700" aria-hidden="true" />
-            <h2 className="font-semibold text-luna-navy text-sm">{t('admin_support.notify_title')}</h2>
-          </header>
+        <CollapsiblePanel
+          storageKey="luna.admin.support.panel.notify"
+          icon={<Mail className="h-4 w-4 text-amber-700" aria-hidden="true" />}
+          title={t('admin_support.notify_title')}
+          summary={notify.enabled ? (notify.recipient_email || '—') : t('admin_support.notify_summary_off')}
+        >
           <p className="text-xs text-slate-600 mb-3">{t('admin_support.notify_intro')}</p>
           <div className="grid gap-3 lg:grid-cols-2">
             <div>
@@ -212,18 +214,19 @@ export default function AdminSupport() {
               {t('admin_support.notify_save')}
             </Button>
           </div>
-        </section>
+        </CollapsiblePanel>
       )}
       <OfficeNotificationLog onOpenConversation={(id) => {
         setSelectedId(id);
         // The inbox sits below the settings panels — bring it into view.
         window.requestAnimationFrame(() => inboxRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
       }} />
-      <section className="mb-4 rounded-2xl border-2 border-amber-500 bg-amber-50 p-4">
-        <header className="flex items-center gap-2 mb-2">
-          <Shield className="h-4 w-4 text-amber-700" aria-hidden="true" />
-          <h2 className="font-semibold text-luna-navy text-sm">{t('admin_support.mode_title')}</h2>
-        </header>
+      <CollapsiblePanel
+        storageKey="luna.admin.support.panel.mode"
+        icon={<Shield className="h-4 w-4 text-amber-700" aria-hidden="true" />}
+        title={t('admin_support.mode_title')}
+        summary={mode ? t(`admin_support.mode_${mode}`) : undefined}
+      >
         <p className="text-xs text-slate-600 mb-3">{t('admin_support.mode_intro')}</p>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {SUPPORT_ACCESS_MODES.map((m) => (
@@ -242,7 +245,7 @@ export default function AdminSupport() {
             </label>
           ))}
         </div>
-      </section>
+      </CollapsiblePanel>
       {/* minmax(0,…) tracks + min-w-0 panes: a long unbreakable header line
           (truncate = nowrap) must ellipsize, never widen the detail column past
           the card — that clipped the right-aligned (staff-side) bubbles. */}

@@ -9,6 +9,7 @@ import {
 } from '@/lib/office-notifications';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
+import { usePersistedOpen } from '@/components/CollapsiblePanel';
 
 const STATUS_STYLES: Record<OfficeNotificationStatus, string> = {
   pending: 'bg-slate-100 text-slate-700',
@@ -28,7 +29,8 @@ export function OfficeNotificationLog({ onOpenConversation }: { onOpenConversati
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [retrying, setRetrying] = useState<string | null>(null);
-  const [open, setOpen] = useState(false);
+  // Remembered per browser; closed by default (opening it loads the history).
+  const [open, setOpen] = usePersistedOpen('luna.admin.support.panel.log', false);
   const [reading, setReading] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -58,7 +60,7 @@ export function OfficeNotificationLog({ onOpenConversation }: { onOpenConversati
   const failedCount = rows?.filter((r) => r.status === 'failed').length ?? 0;
 
   return (
-    <section className="mb-4 rounded-2xl border-2 border-amber-500 bg-amber-50 p-4">
+    <section className={open ? 'mb-4 rounded-2xl border-2 border-amber-500 bg-amber-50 p-4' : 'mb-4 rounded-2xl border-2 border-amber-500 bg-amber-50 px-4 py-2.5'}>
       <header className="flex items-center gap-2 flex-wrap">
         <History className="h-4 w-4 text-amber-700" aria-hidden="true" />
         <h2 className="font-semibold text-luna-navy text-sm">{t('admin_support.log_title')}</h2>
@@ -67,16 +69,16 @@ export function OfficeNotificationLog({ onOpenConversation }: { onOpenConversati
             {t('admin_support.log_failed_count', { count: failedCount })}
           </span>
         )}
-        <Button size="sm" variant="outline" className="ml-auto h-8" onClick={() => setOpen((v) => !v)}
+        <Button size="sm" variant="outline" className="ml-auto h-8" onClick={() => setOpen(!open)}
           aria-expanded={open} aria-controls="office-notification-log">
           {open ? t('admin_support.log_hide') : t('admin_support.log_show')}
         </Button>
       </header>
-      <p className="text-xs text-slate-600 mt-2">{t('admin_support.log_intro')}</p>
-      <p className="text-[11px] text-slate-500 mt-1">{t('admin_support.log_delivery_note')}</p>
 
       {open && (
         <div id="office-notification-log" className="mt-3">
+          <p className="text-xs text-slate-600">{t('admin_support.log_intro')}</p>
+          <p className="text-[11px] text-slate-500 mt-1 mb-3">{t('admin_support.log_delivery_note')}</p>
           <div className="flex items-center gap-2 flex-wrap mb-3">
             <label htmlFor="office-log-status" className="text-xs text-slate-700">{t('admin_support.log_filter')}</label>
             <select id="office-log-status" value={status}
