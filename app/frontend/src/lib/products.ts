@@ -138,7 +138,8 @@ export type ProductSourceInput = {
   source_url: string | null;
   source_product_id: string | null;
   source_category: string | null;
-  eligibility_status: 'accepted';
+  /** 'forced' = left "to verify" by the filter, imported by an explicit admin choice. */
+  eligibility_status: 'accepted' | 'forced';
   eligibility_reason: string | null;
 };
 
