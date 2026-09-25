@@ -16,7 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { FormShield, useFormShield } from '@/components/FormShield';
 import { submitErrorKey } from '@/lib/errors';
 import {
-  contactData, computeOpeningStatus, kinshasaWindow, brusselsWindow,
+  contactData, computeOpeningStatus, brusselsWindow,
   formatHour, weekdayName, officeHoursRows, type HoursRow,
 } from '@/lib/contact-data';
 
@@ -72,7 +72,6 @@ export default function Contact() {
     return () => window.clearInterval(id);
   }, []);
   const status = useMemo(() => computeOpeningStatus(clock), [clock]);
-  const kinshasa = useMemo(() => HOURS_ROWS.map((r) => kinshasaWindow(clock, r)), [clock]);
   // "Du lundi au vendredi" / "Samedi" — a multi-day range uses the existing
   // phrase for Mon–Fri, any other group is built from weekday names.
   const daysLabel = (r: HoursRow) => {
@@ -575,7 +574,7 @@ export default function Contact() {
             </div>
 
             <dl className="mt-5 space-y-4">
-              {HOURS_ROWS.map((r, i) => (
+              {HOURS_ROWS.map((r) => (
                 <div key={`${r.from}-${r.to}`} className="rounded-[12px] border border-luna-hair/40 bg-white p-4">
                   <dt className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[.05em] text-luna-muted-ink">
                     <Clock className="h-4 w-4 text-luna-azure" aria-hidden="true" />{daysLabel(r)}
@@ -584,14 +583,9 @@ export default function Contact() {
                     <span className="text-[15px] font-medium text-luna-ink">{brusselsWindow(r)}</span>
                     <span className="text-[13px] text-luna-muted-ink">{t('contact.hours_brussels')}</span>
                   </dd>
-                  <dd className="mt-1 flex items-baseline justify-between gap-4">
-                    <span className="text-[15px] font-medium text-luna-ink">{kinshasa[i]}</span>
-                    <span className="text-[13px] text-luna-muted-ink">{t('contact.hours_kinshasa')}</span>
-                  </dd>
                 </div>
               ))}
               <p className="text-[14px] text-luna-body">{t('contact.hours_closed_note')}</p>
-              <p className="text-[13px] leading-[1.55] text-luna-muted-ink">{t('contact.hours_tz_note')}</p>
             </dl>
           </div>
         </div>
