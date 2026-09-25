@@ -40,7 +40,6 @@ export default function ShopAndShip() {
   const metaDescription = useContent('shop-and-ship', 'meta_description', t('shop.meta_description'));
   const pageTitle       = useContent('shop-and-ship', 'page_title',       t('shop.page_title'));
   const pageIntro       = useContent('shop-and-ship', 'page_intro',       t('shop.page_intro'));
-  const heroNote        = useContent('shop-and-ship', 'hero_note',        t('shop.hero_note'));
   const productsTitle   = useContent('shop-and-ship', 'products_title',   t('shop.products_title'));
   const productsSubtitle = useContent('shop-and-ship', 'products_subtitle', t('shop.products_subtitle'));
   const howTitle        = useContent('shop-and-ship', 'how_title',        t('shop.how_title'));
@@ -166,10 +165,10 @@ export default function ShopAndShip() {
             <Ed page="shop-and-ship" field="page_intro" as="div" multiline markdown className="mb-4 block text-[20px] font-normal leading-[1.55] text-[#DCE7F7]">
               {pageIntro}
             </Ed>
-            <Ed page="shop-and-ship" field="hero_note" as="p" multiline className="mb-8 block text-[13px] leading-[1.75] text-[#B9C9E0]">
-              {heroNote}
-            </Ed>
-            <div className="flex flex-wrap gap-3">
+            {/* The old "hero_note" line (« Alimentation, produits du quotidien,
+                hygiène, maison — … ») was removed 2026-09-25: the admin-edited
+                intro above already ends with the same message (FR + EN). */}
+            <div className="mt-4 flex flex-wrap gap-3">
               <a href="#produits" className="inline-flex items-center gap-2.5 rounded-lg bg-luna-aqua px-[26px] py-[15px] text-[13px] font-semibold tracking-[.02em] text-luna-ink transition-colors hover:bg-luna-aqua2">
                 {t('shop.hero_cta_products')} <ArrowDown className="h-[15px] w-[15px]" />
               </a>

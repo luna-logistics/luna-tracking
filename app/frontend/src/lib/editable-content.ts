@@ -185,7 +185,6 @@ export const EDITABLE_PAGES: EditablePage[] = [
     fields: [
       { key: 'page_title', kind: 'text',     i18nKey: 'shop.page_title', labelFr: 'Titre principal (hero)', labelEn: 'Main title (hero)' },
       { key: 'page_intro', kind: 'textarea', i18nKey: 'shop.page_intro', labelFr: 'Texte d\'introduction', labelEn: 'Intro text' },
-      { key: 'hero_note',  kind: 'textarea', i18nKey: 'shop.hero_note',  labelFr: 'Note sous l\'intro (hero)', labelEn: 'Note under the intro (hero)' },
       { key: 'products_title',    kind: 'text', i18nKey: 'shop.products_title',    labelFr: 'Titre bloc produits',     labelEn: 'Products block title' },
       { key: 'products_subtitle', kind: 'text', i18nKey: 'shop.products_subtitle', labelFr: 'Sous-titre bloc produits', labelEn: 'Products block subtitle' },
       { key: 'how_title',  kind: 'text',     i18nKey: 'shop.how_title',  labelFr: 'Titre "comment ça marche"', labelEn: 'How-it-works title' },
