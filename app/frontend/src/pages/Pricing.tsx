@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { trackEvent } from '@/lib/analytics';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle2, Calculator, ArrowRight, Clock, ShieldCheck, FileCheck2, UserPlus } from 'lucide-react';
+import { CheckCircle2, Calculator, ArrowRight, Clock, ShieldCheck, FileCheck2, UserPlus, Plus, Trash2 } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,12 +17,12 @@ import { toast } from '@/components/ui/sonner';
 import { urlFor } from '@/lib/url/routes';
 import { fetchActivePricingConfig } from '@/lib/pricing/config';
 import { formatEuros, type Mode as GridMode, type PricingConfig, type QuoteResponse } from '@/lib/pricing/engine';
-import { gridEstimateLines, quoteFor, tarifsEngineInput } from '@/lib/pricing/surfaces';
-import { parseDecimal, volumeM3FromCm } from '@/lib/pricing/volume';
-import { useAutoVolume } from '@/hooks/useAutoVolume';
+import {
+  emptyTarifsLine, gridEstimateLines, quoteFor, tarifsEngineInput, tarifsLinesSize, type TarifsLine,
+} from '@/lib/pricing/surfaces';
+import { parseDecimal } from '@/lib/pricing/volume';
 import { FormShield, useFormShield } from '@/components/FormShield';
 import { submitErrorKey } from '@/lib/errors';
-import { cn } from '@/lib/utils';
 import {
   createConversation, sendMessage, guestCreateConversation, writeGuestToken,
 } from '@/lib/support-chat';
@@ -69,6 +69,8 @@ const GRID_MODES: Record<Mode, GridMode[]> = {
   ground: [],
 };
 
+const fmtNum = (n: number, digits: number) => `${Number(n.toFixed(digits))}`;
+
 function modeFromParam(v: string | null): Mode {
   if (v === 'air' || v === 'sea') return v;
   if (v === 'road' || v === 'ground') return 'ground';
@@ -98,22 +100,30 @@ export default function Pricing() {
   const [origin, setOrigin] = useState<string>(fromParam && fromParam !== 'BE' ? OTHER : '');
   const [originOther, setOriginOther] = useState('');
   const [destination, setDestination] = useState('');
-  const [weight, setWeight] = useState(searchParams.get('weight') ?? '');
-  const [length, setLength] = useState('');
-  const [width, setWidth] = useState('');
-  const [height, setHeight] = useState('');
-  const [parcels, setParcels] = useState('1');
+  // Package lines (colisage): 3 empty lines by default, more on demand. The
+  // calculator hand-off weight lands in the first line.
+  const [lines, setLines] = useState<TarifsLine[]>(() => {
+    const init = [emptyTarifsLine(), emptyTarifsLine(), emptyTarifsLine()];
+    const w = searchParams.get('weight');
+    if (w) init[0] = { ...init[0], weight: w };
+    return init;
+  });
+  // A volume handed off by the calculator (?volume=) is never shown or typed
+  // here; it prices only while no line has dimensions of its own.
+  const handoffVolume = parseDecimal(searchParams.get('volume'));
   const [mode, setMode] = useState<Mode>(modeFromParam(searchParams.get('mode')));
   const [isBusiness, setIsBusiness] = useState(false);
   const [companyName, setCompanyName] = useState('');
   const [vatNumber, setVatNumber] = useState('');
 
-  // Total volume = one parcel's L×l×H × parcels, pre-filled live and still
-  // editable (shared rule: lib/pricing/volume + surfaces.sizeInput).
-  const vol = useAutoVolume(
-    volumeM3FromCm(parseDecimal(length), parseDecimal(width), parseDecimal(height), parseDecimal(parcels) ?? 1),
-    searchParams.get('volume'),
-  );
+  // Totals + engine size fields from the lines (shared rule: surfaces.tarifsLinesSize).
+  const size = useMemo(() => tarifsLinesSize(lines), [lines]);
+  const anyDims = lines.some((l) => [l.length, l.width, l.height].some((v) => v.trim() !== ''));
+  const useHandoffVolume = handoffVolume != null && !anyDims;
+  const sizeFields = useHandoffVolume ? { ...size.fields, volume: handoffVolume } : size.fields;
+  const shownVolumeM3 = size.totalVolumeM3 ?? (useHandoffVolume ? handoffVolume : null);
+  const updateLine = (i: number, patch: Partial<TarifsLine>) =>
+    setLines((ls) => ls.map((l, j) => (j === i ? { ...l, ...patch } : l)));
 
   useEffect(() => {
     fetchDestinationCities().then(setCities);
@@ -134,14 +144,11 @@ export default function Pricing() {
 
   const modeLabel = (m: Mode) => t(`pricing.mode_${m}`);
 
-  const sized = parseDecimal(weight) != null || vol.value !== '';
+  const sized = size.used > 0 || useHandoffVolume;
   const estimate = useMemo<QuoteResponse | null>(() => {
     if (!config || !origin || !destination || !sized) return null;
-    return quoteFor(tarifsEngineInput({
-      originValue: origin, destinationSlug: destination, weight, volume: vol.typed,
-      length, width, height, parcels,
-    }, config), config);
-  }, [config, origin, destination, sized, weight, vol.typed, length, width, height, parcels]);
+    return quoteFor(tarifsEngineInput({ originValue: origin, destinationSlug: destination, ...sizeFields }, config), config);
+  }, [config, origin, destination, sized, sizeFields]);
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -152,17 +159,22 @@ export default function Pricing() {
     const message = String(form.get('message') ?? '').trim();
     if (!originLabel || !destinationLabel || !email) return;
 
-    const dims = volumeM3FromCm(parseDecimal(length), parseDecimal(width), parseDecimal(height))
-      ? `${length} × ${width} × ${height} cm${(parseDecimal(parcels) ?? 1) > 1 ? ` × ${parcels} ${t('pricing.parcels_unit')}` : ''}`
-      : null;
+    // Every filled package line, then the totals — the office sees exactly
+    // what was priced.
+    const q = (v: string) => v.trim() || '?';
+    const pkgLines = lines
+      .map((l, i) => ({ l, n: i + 1 }))
+      .filter(({ l }) => [l.length, l.width, l.height, l.weight].some((v) => v.trim() !== ''))
+      .map(({ l, n }) => t('pricing.pkg_message_line', {
+        n, dims: `${q(l.length)} × ${q(l.width)} × ${q(l.height)} cm`, weight: `${q(l.weight)} kg`,
+      }));
     const subject = t('pricing.request_subject', { origin: originLabel, destination: destinationLabel });
-    const lines = [
+    const msgLines = [
       `${t('pricing.origin_label')} : ${originLabel}`,
       `${t('pricing.destination_label')} : ${destinationLabel}`,
-      weight ? `${t('pricing.weight_label')} : ${weight}` : null,
-      (parseDecimal(parcels) ?? 1) > 1 ? `${t('pricing.parcels_label')} : ${parcels}` : null,
-      dims ? `${t('pricing.dims_label')} : ${dims}` : null,
-      vol.value ? `${t('pricing.volume_label')} : ${vol.value}${vol.auto ? ` (${t('calc.volume_from_dims')})` : ''}` : null,
+      ...pkgLines,
+      size.totalWeightKg != null ? `${t('pricing.pkg_total_weight')} : ${fmtNum(size.totalWeightKg, 3)} kg` : null,
+      shownVolumeM3 != null ? `${t('pricing.volume_label')} : ${fmtNum(shownVolumeM3, 4)} m³ (${t(useHandoffVolume ? 'pricing.volume_from_calculator' : 'calc.volume_from_dims')})` : null,
       `${t('pricing.mode_label')} : ${modeLabel(mode)}`,
       `${t('pricing.name_label')} : ${name}`,
       isBusiness && companyName.trim() ? `${t('pricing.company_label')} : ${companyName.trim()}` : null,
@@ -174,9 +186,9 @@ export default function Pricing() {
     // Grid figures for the office — the SAME estimate the visitor saw.
     if (estimate && origin !== OTHER) {
       const est = gridEstimateLines(estimate, t, lang);
-      if (est.length) lines.push('', ...est);
+      if (est.length) msgLines.push('', ...est);
     }
-    const body = lines.join('\n');
+    const body = msgLines.join('\n');
 
     setSubmitting(true);
     try {
@@ -334,17 +346,6 @@ export default function Pricing() {
                 <legend className="text-sm font-semibold uppercase tracking-wide text-luna-blue mb-3">{t('pricing.section_goods')}</legend>
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div>
-                    <Label htmlFor="weight" className="text-luna-navy">{t('pricing.weight_label')}</Label>
-                    <Input id="weight" name="weight" type="number" min="0" step="any" inputMode="decimal" value={weight}
-                      onChange={(e) => setWeight(e.target.value)}
-                      placeholder={t('pricing.weight_placeholder')} className="mt-2" />
-                  </div>
-                  <div>
-                    <Label htmlFor="parcels" className="text-luna-navy">{t('pricing.parcels_label')}</Label>
-                    <Input id="parcels" name="parcels" type="number" min="1" step="1" inputMode="numeric" value={parcels}
-                      onChange={(e) => setParcels(e.target.value)} className="mt-2" />
-                  </div>
-                  <div>
                     <Label htmlFor="mode" className="text-luna-navy">{t('pricing.mode_label')}</Label>
                     <Select value={mode} onValueChange={(v) => setMode(v as Mode)}>
                       <SelectTrigger id="mode" className="mt-2">
@@ -359,38 +360,64 @@ export default function Pricing() {
                     </Select>
                   </div>
                 </div>
-                <div className="grid gap-4 sm:grid-cols-[3fr_2fr]">
-                  <div role="group" aria-labelledby="dims-label">
-                    <span id="dims-label" className="text-sm font-medium text-luna-navy">{t('pricing.dims_label')}</span>
-                    <div className="mt-2 grid grid-cols-3 gap-2">
-                      <Input aria-label={t('calc.dim_length')} placeholder={t('pricing.dim_l')} type="number" min="0" step="any" inputMode="decimal"
-                        value={length} onChange={(e) => setLength(e.target.value)} className="text-center" />
-                      <Input aria-label={t('calc.dim_width')} placeholder={t('pricing.dim_w')} type="number" min="0" step="any" inputMode="decimal"
-                        value={width} onChange={(e) => setWidth(e.target.value)} className="text-center" />
-                      <Input aria-label={t('calc.dim_height')} placeholder={t('pricing.dim_h')} type="number" min="0" step="any" inputMode="decimal"
-                        value={height} onChange={(e) => setHeight(e.target.value)} className="text-center" />
-                    </div>
+                {/* Colisage: one line per package (L × l × H + weight). The
+                    volume is computed from the dimensions behind the scenes —
+                    never typed nor shown here (only in the estimate, when it
+                    drives the price). */}
+                <div role="group" aria-labelledby="pkg-legend">
+                  <p id="pkg-legend" className="text-sm font-medium text-luna-navy">{t('pricing.pkg_legend')}</p>
+                  <p className="mt-0.5 text-xs text-slate-500">{t('pricing.pkg_hint')}</p>
+                  <div className="mt-2 hidden sm:grid grid-cols-[4.5rem_repeat(4,minmax(0,1fr))_2.5rem] gap-2 px-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500" aria-hidden="true">
+                    <span />
+                    <span>{t('pricing.dim_l')}</span><span>{t('pricing.dim_w')}</span><span>{t('pricing.dim_h')}</span>
+                    <span>{t('pricing.pkg_weight')}</span><span />
                   </div>
-                  <div>
-                    <Label htmlFor="volume" className="text-luna-navy">{t('pricing.volume_label')}</Label>
-                    <Input id="volume" name="volume" type="number" min="0" step="any" inputMode="decimal" value={vol.value}
-                      onChange={(e) => vol.onChange(e.target.value)} aria-describedby="volume-hint"
-                      placeholder={t('pricing.volume_placeholder')} className={cn('mt-2', vol.auto && 'bg-sky-50')} />
+                  <ol className="mt-1 space-y-2">
+                    {lines.map((l, i) => {
+                      const n = i + 1;
+                      const field = (k: keyof TarifsLine, labelKey: string, placeholder: string) => (
+                        <Input aria-label={`${t(labelKey)} — ${t('pricing.pkg_line', { n })}`} placeholder={placeholder}
+                          type="number" min="0" step="any" inputMode="decimal" value={l[k]}
+                          onChange={(e) => updateLine(i, { [k]: e.target.value })} className="text-center" />
+                      );
+                      return (
+                        <li key={i} className="grid grid-cols-[repeat(4,minmax(0,1fr))_2.5rem] sm:grid-cols-[4.5rem_repeat(4,minmax(0,1fr))_2.5rem] items-center gap-2">
+                          <span className="col-span-5 sm:col-span-1 text-xs font-semibold text-luna-navy">{t('pricing.pkg_line', { n })}</span>
+                          {field('length', 'calc.dim_length', t('pricing.dim_l'))}
+                          {field('width', 'calc.dim_width', t('pricing.dim_w'))}
+                          {field('height', 'calc.dim_height', t('pricing.dim_h'))}
+                          {field('weight', 'pricing.pkg_weight', 'kg')}
+                          <Button type="button" variant="ghost" size="sm" className="h-10 px-0 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                            disabled={lines.length === 1}
+                            onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))}
+                            aria-label={t('pricing.pkg_remove', { n })} title={t('pricing.pkg_remove', { n })}>
+                            <Trash2 className="h-4 w-4" aria-hidden="true" />
+                          </Button>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => setLines((ls) => [...ls, emptyTarifsLine()])}>
+                      <Plus className="h-4 w-4" aria-hidden="true" />{t('pricing.pkg_add')}
+                    </Button>
+                    {size.used > 0 && (
+                      <p className="text-sm text-slate-700 tabular-nums" aria-live="polite">
+                        {t('pricing.pkg_totals', {
+                          count: size.used,
+                          weight: size.totalWeightKg != null ? `${fmtNum(size.totalWeightKg, 3)} kg` : '—',
+                        })}
+                      </p>
+                    )}
                   </div>
-                </div>
-                <p id="volume-hint" className="-mt-2 text-xs text-slate-500">
-                  {vol.auto ? t('pricing.volume_auto_hint') : t('pricing.volume_hint')}
-                  {vol.differsFromDims && (
-                    <>
-                      {' '}
-                      <button type="button" onClick={vol.reset} className="font-medium text-luna-blue underline underline-offset-2">
-                        {t('calc.volume_use_dims', { v: vol.derivedLabel })}
-                      </button>
-                    </>
+                  {size.used > 0 && (size.missingWeight || size.missingDims) && (
+                    <p className="mt-1 text-xs text-amber-800">
+                      {size.missingWeight ? t('pricing.pkg_missing_weight') : t('pricing.pkg_missing_dims')}
+                    </p>
                   )}
-                </p>
+                </div>
 
-                {estimate && <EstimatePanel estimate={estimate} mode={mode} lang={lang} />}
+                {estimate && <EstimatePanel estimate={estimate} mode={mode} lang={lang} volumeM3={shownVolumeM3} />}
               </fieldset>
 
               <fieldset className="grid gap-4">
@@ -477,9 +504,16 @@ export default function Pricing() {
 
 /** Compact live estimate from the public grid, for the modes the visitor
  *  asked about. Indicative — the agency's quote confirms the price. */
-function EstimatePanel({ estimate, mode, lang }: { estimate: QuoteResponse; mode: Mode; lang: 'fr' | 'en' }) {
+function EstimatePanel({ estimate, mode, lang, volumeM3 }: {
+  estimate: QuoteResponse; mode: Mode; lang: 'fr' | 'en'; volumeM3: number | null;
+}) {
   const { t } = useTranslation();
   const modes = GRID_MODES[mode];
+  // The volume is only worth showing when it changes the price: an air
+  // estimate billed on volumetric weight (volumetric > actual weight).
+  const volumetric = modes
+    .map((m) => estimate[m])
+    .find((r) => r.kind === 'price' && r.chargeableBasis === 'volumetric' && r.volumetricWeightKg != null);
   return (
     <div className="rounded-xl border border-luna-blue/25 bg-luna-blue/5 p-4" aria-live="polite">
       <p className="text-xs font-semibold uppercase tracking-wide text-luna-blue">{t('pricing.estimate_title')}</p>
@@ -507,6 +541,15 @@ function EstimatePanel({ estimate, mode, lang }: { estimate: QuoteResponse; mode
             );
           })}
         </ul>
+      )}
+      {volumetric && volumetric.kind === 'price' && volumeM3 != null && (
+        <p className="mt-2 rounded-lg bg-white/70 px-3 py-2 text-xs text-slate-700">
+          {t('pricing.estimate_volumetric', {
+            volume: fmtNum(volumeM3, 4),
+            vw: fmtNum(volumetric.volumetricWeightKg ?? 0, 2),
+            w: fmtNum(volumetric.actualWeightKg, 2),
+          })}
+        </p>
       )}
       <p className="mt-2 text-[11px] text-slate-500">{t('pricing.estimate_note')}</p>
     </div>

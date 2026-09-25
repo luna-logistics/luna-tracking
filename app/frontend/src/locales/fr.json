@@ -437,7 +437,21 @@
     "account_cta_reports": "Vos rapports financiers : devis et factures à portée de main.",
     "account_cta_note": "Cette demande-ci reste accessible par le lien que nous vous enverrons par e-mail avec notre réponse.",
     "account_cta_signup": "Créer mon compte",
-    "account_cta_login": "J'ai déjà un compte"
+    "account_cta_login": "J'ai déjà un compte",
+    "pkg_legend": "Vos colis",
+    "pkg_hint": "Une ligne par colis : dimensions en cm et poids en kg. Ajoutez autant de lignes que nécessaire.",
+    "pkg_line": "Colis {{n}}",
+    "pkg_weight": "Poids (kg)",
+    "pkg_add": "Ajouter un colis",
+    "pkg_remove": "Retirer le colis {{n}}",
+    "pkg_missing_weight": "Indiquez le poids de chaque colis pour obtenir un prix aérien.",
+    "pkg_missing_dims": "Ajoutez les dimensions de chaque colis : elles servent au prix maritime et au calcul du poids volumétrique.",
+    "pkg_message_line": "Colis {{n}} : {{dims}} — {{weight}}",
+    "pkg_total_weight": "Poids total",
+    "volume_from_calculator": "repris du calculateur",
+    "estimate_volumetric": "Volume total {{volume}} m³ : poids volumétrique {{vw}} kg, supérieur au poids réel ({{w}} kg) — c’est le volume qui détermine le prix aérien.",
+    "pkg_totals_one": "Total : {{count}} colis · {{weight}}",
+    "pkg_totals_other": "Total : {{count}} colis · {{weight}}"
   },
   "contact": {
     "meta_title": "Contact — Luna Tracking Logistics | Bruxelles ↔ Congo",

@@ -81,6 +81,58 @@ export function tarifsEngineInput(
   };
 }
 
+/** One package line of the /tarifs form (raw field strings). */
+export type TarifsLine = { length: string; width: string; height: string; weight: string };
+export const emptyTarifsLine = (): TarifsLine => ({ length: '', width: '', height: '', weight: '' });
+
+export type TarifsLinesSize = {
+  /** Lines with at least one field filled in. */
+  used: number;
+  /** Total weight (kg) — null unless EVERY used line has a weight. */
+  totalWeightKg: number | null;
+  /** Total volume (m³) — null unless EVERY used line has full dimensions. */
+  totalVolumeM3: number | null;
+  /** Some used line has a weight but incomplete dimensions (or the reverse). */
+  missingDims: boolean;
+  missingWeight: boolean;
+  /** Size fields for tarifsEngineInput. */
+  fields: { weight: Num; volume: Num; length?: Num; width?: Num; height?: Num; parcels?: Num };
+};
+
+/**
+ * /tarifs package lines → the size fields every surface prices with.
+ *   • all used lines share the same L×l×H → "N identical parcels" (dimension
+ *     path: keeps the sea flat price of a standard carton, same result as the
+ *     old "colis identiques" field);
+ *   • different sizes → total volume (Σ L×l×H), volumetric weight derived from
+ *     it — the same cm³ ÷ divisor physics as per-parcel dimensions;
+ *   • a line missing its weight or its dimensions is never guessed: no weight
+ *     → no air price; no complete dimensions → no volume (air on actual
+ *     weight only, sea on quote) and the form asks for them.
+ */
+export function tarifsLinesSize(lines: TarifsLine[]): TarifsLinesSize {
+  const used = lines.filter((l) => [l.length, l.width, l.height, l.weight].some((v) => v.trim() !== ''));
+  const dims = used.map((l) => {
+    const L = toNum(l.length), W = toNum(l.width), H = toNum(l.height);
+    return { L, W, H, v: volumeM3FromCm(L, W, H) };
+  });
+  const weights = used.map((l) => toNum(l.weight));
+  const missingWeight = weights.some((w) => w == null || w <= 0);
+  const missingDims = dims.some((d) => d.v == null);
+  const totalWeightKg = used.length && !missingWeight ? weights.reduce<number>((s, w) => s + (w as number), 0) : null;
+  const totalVolumeM3 = used.length && !missingDims ? dims.reduce((s, d) => s + (d.v as number), 0) : null;
+
+  let fields: TarifsLinesSize['fields'] = { weight: totalWeightKg, volume: null };
+  if (totalVolumeM3 != null) {
+    const first = dims[0];
+    const identical = dims.every((d) => d.L === first.L && d.W === first.W && d.H === first.H);
+    fields = identical
+      ? { weight: totalWeightKg, volume: null, length: first.L, width: first.W, height: first.H, parcels: used.length }
+      : { weight: totalWeightKg, volume: totalVolumeM3 };
+  }
+  return { used: used.length, totalWeightKg, totalVolumeM3, missingDims, missingWeight, fields };
+}
+
 export function quoteFor(input: ShipmentInput, config: PricingConfig): QuoteResponse {
   return computeQuote(input, config);
 }

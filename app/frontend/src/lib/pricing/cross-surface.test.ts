@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { computeQuote, type QuoteResponse } from './engine';
+import { computeQuote, type PricingConfig, type QuoteResponse } from './engine';
 import { TEST_PRICING_CONFIG } from './test-config';
-import { calculatorEngineInput, tarifsEngineInput, gridEstimateLines } from './surfaces';
+import { calculatorEngineInput, tarifsEngineInput, gridEstimateLines, tarifsLinesSize, type TarifsLine } from './surfaces';
 import { suggestFromGrid, type ProQuoteInput } from './pro-suggest';
 import { formatM3, parseDecimal, volumeFieldValue, volumeM3FromCm } from './volume';
 
@@ -9,7 +9,8 @@ import { formatM3, parseDecimal, volumeFieldValue, volumeM3FromCm } from './volu
  * One grid, three surfaces: /calculateur, the /tarifs quote form and the pro
  * "Suggérer un tarif" must give the same figures for the same shipment.
  * Reference case confirmed with the owner: 6 kg in a 60×40×40 carton
- * (0.096 m³) → express €193, cargo €181.
+ * (0.096 m³ → 16 kg volumetric) → express €168, cargo €156 at the €5.50/kg
+ * volumetric surcharge (2026-09-25; was €193 / €181 at €8/kg).
  */
 const CONFIG = TEST_PRICING_CONFIG;
 
@@ -29,7 +30,7 @@ const pro = (weightKg: number, volumeM3: number | null, mode: 'air' | 'sea' = 'a
 };
 
 describe('same grid on every surface', () => {
-  it('reference case: express €193 / cargo €181 on calculator (dims), calculator (volume), /tarifs and pro', () => {
+  it('reference case: express €168 / cargo €156 on calculator (dims), calculator (volume), /tarifs and pro', () => {
     for (const q of [calc({ weight: '6', length: '60', width: '40', height: '40' }), calc({ weight: '6', volume: '0,096' }),
       tarifs({ weight: '6', volume: '0.096' })]) {
       expect(cents(q, 'express')).toBe(16800);
@@ -117,5 +118,55 @@ describe('volume from dimensions — one formula, same answer as a typed volume'
     expect(cents(c, 'sea')).toBe(7000);
     expect(cents(tq, 'sea')).toBe(7000);
     expect(pro(6, 0.096, 'sea', { length: 60, width: 40, height: 40, pieces: 1 }, withPreset)).toEqual({ sea: 7000 });
+  });
+});
+
+describe('/tarifs package lines', () => {
+  const L = (length: string, width: string, height: string, weight: string): TarifsLine => ({ length, width, height, weight });
+  const E = L('', '', '', '');
+  const byLines = (lines: TarifsLine[], config: PricingConfig = CONFIG) =>
+    computeQuote(tarifsEngineInput({ originValue: 'bruxelles', destinationSlug: 'kinshasa', ...tarifsLinesSize(lines).fields }, config), config);
+  const all = (q: QuoteResponse) => ({ express: cents(q, 'express'), cargo: cents(q, 'cargo'), sea: cents(q, 'sea') });
+
+  it('one line + two empty default lines = the reference case', () => {
+    const q = byLines([L('60', '40', '40', '6'), E, E]);
+    expect(cents(q, 'express')).toBe(16800);
+    expect(cents(q, 'cargo')).toBe(15600);
+    expect(all(q)).toEqual(all(tarifs({ weight: '6', length: '60', width: '40', height: '40' })));
+  });
+
+  it('identical lines price like "N identical parcels" (keeps the carton flat sea rate)', () => {
+    const withPreset: PricingConfig = { ...CONFIG, presets: [{ key: 'carton_std', lengthCm: 60, widthCm: 40, heightCm: 40, seaFlatTransportCents: 7000 }] };
+    const three = byLines([L('60', '40', '40', '6'), L('60', '40', '40', '6'), L('60', '40', '40', '6')], withPreset);
+    expect(all(three)).toEqual(all(computeQuote(tarifsEngineInput({ originValue: 'bruxelles', destinationSlug: 'kinshasa',
+      weight: '18', volume: null, length: '60', width: '40', height: '40', parcels: '3' }, withPreset), withPreset)));
+  });
+
+  it('different sizes aggregate weight and volume like the pro colisage totals', () => {
+    const s = tarifsLinesSize([L('60', '40', '40', '6'), L('40', '30', '30', '4'), E]);
+    expect(s.totalWeightKg).toBe(10);
+    expect(s.totalVolumeM3).toBeCloseTo(0.096 + 0.036, 10);
+    // volumetric (0.132 m³ → 22 kg) over 10 kg actual: 10×18 + 12×5.50 + 5
+    expect(cents(byLines([L('60', '40', '40', '6'), L('40', '30', '30', '4')]), 'express')).toBe(25100);
+    expect(all(byLines([L('60', '40', '40', '6'), L('40', '30', '30', '4')])))
+      .toEqual(all(tarifs({ weight: '10', volume: String(0.096 + 0.036) })));
+  });
+
+  it('never guesses: a line without dimensions → no volume (sea not priced); without weight → no air price', () => {
+    const noDims = tarifsLinesSize([L('60', '40', '40', '6'), L('', '', '', '4')]);
+    expect(noDims.missingDims).toBe(true);
+    expect(noDims.totalVolumeM3).toBeNull();
+    expect(noDims.totalWeightKg).toBe(10);
+    const q = byLines([L('60', '40', '40', '6'), L('', '', '', '4')]);
+    expect(cents(q, 'express')).toBe(18500); // 10×18 + 5, actual weight only
+    expect(cents(q, 'sea')).not.toEqual(expect.any(Number));
+
+    const noWeight = tarifsLinesSize([L('60', '40', '40', '6'), L('40', '30', '30', '')]);
+    expect(noWeight.missingWeight).toBe(true);
+    expect(noWeight.totalWeightKg).toBeNull();
+  });
+
+  it('empty form → nothing used', () => {
+    expect(tarifsLinesSize([E, E, E]).used).toBe(0);
   });
 });

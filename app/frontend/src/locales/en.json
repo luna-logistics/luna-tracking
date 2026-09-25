@@ -437,7 +437,21 @@
     "account_cta_reports": "Your financial reports: quotes and invoices at hand.",
     "account_cta_note": "This request stays available through the link we will email you with our reply.",
     "account_cta_signup": "Create my account",
-    "account_cta_login": "I already have an account"
+    "account_cta_login": "I already have an account",
+    "pkg_legend": "Your parcels",
+    "pkg_hint": "One line per parcel: dimensions in cm and weight in kg. Add as many lines as you need.",
+    "pkg_line": "Parcel {{n}}",
+    "pkg_weight": "Weight (kg)",
+    "pkg_add": "Add a parcel",
+    "pkg_remove": "Remove parcel {{n}}",
+    "pkg_missing_weight": "Enter the weight of each parcel to get an air freight price.",
+    "pkg_missing_dims": "Add the dimensions of each parcel: they are used for the sea freight price and the volumetric weight.",
+    "pkg_message_line": "Parcel {{n}}: {{dims}} — {{weight}}",
+    "pkg_total_weight": "Total weight",
+    "volume_from_calculator": "from the calculator",
+    "estimate_volumetric": "Total volume {{volume}} m³: volumetric weight {{vw}} kg, above the actual weight ({{w}} kg) — the volume sets the air freight price.",
+    "pkg_totals_one": "Total: {{count}} parcel · {{weight}}",
+    "pkg_totals_other": "Total: {{count}} parcels · {{weight}}"
   },
   "contact": {
     "meta_title": "Contact — Luna Tracking Logistics | Brussels ↔ Congo",
