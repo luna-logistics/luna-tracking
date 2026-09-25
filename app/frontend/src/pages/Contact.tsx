@@ -17,8 +17,11 @@ import { FormShield, useFormShield } from '@/components/FormShield';
 import { submitErrorKey } from '@/lib/errors';
 import {
   contactData, computeOpeningStatus, kinshasaWindow, brusselsWindow,
-  formatHour, weekdayName, OPEN_HOUR,
+  formatHour, weekdayName, officeHoursRows, type HoursRow,
 } from '@/lib/contact-data';
+
+const EN_DAY = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const HOURS_ROWS = officeHoursRows();
 
 /**
  * Contact — content rewrite + three new behaviours over the existing live page
@@ -69,7 +72,16 @@ export default function Contact() {
     return () => window.clearInterval(id);
   }, []);
   const status = useMemo(() => computeOpeningStatus(clock), [clock]);
-  const kinshasa = useMemo(() => kinshasaWindow(clock), [clock]);
+  const kinshasa = useMemo(() => HOURS_ROWS.map((r) => kinshasaWindow(clock, r)), [clock]);
+  // "Du lundi au vendredi" / "Samedi" — a multi-day range uses the existing
+  // phrase for Mon–Fri, any other group is built from weekday names.
+  const daysLabel = (r: HoursRow) => {
+    if (r.from === 1 && r.to === 5) return t('contact.hours_days_label');
+    const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+    return r.from === r.to
+      ? cap(weekdayName(r.from, lang))
+      : `${cap(weekdayName(r.from, lang))} – ${weekdayName(r.to, lang)}`;
+  };
 
   // ── Behaviour 1: intent router ──
   const [openIntent, setOpenIntent] = useState<string>(deepIntent ? deepIntent.id : '');
@@ -233,12 +245,12 @@ export default function Contact() {
       telephone: '+3222419672',
       email,
       sameAs: [INSTAGRAM],
-      openingHoursSpecification: [{
+      openingHoursSpecification: HOURS_ROWS.map((r) => ({
         '@type': 'OpeningHoursSpecification',
-        dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-        opens: `${String(OPEN_HOUR).padStart(2, '0')}:00`,
-        closes: `${String(18).padStart(2, '0')}:00`,
-      }],
+        dayOfWeek: (r.from <= r.to ? EN_DAY.slice(r.from, r.to + 1) : [EN_DAY[r.from]]),
+        opens: `${String(r.open).padStart(2, '0')}:00`,
+        closes: `${String(r.close).padStart(2, '0')}:00`,
+      })),
       contactPoint: [{
         '@type': 'ContactPoint',
         telephone: '+3222419672',
@@ -563,19 +575,21 @@ export default function Contact() {
             </div>
 
             <dl className="mt-5 space-y-4">
-              <div className="rounded-[12px] border border-luna-hair/40 bg-white p-4">
-                <dt className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[.05em] text-luna-muted-ink">
-                  <Clock className="h-4 w-4 text-luna-azure" aria-hidden="true" />{t('contact.hours_days_label')}
-                </dt>
-                <dd className="mt-2 flex items-baseline justify-between gap-4">
-                  <span className="text-[15px] font-medium text-luna-ink">{brusselsWindow()}</span>
-                  <span className="text-[13px] text-luna-muted-ink">{t('contact.hours_brussels')}</span>
-                </dd>
-                <dd className="mt-1 flex items-baseline justify-between gap-4">
-                  <span className="text-[15px] font-medium text-luna-ink">{kinshasa}</span>
-                  <span className="text-[13px] text-luna-muted-ink">{t('contact.hours_kinshasa')}</span>
-                </dd>
-              </div>
+              {HOURS_ROWS.map((r, i) => (
+                <div key={`${r.from}-${r.to}`} className="rounded-[12px] border border-luna-hair/40 bg-white p-4">
+                  <dt className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[.05em] text-luna-muted-ink">
+                    <Clock className="h-4 w-4 text-luna-azure" aria-hidden="true" />{daysLabel(r)}
+                  </dt>
+                  <dd className="mt-2 flex items-baseline justify-between gap-4">
+                    <span className="text-[15px] font-medium text-luna-ink">{brusselsWindow(r)}</span>
+                    <span className="text-[13px] text-luna-muted-ink">{t('contact.hours_brussels')}</span>
+                  </dd>
+                  <dd className="mt-1 flex items-baseline justify-between gap-4">
+                    <span className="text-[15px] font-medium text-luna-ink">{kinshasa[i]}</span>
+                    <span className="text-[13px] text-luna-muted-ink">{t('contact.hours_kinshasa')}</span>
+                  </dd>
+                </div>
+              ))}
               <p className="text-[14px] text-luna-body">{t('contact.hours_closed_note')}</p>
               <p className="text-[13px] leading-[1.55] text-luna-muted-ink">{t('contact.hours_tz_note')}</p>
             </dl>

@@ -208,10 +208,40 @@ const PLACES: L[] = [
 // ─── Opening hours (computed, timezone-correct) ─────────────────────────
 export const OFFICE_TZ = 'Europe/Brussels';
 export const KINSHASA_TZ = 'Africa/Kinshasa';
-export const OPEN_HOUR = 9;
-export const CLOSE_HOUR = 18;
-/** ISO-ish weekday indices, 0 = Sunday … 6 = Saturday. Mon–Fri. */
-export const WORKDAYS = [1, 2, 3, 4, 5];
+export type DayHours = { open: number; close: number };
+/**
+ * Office opening hours, Brussels time — THE single source for the live
+ * open/closed status, the hours block and the JSON-LD on /contact.
+ * Index = weekday, 0 = Sunday … 6 = Saturday; null = closed.
+ * Since 2026-09-25: Mon–Fri 10h–18h, Sat 12h–18h, Sun closed.
+ */
+export const OFFICE_HOURS: ReadonlyArray<DayHours | null> = [
+  null,                    // Sunday
+  { open: 10, close: 18 }, // Monday
+  { open: 10, close: 18 }, // Tuesday
+  { open: 10, close: 18 }, // Wednesday
+  { open: 10, close: 18 }, // Thursday
+  { open: 10, close: 18 }, // Friday
+  { open: 12, close: 18 }, // Saturday
+];
+
+/** Consecutive days (Mon→Sun order) sharing the same hours, e.g.
+ *  [{ from: 1, to: 5, 10–18 }, { from: 6, to: 6, 12–18 }]. */
+export type HoursRow = DayHours & { from: number; to: number };
+export function officeHoursRows(hours: ReadonlyArray<DayHours | null> = OFFICE_HOURS): HoursRow[] {
+  const order = [1, 2, 3, 4, 5, 6, 0];
+  const rows: HoursRow[] = [];
+  for (const d of order) {
+    const h = hours[d];
+    if (!h) continue;
+    const last = rows[rows.length - 1];
+    const prevDay = last ? last.to : null;
+    const consecutive = prevDay != null && order.indexOf(d) === order.indexOf(prevDay) + 1;
+    if (last && consecutive && last.open === h.open && last.close === h.close) last.to = d;
+    else rows.push({ from: d, to: d, open: h.open, close: h.close });
+  }
+  return rows;
+}
 /** Belgian public holidays 2026 — office closed. */
 export const CLOSED_DATES = new Set([
   '2026-01-01', '2026-04-06', '2026-05-01', '2026-05-14', '2026-05-25',
@@ -242,8 +272,10 @@ export function ymdInTz(date: Date, tz: string): string {
   return `${g('year')}-${g('month')}-${g('day')}`;
 }
 
-function isWorkingYmd(ymd: string, weekday: number): boolean {
-  return WORKDAYS.includes(weekday) && !CLOSED_DATES.has(ymd);
+/** Hours of that calendar day, or null when the office is closed (no hours
+ *  that weekday, or a Belgian public holiday). */
+function hoursOn(ymd: string, weekday: number): DayHours | null {
+  return CLOSED_DATES.has(ymd) ? null : OFFICE_HOURS[weekday] ?? null;
 }
 
 function addDays(ymd: string, n: number): { ymd: string; weekday: number } {
@@ -268,36 +300,35 @@ export function computeOpeningStatus(now: Date): OpeningStatus {
   const ymd = ymdInTz(now, OFFICE_TZ);
   const weekday = weekdayIndexInTz(now, OFFICE_TZ);
   const hour = hourInTz(now, OFFICE_TZ);
-  const workingToday = isWorkingYmd(ymd, weekday);
+  const today = hoursOn(ymd, weekday);
 
-  if (workingToday && hour >= OPEN_HOUR && hour < CLOSE_HOUR) {
-    return { open: true, reopenOffset: 0, reopenWeekday: weekday, reopenHour: OPEN_HOUR };
+  if (today && hour >= today.open && hour < today.close) {
+    return { open: true, reopenOffset: 0, reopenWeekday: weekday, reopenHour: today.open };
   }
-  if (workingToday && hour < OPEN_HOUR) {
-    return { open: false, reopenOffset: 0, reopenWeekday: weekday, reopenHour: OPEN_HOUR };
+  if (today && hour < today.open) {
+    return { open: false, reopenOffset: 0, reopenWeekday: weekday, reopenHour: today.open };
   }
   for (let i = 1; i <= 14; i++) {
     const next = addDays(ymd, i);
-    if (isWorkingYmd(next.ymd, next.weekday)) {
-      return { open: false, reopenOffset: i, reopenWeekday: next.weekday, reopenHour: OPEN_HOUR };
-    }
+    const h = hoursOn(next.ymd, next.weekday);
+    if (h) return { open: false, reopenOffset: i, reopenWeekday: next.weekday, reopenHour: h.open };
   }
-  return { open: false, reopenOffset: -1, reopenWeekday: weekday, reopenHour: OPEN_HOUR };
+  return { open: false, reopenOffset: -1, reopenWeekday: weekday, reopenHour: OFFICE_HOURS[1]?.open ?? 10 };
 }
 
-/** `9h00`, `18h00`, `0h00` — never `24h`. */
+/** `10h00`, `18h00`, `0h00` — never `24h`. */
 export function formatHour(hour: number): string {
   return `${((hour % 24) + 24) % 24}h00`;
 }
 
-/** Office window in Brussels, e.g. "9h00 – 18h00". */
-export function brusselsWindow(): string {
-  return `${formatHour(OPEN_HOUR)} – ${formatHour(CLOSE_HOUR)}`;
+/** Office window in Brussels, e.g. "10h00 – 18h00". */
+export function brusselsWindow(h: DayHours): string {
+  return `${formatHour(h.open)} – ${formatHour(h.close)}`;
 }
 
 /** Same window shifted into Kinshasa local time, from the live offset diff
  *  (Kinshasa is UTC+1 year-round; Brussels shifts twice a year). */
-export function kinshasaWindow(now: Date): string {
+export function kinshasaWindow(now: Date, h: DayHours): string {
   const asUtc = (tz: string) => {
     const p = new Intl.DateTimeFormat('en-US', {
       timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
@@ -307,7 +338,7 @@ export function kinshasaWindow(now: Date): string {
     return Date.UTC(g('year'), g('month') - 1, g('day'), g('hour') % 24, g('minute'), g('second'));
   };
   const diffH = Math.round((asUtc(KINSHASA_TZ) - asUtc(OFFICE_TZ)) / 3600000);
-  return `${formatHour(OPEN_HOUR + diffH)} – ${formatHour(CLOSE_HOUR + diffH)}`;
+  return `${formatHour(h.open + diffH)} – ${formatHour(h.close + diffH)}`;
 }
 
 /** Localized weekday name (0 = Sunday), via Intl, without touching real dates. */
