@@ -18,8 +18,9 @@ import {
   type PricingConfig, type ModeResult, type PricedResult, type Mode, type QuoteReason,
 } from '@/lib/pricing/engine';
 import { fetchActivePricingConfig } from '@/lib/pricing/config';
-import { calculatorEngineInput, gridEstimateLines } from '@/lib/pricing/surfaces';
-import { parseDecimal, volumeM3FromCm } from '@/lib/pricing/volume';
+import { calculatorEngineInput, emptyPackageLine, gridEstimateLines, packageLinesSize, type PackageLine } from '@/lib/pricing/surfaces';
+import { formatM3, parseDecimal } from '@/lib/pricing/volume';
+import { PackageLinesEditor } from '@/components/PackageLinesEditor';
 import { useAutoVolume } from '@/hooks/useAutoVolume';
 
 /**
@@ -55,11 +56,6 @@ function Icon({ name, color = '#2077C3', size = 21 }: { name: string; color?: st
   );
 }
 
-const num = (s: string): number | null => {
-  if (s == null || s.trim() === '') return null;
-  const n = Number(String(s).replace(',', '.'));
-  return Number.isFinite(n) && n >= 0 ? n : null;
-};
 const fmtKg = (n: number) => `${Number(n.toFixed(3))}`;
 const fmtM3 = (n: number) => `${Number(n.toFixed(3))}`;
 
@@ -112,14 +108,16 @@ export default function RateCalculator() {
   });
   const faqJsonLd = faq.map((f) => ({ q: f.q, a: f.aText }));
 
-  const [weight, setWeight] = useState('');
-  const [length, setLength] = useState('');
-  const [width, setWidth] = useState('');
-  const [height, setHeight] = useState('');
-  const [parcels, setParcels] = useState('1');
-  // Volume (one parcel) pre-fills live from L×l×H, stays editable (shared rule).
-  const vol = useAutoVolume(volumeM3FromCm(parseDecimal(length), parseDecimal(width), parseDecimal(height)));
+  // Package lines (shared editor with /tarifs + pro Devis): each parcel has its
+  // own L×l×H + weight; weight and volume are totals over every line.
+  const [lines, setLines] = useState<PackageLine[]>(() => [emptyPackageLine()]);
+  const size = useMemo(() => packageLinesSize(lines), [lines]);
+  // TOTAL volume pre-fills live from the lines, stays editable (shared rule).
+  const vol = useAutoVolume(size.totalVolumeM3);
   const volume = vol.typed;
+  // FR shows the auto-filled volume with a decimal comma (parseDecimal reads both).
+  const loc = (v: string) => (lang === 'fr' ? v.replace('.', ',') : v);
+  const volShown = vol.auto ? loc(vol.value) : vol.value;
   const [destination, setDestination] = useState<DestChoice>('kinshasa');
   const [live, setLive] = useState('');
 
@@ -134,13 +132,12 @@ export default function RateCalculator() {
   // Shared builder (lib/pricing/surfaces) — same input rules as /tarifs and the
   // pro tool, incl. volumetric weight from a typed volume when no dimensions.
   const input = useMemo(
-    () => calculatorEngineInput({ weight, length, width, height, parcels, volume, destination }),
-    [weight, length, width, height, parcels, volume, destination]);
+    () => calculatorEngineInput({ lines, volume, destination }),
+    [lines, volume, destination]);
 
   const quote = useMemo(() => (config ? computeQuote(input, config) : null), [config, input]);
 
-  const hasAnyInput = input.weightKg != null || input.volumeM3 != null
-    || (input.lengthCm != null && input.widthCm != null && input.heightCm != null);
+  const hasAnyInput = size.used > 0 || parseDecimal(volume) != null;
 
   useEffect(() => {
     if (!quote) return;
@@ -155,22 +152,25 @@ export default function RateCalculator() {
   }, [quote, lang, t]);
 
   const summaryLines = useMemo(() => {
-    const lines: string[] = [`${t('calc.field_destination')}: ${destination === 'kinshasa' ? 'Kinshasa' : t('calc.dest_other')}`];
-    lines.push(`${t('calc.sum_origin')}: Bruxelles`);
-    if (input.weightKg != null) lines.push(`${t('calc.field_weight')}: ${fmtKg(input.weightKg)} kg`);
-    if (input.lengthCm != null && input.widthCm != null && input.heightCm != null) lines.push(`${t('calc.sum_dims')}: ${input.lengthCm} × ${input.widthCm} × ${input.heightCm} cm`);
-    if ((num(parcels) || 1) > 1) lines.push(`${t('calc.field_parcels')}: ${num(parcels)}`);
-    if (vol.value) lines.push(`${t('calc.field_volume')}: ${vol.value} m³${vol.auto ? ` (${t('calc.volume_from_dims')})` : ''}`);
-    return lines;
-  }, [input, destination, parcels, vol.value, vol.auto, t]);
+    const out: string[] = [`${t('calc.field_destination')}: ${destination === 'kinshasa' ? 'Kinshasa' : t('calc.dest_other')}`];
+    out.push(`${t('calc.sum_origin')}: Bruxelles`);
+    // Every filled package line, then the totals — the office sees exactly what was priced.
+    const q = (v: string) => v.trim() || '?';
+    lines.forEach((l, i) => {
+      if ([l.length, l.width, l.height, l.weight].some((v) => v.trim() !== '')) {
+        out.push(t('pricing.pkg_message_line', { n: i + 1, dims: `${q(l.length)} × ${q(l.width)} × ${q(l.height)} cm`, weight: `${q(l.weight)} kg` }));
+      }
+    });
+    if (input.weightKg != null) out.push(`${t('pricing.pkg_total_weight')}: ${fmtKg(input.weightKg)} kg`);
+    if (volShown) out.push(`${t('calc.field_volume')}: ${volShown} m³${vol.auto ? ` (${t('calc.volume_from_dims')})` : ''}`);
+    return out;
+  }, [input, destination, lines, volShown, vol.auto, t]);
 
   const applyPreset = (p: { l?: number; w?: number; h?: number; kg?: number; m3?: number }) => {
-    setLength(p.l != null ? String(p.l) : '');
-    setWidth(p.w != null ? String(p.w) : '');
-    setHeight(p.h != null ? String(p.h) : '');
-    setWeight(p.kg != null ? String(p.kg) : '');
-    if (p.m3 != null) vol.onChange(String(p.m3)); else vol.reset();
-    setParcels('1');
+    // A preset describes ONE parcel (or a known total volume): it replaces the lines.
+    const s = (v?: number) => (v != null ? String(v) : '');
+    setLines([{ length: s(p.l), width: s(p.w), height: s(p.h), weight: s(p.kg) }]);
+    if (p.m3 != null) vol.onChange(loc(String(p.m3))); else vol.reset();
   };
 
   // What a quote request from this page carries beyond the summary: the
@@ -227,35 +227,23 @@ export default function RateCalculator() {
                   <p style={NOTE}>{t('calc.dest_hint')}</p>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <label htmlFor="luna-weight" style={LABEL}>{t('calc.field_weight')} <span style={{ fontWeight: 400, color: '#4A5A75' }}>(kg)</span></label>
-                  <input id="luna-weight" inputMode="decimal" placeholder="6" value={weight} onChange={(e) => setWeight(e.target.value)} style={{ ...INPUT, marginTop: 'auto' }} />
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <label htmlFor="luna-qty" style={LABEL}>{t('calc.field_parcels')}</label>
-                  <input id="luna-qty" inputMode="numeric" placeholder="1" value={parcels} onChange={(e) => setParcels(e.target.value)} style={{ ...INPUT, marginTop: 'auto' }} />
-                </div>
-
                 <div style={{ gridColumn: '1 / -1' }}>
-                  <span id="luna-dims-label" style={LABEL}>{t('calc.field_dims')} <span style={{ fontWeight: 400, color: '#4A5A75' }}>(cm)</span></span>
-                  <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 8 }} role="group" aria-labelledby="luna-dims-label">
-                    <input aria-label={t('calc.dim_length')} inputMode="numeric" placeholder="60" value={length} onChange={(e) => setLength(e.target.value)} style={{ ...INPUT, marginTop: 0, padding: '12px 10px', textAlign: 'center' }} />
-                    <input aria-label={t('calc.dim_width')} inputMode="numeric" placeholder="40" value={width} onChange={(e) => setWidth(e.target.value)} style={{ ...INPUT, marginTop: 0, padding: '12px 10px', textAlign: 'center' }} />
-                    <input aria-label={t('calc.dim_height')} inputMode="numeric" placeholder="40" value={height} onChange={(e) => setHeight(e.target.value)} style={{ ...INPUT, marginTop: 0, padding: '12px 10px', textAlign: 'center' }} />
-                  </div>
+                  <PackageLinesEditor idPrefix="luna-calc" lines={lines} onChange={setLines} size={size}
+                    placeholders={{ length: '60', width: '40', height: '40', weight: '6' }}
+                    inputStyle={{ height: 46, borderRadius: 10, borderColor: 'rgba(42,67,128,.24)', fontSize: 16, fontVariantNumeric: 'tabular-nums' }} />
                   <p style={NOTE}>{t('calc.dims_hint')}</p>
                 </div>
 
                 <div style={{ gridColumn: '1 / -1' }}>
                   <label htmlFor="luna-vol" style={LABEL}>{t('calc.field_volume')} <span style={{ fontWeight: 400, color: '#4A5A75' }}>(m³)</span></label>
-                  <input id="luna-vol" inputMode="decimal" placeholder="3" value={vol.value} onChange={(e) => vol.onChange(e.target.value)}
+                  <input id="luna-vol" inputMode="decimal" placeholder={loc(formatM3(0.096))} value={volShown} onChange={(e) => vol.onChange(e.target.value)}
                     aria-describedby="luna-vol-hint" style={{ ...INPUT, ...(vol.auto ? { background: '#F3F8FD' } : null) }} />
                   <p id="luna-vol-hint" style={NOTE}>
                     {vol.auto ? t('calc.volume_auto_hint') : t('calc.volume_hint')}
                     {vol.differsFromDims && (
                       <> {' '}<button type="button" onClick={vol.reset}
                         style={{ padding: 0, border: 0, background: 'none', color: '#2077C3', textDecoration: 'underline', cursor: 'pointer', font: 'inherit' }}>
-                        {t('calc.volume_use_dims', { v: vol.derivedLabel })}
+                        {t('calc.volume_use_dims', { v: loc(vol.derivedLabel) })}
                       </button></>
                     )}
                   </p>

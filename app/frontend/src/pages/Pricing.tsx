@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { trackEvent } from '@/lib/analytics';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle2, Calculator, ArrowRight, Clock, ShieldCheck, FileCheck2, UserPlus, Plus, Trash2 } from 'lucide-react';
+import { CheckCircle2, Calculator, ArrowRight, Clock, ShieldCheck, FileCheck2, UserPlus } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,8 +18,9 @@ import { urlFor } from '@/lib/url/routes';
 import { fetchActivePricingConfig } from '@/lib/pricing/config';
 import { formatEuros, type Mode as GridMode, type PricingConfig, type QuoteResponse } from '@/lib/pricing/engine';
 import {
-  emptyTarifsLine, gridEstimateLines, quoteFor, tarifsEngineInput, tarifsLinesSize, type TarifsLine,
+  emptyPackageLine, gridEstimateLines, quoteFor, tarifsEngineInput, packageLinesSize, type PackageLine,
 } from '@/lib/pricing/surfaces';
+import { PackageLinesEditor } from '@/components/PackageLinesEditor';
 import { parseDecimal } from '@/lib/pricing/volume';
 import { FormShield, useFormShield } from '@/components/FormShield';
 import { submitErrorKey } from '@/lib/errors';
@@ -102,8 +103,8 @@ export default function Pricing() {
   const [destination, setDestination] = useState('');
   // Package lines (colisage): 3 empty lines by default, more on demand. The
   // calculator hand-off weight lands in the first line.
-  const [lines, setLines] = useState<TarifsLine[]>(() => {
-    const init = [emptyTarifsLine(), emptyTarifsLine(), emptyTarifsLine()];
+  const [lines, setLines] = useState<PackageLine[]>(() => {
+    const init = [emptyPackageLine(), emptyPackageLine(), emptyPackageLine()];
     const w = searchParams.get('weight');
     if (w) init[0] = { ...init[0], weight: w };
     return init;
@@ -116,14 +117,12 @@ export default function Pricing() {
   const [companyName, setCompanyName] = useState('');
   const [vatNumber, setVatNumber] = useState('');
 
-  // Totals + engine size fields from the lines (shared rule: surfaces.tarifsLinesSize).
-  const size = useMemo(() => tarifsLinesSize(lines), [lines]);
+  // Totals + engine size fields from the lines (shared rule: surfaces.packageLinesSize).
+  const size = useMemo(() => packageLinesSize(lines), [lines]);
   const anyDims = lines.some((l) => [l.length, l.width, l.height].some((v) => v.trim() !== ''));
   const useHandoffVolume = handoffVolume != null && !anyDims;
   const sizeFields = useHandoffVolume ? { ...size.fields, volume: handoffVolume } : size.fields;
   const shownVolumeM3 = size.totalVolumeM3 ?? (useHandoffVolume ? handoffVolume : null);
-  const updateLine = (i: number, patch: Partial<TarifsLine>) =>
-    setLines((ls) => ls.map((l, j) => (j === i ? { ...l, ...patch } : l)));
 
   useEffect(() => {
     fetchDestinationCities().then(setCities);
@@ -360,62 +359,10 @@ export default function Pricing() {
                     </Select>
                   </div>
                 </div>
-                {/* Colisage: one line per package (L × l × H + weight). The
-                    volume is computed from the dimensions behind the scenes —
-                    never typed nor shown here (only in the estimate, when it
-                    drives the price). */}
-                <div role="group" aria-labelledby="pkg-legend">
-                  <p id="pkg-legend" className="text-sm font-medium text-luna-navy">{t('pricing.pkg_legend')}</p>
-                  <p className="mt-0.5 text-xs text-slate-500">{t('pricing.pkg_hint')}</p>
-                  <div className="mt-2 hidden sm:grid grid-cols-[4.5rem_repeat(4,minmax(0,1fr))_2.5rem] gap-2 px-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500" aria-hidden="true">
-                    <span />
-                    <span>{t('pricing.dim_l')}</span><span>{t('pricing.dim_w')}</span><span>{t('pricing.dim_h')}</span>
-                    <span>{t('pricing.pkg_weight')}</span><span />
-                  </div>
-                  <ol className="mt-1 space-y-2">
-                    {lines.map((l, i) => {
-                      const n = i + 1;
-                      const field = (k: keyof TarifsLine, labelKey: string, placeholder: string) => (
-                        <Input aria-label={`${t(labelKey)} — ${t('pricing.pkg_line', { n })}`} placeholder={placeholder}
-                          type="number" min="0" step="any" inputMode="decimal" value={l[k]}
-                          onChange={(e) => updateLine(i, { [k]: e.target.value })} className="text-center" />
-                      );
-                      return (
-                        <li key={i} className="grid grid-cols-[repeat(4,minmax(0,1fr))_2.5rem] sm:grid-cols-[4.5rem_repeat(4,minmax(0,1fr))_2.5rem] items-center gap-2">
-                          <span className="col-span-5 sm:col-span-1 text-xs font-semibold text-luna-navy">{t('pricing.pkg_line', { n })}</span>
-                          {field('length', 'calc.dim_length', t('pricing.dim_l'))}
-                          {field('width', 'calc.dim_width', t('pricing.dim_w'))}
-                          {field('height', 'calc.dim_height', t('pricing.dim_h'))}
-                          {field('weight', 'pricing.pkg_weight', 'kg')}
-                          <Button type="button" variant="ghost" size="sm" className="h-10 px-0 text-slate-400 hover:text-red-600 hover:bg-red-50"
-                            disabled={lines.length === 1}
-                            onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))}
-                            aria-label={t('pricing.pkg_remove', { n })} title={t('pricing.pkg_remove', { n })}>
-                            <Trash2 className="h-4 w-4" aria-hidden="true" />
-                          </Button>
-                        </li>
-                      );
-                    })}
-                  </ol>
-                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-                    <Button type="button" variant="outline" size="sm" onClick={() => setLines((ls) => [...ls, emptyTarifsLine()])}>
-                      <Plus className="h-4 w-4" aria-hidden="true" />{t('pricing.pkg_add')}
-                    </Button>
-                    {size.used > 0 && (
-                      <p className="text-sm text-slate-700 tabular-nums" aria-live="polite">
-                        {t('pricing.pkg_totals', {
-                          count: size.used,
-                          weight: size.totalWeightKg != null ? `${fmtNum(size.totalWeightKg, 3)} kg` : '—',
-                        })}
-                      </p>
-                    )}
-                  </div>
-                  {size.used > 0 && (size.missingWeight || size.missingDims) && (
-                    <p className="mt-1 text-xs text-amber-800">
-                      {size.missingWeight ? t('pricing.pkg_missing_weight') : t('pricing.pkg_missing_dims')}
-                    </p>
-                  )}
-                </div>
+                {/* Colisage: one line per package (shared editor). The volume is
+                    computed from the dimensions behind the scenes — never typed
+                    nor shown here (only in the totals and the estimate). */}
+                <PackageLinesEditor idPrefix="tarifs" lines={lines} onChange={setLines} size={size} />
 
                 {estimate && <EstimatePanel estimate={estimate} mode={mode} lang={lang} volumeM3={shownVolumeM3} />}
               </fieldset>

@@ -5,10 +5,12 @@
  *
  * All three price with computeQuote() on the active pricing_config row. The
  * builders only differ in which fields a surface has:
- *   • calculator: weight + optional L×l×H + optional volume + parcels, and a
- *     Kinshasa / other destination choice;
- *   • /tarifs: origin city value + destination city slug + totals;
- *   • pro quote: countries + free-text cities + totals (pro-suggest.ts).
+ *   • calculator: package lines (L×l×H + weight each) + optional typed total
+ *     volume, and a Kinshasa / other destination choice;
+ *   • /tarifs: origin city value + destination city slug + package lines;
+ *   • pro quote: countries + free-text cities + totals, pre-filled from the
+ *     same package lines (pro-suggest.ts).
+ * Package lines → size fields: packageLinesSize(), one rule for all three.
  * Volumetric weight is derived from a typed volume when no dimensions are
  * given, on every surface (it is the same L×l×H / divisor physics).
  */
@@ -50,16 +52,19 @@ export function sizeInput(f: {
 }
 
 export type CalculatorFields = {
-  weight: string; length: string; width: string; height: string;
-  parcels: string; volume: string; destination: 'kinshasa' | 'other';
+  lines: PackageLine[];
+  /** Typed TOTAL volume override ('' while the field follows the lines). */
+  volume: string;
+  destination: 'kinshasa' | 'other';
 };
 
 /** /calculateur form → engine input. Origin is always the corridor origin.
- *  Weight and volume are per parcel here (× "colis identiques"). */
+ *  Weight and volume are shipment totals over the package lines (same rule as
+ *  /tarifs); a typed volume replaces the lines' dimensions. */
 export function calculatorEngineInput(f: CalculatorFields): ShipmentInput {
+  const s = packageLinesSize(f.lines).fields;
   return {
-    ...sizeInput({ weight: f.weight, weightIsTotal: false, volume: f.volume,
-      length: f.length, width: f.width, height: f.height, parcels: f.parcels }),
+    ...sizeInput({ ...s, weightIsTotal: true, volume: toNum(f.volume) ?? s.volume }),
     destination: f.destination === 'kinshasa' ? 'kinshasa' : 'autre',
   };
 }
@@ -81,11 +86,12 @@ export function tarifsEngineInput(
   };
 }
 
-/** One package line of the /tarifs form (raw field strings). */
-export type TarifsLine = { length: string; width: string; height: string; weight: string };
-export const emptyTarifsLine = (): TarifsLine => ({ length: '', width: '', height: '', weight: '' });
+/** One package line (raw field strings) — /calculateur, /tarifs and the pro
+ *  Devis form all edit these with components/PackageLinesEditor. */
+export type PackageLine = { length: string; width: string; height: string; weight: string };
+export const emptyPackageLine = (): PackageLine => ({ length: '', width: '', height: '', weight: '' });
 
-export type TarifsLinesSize = {
+export type PackageLinesSize = {
   /** Lines with at least one field filled in. */
   used: number;
   /** Total weight (kg) — null unless EVERY used line has a weight. */
@@ -95,12 +101,12 @@ export type TarifsLinesSize = {
   /** Some used line has a weight but incomplete dimensions (or the reverse). */
   missingDims: boolean;
   missingWeight: boolean;
-  /** Size fields for tarifsEngineInput. */
+  /** Size fields for the engine builders (tarifsEngineInput, calculatorEngineInput, pro dimsCm). */
   fields: { weight: Num; volume: Num; length?: Num; width?: Num; height?: Num; parcels?: Num };
 };
 
 /**
- * /tarifs package lines → the size fields every surface prices with.
+ * Package lines → the size fields every surface prices with.
  *   • all used lines share the same L×l×H → "N identical parcels" (dimension
  *     path: keeps the sea flat price of a standard carton, same result as the
  *     old "colis identiques" field);
@@ -110,7 +116,7 @@ export type TarifsLinesSize = {
  *     → no air price; no complete dimensions → no volume (air on actual
  *     weight only, sea on quote) and the form asks for them.
  */
-export function tarifsLinesSize(lines: TarifsLine[]): TarifsLinesSize {
+export function packageLinesSize(lines: PackageLine[]): PackageLinesSize {
   const used = lines.filter((l) => [l.length, l.width, l.height, l.weight].some((v) => v.trim() !== ''));
   const dims = used.map((l) => {
     const L = toNum(l.length), W = toNum(l.width), H = toNum(l.height);
@@ -122,7 +128,7 @@ export function tarifsLinesSize(lines: TarifsLine[]): TarifsLinesSize {
   const totalWeightKg = used.length && !missingWeight ? weights.reduce<number>((s, w) => s + (w as number), 0) : null;
   const totalVolumeM3 = used.length && !missingDims ? dims.reduce((s, d) => s + (d.v as number), 0) : null;
 
-  let fields: TarifsLinesSize['fields'] = { weight: totalWeightKg, volume: null };
+  let fields: PackageLinesSize['fields'] = { weight: totalWeightKg, volume: null };
   if (totalVolumeM3 != null) {
     const first = dims[0];
     const identical = dims.every((d) => d.L === first.L && d.W === first.W && d.H === first.H);
