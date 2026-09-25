@@ -56,6 +56,13 @@ const ROUTE_I18N = {
   legalNotice: 'legal_notice',
   terms:       'legal_terms',
   privacy:     'legal_privacy',
+  rateCalculator: 'calc',
+};
+
+/** RouteKey → site_content page key, where it differs from the i18n key
+ *  (RateCalculator.tsx reads its admin overrides under 'calculator'). */
+const ROUTE_CONTENT = {
+  rateCalculator: 'calculator',
 };
 
 /** Which i18n field feeds the initial-HTML <h1> per page + optional
@@ -105,6 +112,7 @@ const overrideRows  = await sbFetch('site_content', 'select=page_key,lang,field_
 const imageRows     = await sbFetch('site_images',  'select=image_key,url');
 const productRows   = await sbFetch('products',     'select=slug_fr,slug_en,name_fr,name_en,description_fr,description_en,meta_title_fr,meta_title_en,meta_description_fr,meta_description_en,image_url&is_active=eq.true');
 const blogRows      = await sbFetch('blog_posts',   'select=slug_fr,slug_en,title_fr,title_en,excerpt_fr,excerpt_en,meta_title_fr,meta_title_en,meta_description_fr,meta_description_en,featured_image,featured_image_en,faq_fr,faq_en,published_at,updated_at&published=eq.true');
+const pricingRows   = await sbFetch('pricing_config', 'select=config&is_active=eq.true');
 const customRows    = await sbFetch('custom_pages', 'select=slug_fr,slug_en,title_fr,title_en,meta_title_fr,meta_title_en,meta_description_fr,meta_description_en,og_image,published_at,updated_at&published=eq.true');
 
 const overrides = new Map();
@@ -228,6 +236,34 @@ function heroOgImageAlt(pageKey, lang, fallback) {
   return home ?? fallback;
 }
 
+// ─── Calculator FAQPage ────────────────────────────────────────────────────
+// Same source as RateCalculator.tsx (src/lib/calc-faq.json + locales) and the
+// same text the page renders once the active pricing_config has loaded, so the
+// FAQPage in the initial HTML matches the visible answers. The page updates
+// this <script> in place by id (no data-rh: Helmet must not own it).
+const CALC_FAQ = JSON.parse(await fs.readFile(path.resolve(__dirname, '..', 'src/lib/calc-faq.json'), 'utf8'));
+const surchargeCents = pricingRows[0]?.config?.volumetricSurchargeRateCentsPerKg;
+if (surchargeCents == null) console.warn('[prerender] pricing_config unavailable — calculator FAQ uses the "current rate" wording');
+
+/** Mirror of formatEuros() in src/lib/pricing/engine.ts. */
+const formatEuros = (cents, lang) => new Intl.NumberFormat(lang === 'en' ? 'en-IE' : 'fr-BE', {
+  style: 'currency', currency: 'EUR',
+}).format(cents / 100);
+
+function calcFaqScript(lang) {
+  const calc = LOCALES[lang].calc;
+  const surcharge = surchargeCents != null ? `${formatEuros(surchargeCents, lang)}/kg` : calc.surcharge_current_rate;
+  const mainEntity = CALC_FAQ.items.map(({ k, link }) => {
+    const q = calc[`q_${k}`];
+    const aRaw = calc[`a_${k}`]?.replace(/\{\{surcharge\}\}/g, surcharge);
+    const label = link ? calc[link.labelKey] : null;
+    if (!q || !aRaw || /\{\{/.test(aRaw) || (link && !label)) throw new Error(`[prerender] calculator FAQ: missing/uninterpolated text for "${k}" (${lang})`);
+    return { '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: label ? `${aRaw} ${label}` : aRaw } };
+  });
+  const json = JSON.stringify({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity }).replace(/</g, '\\u003c');
+  return `<script type="application/ld+json" id="calc-faq-jsonld">${json}</script>`;
+}
+
 async function emitStaticRoute(key, def) {
   if (!def.indexable) return;
   const i18nPage = ROUTE_I18N[key] ?? key;
@@ -235,8 +271,9 @@ async function emitStaticRoute(key, def) {
     const urlPath  = urlFor(key, lang);
     const canonical = `${SITE_URL}${urlPath}`;
 
-    const title       = overrideOr(i18nPage, lang, 'meta_title',       readI18n(lang, i18nPage, 'meta_title') ?? SITE_NAME);
-    const description = overrideOr(i18nPage, lang, 'meta_description', readI18n(lang, i18nPage, 'meta_description') ?? '');
+    const contentPage = ROUTE_CONTENT[key] ?? i18nPage;
+    const title       = overrideOr(contentPage, lang, 'meta_title',       readI18n(lang, i18nPage, 'meta_title') ?? SITE_NAME);
+    const description = overrideOr(contentPage, lang, 'meta_description', readI18n(lang, i18nPage, 'meta_description') ?? '');
 
     const hreflangs = def.bilingual
       ? [
@@ -319,7 +356,7 @@ async function emitStaticRoute(key, def) {
       ogImage: heroOgImage(i18nPage, lang),
       ogImageAlt: heroOgImageAlt(i18nPage, lang, title),
       hreflangs, jsonLd,
-    });
+    }) + (key === 'rateCalculator' ? '\n  ' + calcFaqScript(lang) : '');
 
     // Body skeleton: resolve H1 + H2 fields for this page. Admin
     // overrides (site_content) win over the i18n JSON default — same

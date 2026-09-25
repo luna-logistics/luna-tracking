@@ -1,0 +1,22 @@
+{
+  "_comment": "Calculator FAQ (/calculateur, /en/calculator): order + optional link per question. Read by RateCalculator.tsx (visible FAQ + FAQPage JSON-LD) AND scripts/prerender-metas.mjs (FAQPage in the initial HTML) — one source so the two can never drift. Text lives in locales calc.q_<k> / calc.a_<k> / calc.<labelKey>. link.route = a routes.ts key; link.blog = blog slugs per lang.",
+  "items": [
+    { "k": "how_send", "link": { "blog": { "fr": "envoyer-colis-belgique-kinshasa", "en": "send-parcel-belgium-kinshasa" }, "labelKey": "l_how_send" } },
+    { "k": "price_calc" },
+    { "k": "weight" },
+    { "k": "volumetric" },
+    { "k": "volume_calc", "link": { "blog": { "fr": "calcul-poids-volumetrique-colis", "en": "calculate-volumetric-weight-chargeable-weight" }, "labelKey": "l_volume_calc" } },
+    { "k": "air_vs_sea", "link": { "blog": { "fr": "fret-aerien-ou-maritime-choisir", "en": "air-or-sea-freight-how-to-choose" }, "labelKey": "l_air_vs_sea" } },
+    { "k": "when_air" },
+    { "k": "when_sea" },
+    { "k": "multi" },
+    { "k": "bulky", "link": { "route": "pricing", "labelKey": "l_bulky" } },
+    { "k": "pallet", "link": { "route": "pricing", "labelKey": "l_pallet" } },
+    { "k": "container", "link": { "route": "forwarding", "labelKey": "l_container" } },
+    { "k": "customs", "link": { "blog": { "fr": "incoterms-dap-ddp-frais-transport-international", "en": "incoterms-dap-vs-ddp-international-shipping-costs" }, "labelKey": "l_customs" } },
+    { "k": "delay" },
+    { "k": "deliver_kin" },
+    { "k": "other_dest", "link": { "route": "pricing", "labelKey": "l_other_dest" } },
+    { "k": "devis", "link": { "route": "pricing", "labelKey": "l_devis" } }
+  ]
+}

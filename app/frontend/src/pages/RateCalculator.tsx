@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { trackEvent } from '@/lib/analytics';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Helmet } from 'react-helmet-async';
 import { SEO } from '@/components/SEO';
-import { urlFor, blogPostUrl } from '@/lib/url/routes';
+import { urlFor, blogPostUrl, type RouteKey } from '@/lib/url/routes';
+import CALC_FAQ from '@/lib/calc-faq.json';
 import { useContent } from '@/contexts/SiteContentContext';
 import { Ed } from '@/components/Ed';
 import { Block } from '@/components/Block';
@@ -91,32 +91,15 @@ export default function RateCalculator() {
   // FAQ — freight/transport Q&A. Each answer may carry ONE internal link (split
   // text + <Link>, since the project has no <Trans>). FaqJsonLd is fed the
   // plain-text version so the FAQPage schema always matches the visible answer.
-  const BLOG = {
-    send: { fr: 'envoyer-colis-belgique-kinshasa', en: 'send-parcel-belgium-kinshasa' },
-    volweight: { fr: 'calcul-poids-volumetrique-colis', en: 'calculate-volumetric-weight-chargeable-weight' },
-    airsea: { fr: 'fret-aerien-ou-maritime-choisir', en: 'air-or-sea-freight-how-to-choose' },
-    incoterms: { fr: 'incoterms-dap-ddp-frais-transport-international', en: 'incoterms-dap-vs-ddp-international-shipping-costs' },
-  };
-  const blogHref = (b: { fr: string; en: string }) => blogPostUrl(lang === 'fr' ? b.fr : b.en, lang);
-  const FAQ_DEFS: { k: string; link?: { href: string; labelKey: string } }[] = [
-    { k: 'how_send', link: { href: blogHref(BLOG.send), labelKey: 'l_how_send' } },
-    { k: 'price_calc' },
-    { k: 'weight' },
-    { k: 'volumetric' },
-    { k: 'volume_calc', link: { href: blogHref(BLOG.volweight), labelKey: 'l_volume_calc' } },
-    { k: 'air_vs_sea', link: { href: blogHref(BLOG.airsea), labelKey: 'l_air_vs_sea' } },
-    { k: 'when_air' },
-    { k: 'when_sea' },
-    { k: 'multi' },
-    { k: 'bulky', link: { href: urlFor('pricing', lang), labelKey: 'l_bulky' } },
-    { k: 'pallet', link: { href: urlFor('pricing', lang), labelKey: 'l_pallet' } },
-    { k: 'container', link: { href: urlFor('forwarding', lang), labelKey: 'l_container' } },
-    { k: 'customs', link: { href: blogHref(BLOG.incoterms), labelKey: 'l_customs' } },
-    { k: 'delay' },
-    { k: 'deliver_kin' },
-    { k: 'other_dest', link: { href: urlFor('pricing', lang), labelKey: 'l_other_dest' } },
-    { k: 'devis', link: { href: urlFor('pricing', lang), labelKey: 'l_devis' } },
-  ];
+  // Order + links live in lib/calc-faq.json, shared with the prerender.
+  type FaqLink = { route?: string; blog?: { fr: string; en: string }; labelKey: string };
+  const FAQ_DEFS = (CALC_FAQ.items as { k: string; link?: FaqLink }[]).map(({ k, link }) => ({
+    k,
+    link: link && {
+      href: link.blog ? blogPostUrl(link.blog[lang], lang) : urlFor(link.route as RouteKey, lang),
+      labelKey: link.labelKey,
+    },
+  }));
   const faq = FAQ_DEFS.map(({ k, link }) => {
     const aRaw = t(`calc.a_${k}`, { surcharge });
     const label = link ? t(`calc.${link.labelKey}`) : null;
@@ -710,12 +693,31 @@ function FaqRow({ q, a }: { q: string; a: React.ReactNode }) {
   );
 }
 
+/** FAQPage JSON-LD. Written straight to the DOM, NOT through <Helmet>: on this
+ *  site Helmet never commits to <head> (verified live 2026-09-25 — only the
+ *  prerendered data-rh tags exist), so a Helmet <script> is silently dropped.
+ *  The prerender (scripts/prerender-metas.mjs) emits the same block with the
+ *  same id; we update it in place so there is always exactly one, and it
+ *  follows the live surcharge rate + language. Removed on unmount so it never
+ *  leaks onto another page after SPA navigation. */
+const FAQ_JSONLD_ID = 'calc-faq-jsonld';
 function FaqJsonLd({ items }: { items: { q: string; a: string }[] }) {
-  const jsonLd = {
+  const json = JSON.stringify({
     '@context': 'https://schema.org', '@type': 'FAQPage',
     mainEntity: items.map((it) => ({ '@type': 'Question', name: it.q, acceptedAnswer: { '@type': 'Answer', text: it.a } })),
-  };
-  return <Helmet><script type="application/ld+json">{JSON.stringify(jsonLd)}</script></Helmet>;
+  });
+  useEffect(() => {
+    let el = document.getElementById(FAQ_JSONLD_ID) as HTMLScriptElement | null;
+    if (!el) {
+      el = document.createElement('script');
+      el.type = 'application/ld+json';
+      el.id = FAQ_JSONLD_ID;
+      document.head.appendChild(el);
+    }
+    el.textContent = json;
+  }, [json]);
+  useEffect(() => () => { document.getElementById(FAQ_JSONLD_ID)?.remove(); }, []);
+  return null;
 }
 
 const CALC_CSS = `
