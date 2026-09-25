@@ -13,7 +13,7 @@ import { FormShield, useFormShield } from '@/components/FormShield';
 import { cn } from '@/lib/utils';
 import {
   fetchAccessMode, fetchConversations, createConversation,
-  fetchMessages, sendMessage, markConversationRead,
+  fetchMessages, sendMessage, markConversationRead, appendMessage, createSendLock,
   subscribeToMessages, subscribeToConversations, fetchUnreadCount,
   guestCreateConversation, guestSendMessage, guestFetchConversation, guestMarkRead,
   readGuestToken, writeGuestToken, onUnreadChanged, onPageShown,
@@ -176,6 +176,7 @@ function AuthedBubbleBody() {
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const sendLock = useRef(createSendLock()).current;
   const [draft, setDraft] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -199,7 +200,7 @@ function AuthedBubbleBody() {
   useEffect(() => {
     if (!convId) return;
     const unsub = subscribeToMessages(convId, (m) => {
-      setMessages((prev) => prev.some((x) => x.id === m.id) ? prev : [...prev, m]);
+      setMessages((prev) => appendMessage(prev, m));
       if (m.sender_role === 'admin' && document.visibilityState === 'visible') void markConversationRead(convId);
     });
     // A reply that landed while the tab was hidden is read on return.
@@ -221,9 +222,9 @@ function AuthedBubbleBody() {
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages.length]);
 
-  const send = async () => {
+  const send = () => sendLock(async () => {
     const body = draft.trim();
-    if (!body || sending) return;
+    if (!body) return;
     setSending(true);
     try {
       let id = convId;
@@ -232,11 +233,11 @@ function AuthedBubbleBody() {
         id = conv.id; setConvId(id);
       }
       const m = await sendMessage(id, body);
-      setMessages((prev) => prev.some((x) => x.id === m.id) ? prev : [...prev, m]);
+      setMessages((prev) => appendMessage(prev, m));
       setDraft('');
     } catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
     finally { setSending(false); }
-  };
+  });
 
   const fmtTime = (iso: string) =>
     new Date(iso).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' });
@@ -280,6 +281,8 @@ function GuestBubbleBody() {
   const [name, setName] = useState('');
   const [firstMessage, setFirstMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  // One guest send at a time (first message or reply) — see createSendLock.
+  const guestLock = useRef(createSendLock()).current;
   const shield = useFormShield();
   const [draft, setDraft] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -333,7 +336,8 @@ function GuestBubbleBody() {
 
   const start = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !firstMessage.trim() || busy) return;
+    if (!email.trim() || !firstMessage.trim()) return;
+    await guestLock(async () => {
     setBusy(true);
     try {
       const proof = await shield.getProof();
@@ -347,12 +351,13 @@ function GuestBubbleBody() {
       toast.error(key ? t(key) : errorMessage(err, t('common.error_generic')));
     }
     finally { shield.reset(); setBusy(false); }
+    });
   };
 
-  const sendGuest = async () => {
+  const sendGuest = () => guestLock(async () => {
     const token = readGuestToken();
     const body = draft.trim();
-    if (!token || !body || busy) return;
+    if (!token || !body) return;
     setBusy(true);
     try {
       await guestSendMessage(token, body);
@@ -361,7 +366,7 @@ function GuestBubbleBody() {
       setDraft('');
     } catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
     finally { setBusy(false); }
-  };
+  });
 
   const fmtTime = (iso: string) =>
     new Date(iso).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' });
@@ -450,7 +455,7 @@ function BubbleComposer({
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void onSend(); }
+          if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!e.repeat) void onSend(); }
         }}
         placeholder={t('support_chat.input_placeholder')}
         disabled={disabled || busy}

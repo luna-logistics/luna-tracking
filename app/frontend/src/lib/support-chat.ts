@@ -101,6 +101,35 @@ export async function fetchMessages(conversationId: string): Promise<SupportMess
   return (data ?? []) as SupportMessage[];
 }
 
+/** Add a message to a thread unless it is already there (same id). Every
+ *  view gets each message TWICE — the send call's response and the Realtime
+ *  echo — in either order, so both paths must go through this. Keeps the
+ *  thread in created_at order. */
+export function appendMessage<M extends { id: string; created_at: string }>(prev: M[], m: M): M[] {
+  if (prev.some((x) => x.id === m.id)) return prev;
+  const next = [...prev, m];
+  return next.length > 1 && next[next.length - 2].created_at > m.created_at
+    ? next.sort((a, b) => a.created_at.localeCompare(b.created_at))
+    : next;
+}
+
+/**
+ * A synchronous "one send at a time" lock. React state (`busy`) only
+ * changes on the next render, so two Enter presses in the same frame (or a
+ * held-down Enter) both saw busy=false and sent the same text twice. A plain
+ * mutable flag is set before the first await, so the second call is dropped;
+ * it is released as soon as the send settles — a fast typer is never blocked
+ * between two genuine messages.
+ */
+export function createSendLock() {
+  let inFlight = false;
+  return async function run<T>(fn: () => Promise<T>): Promise<T | undefined> {
+    if (inFlight) return undefined;
+    inFlight = true;
+    try { return await fn(); } finally { inFlight = false; }
+  };
+}
+
 /** sender_id + sender_role are stamped server-side by a trigger; the
  *  client only supplies conversation_id + body. */
 export async function sendMessage(conversationId: string, body: string): Promise<SupportMessage> {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MessageSquare, Plus, ArrowLeft, XCircle, RotateCcw, Loader2 } from 'lucide-react';
 import { SEO } from '@/components/SEO';
@@ -10,7 +10,7 @@ import { ChatMessageList } from '@/components/ChatMessageList';
 import { ChatMessageInput } from '@/components/ChatMessageInput';
 import {
   fetchConversations, createConversation, setConversationStatus,
-  fetchMessages, sendMessage, markConversationRead,
+  fetchMessages, sendMessage, markConversationRead, appendMessage, createSendLock,
   subscribeToMessages, onPageShown, subscribeToConversations,
   type ConversationSummary, type SupportMessage, type ConversationStatus,
 } from '@/lib/support-chat';
@@ -40,6 +40,7 @@ export default function SupportChat() {
   const [subject, setSubject] = useState('');
   const [firstMessage, setFirstMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const startLock = useRef(createSendLock()).current;
 
   const reloadList = async () => {
     setLoading(true);
@@ -64,7 +65,7 @@ export default function SupportChat() {
       void reloadList();
     })();
     const unsub = subscribeToMessages(selectedId, (m) => {
-      setMessages((prev) => [...prev, m]);
+      setMessages((prev) => appendMessage(prev, m));
       // Mark as read immediately if the tab is visible.
       if (document.visibilityState === 'visible' && m.sender_role !== 'client') {
         void markConversationRead(selectedId).then(() => void reloadList());
@@ -84,15 +85,17 @@ export default function SupportChat() {
   const startNew = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!firstMessage.trim()) return;
-    setBusy(true);
-    try {
-      const conv = await createConversation(subject || null);
-      await sendMessage(conv.id, firstMessage);
-      setSubject(''); setFirstMessage(''); setCreating(false);
-      await reloadList();
-      setSelectedId(conv.id);
-    } catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
-    finally { setBusy(false); }
+    await startLock(async () => {
+      setBusy(true);
+      try {
+        const conv = await createConversation(subject || null);
+        await sendMessage(conv.id, firstMessage);
+        setSubject(''); setFirstMessage(''); setCreating(false);
+        await reloadList();
+        setSelectedId(conv.id);
+      } catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
+      finally { setBusy(false); }
+    });
   };
 
   const onSend = async (body: string) => {
@@ -100,7 +103,7 @@ export default function SupportChat() {
     try {
       const m = await sendMessage(selectedId, body);
       // Optimistically append; Realtime will echo it back and dedup by id.
-      setMessages((prev) => prev.some((x) => x.id === m.id) ? prev : [...prev, m]);
+      setMessages((prev) => appendMessage(prev, m));
     } catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); throw err; }
   };
 

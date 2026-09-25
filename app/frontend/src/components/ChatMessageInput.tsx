@@ -1,4 +1,5 @@
-import { useState, type KeyboardEvent } from 'react';
+import { useRef, useState, type KeyboardEvent } from 'react';
+import { createSendLock } from '@/lib/support-chat';
 import { useTranslation } from 'react-i18next';
 import { Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,21 +20,24 @@ export function ChatMessageInput({
   const { t } = useTranslation();
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
+  // Synchronous lock: two Enter presses in the same frame both saw busy=false.
+  const lock = useRef(createSendLock()).current;
 
-  const submit = async () => {
+  const submit = () => lock(async () => {
     const trimmed = body.trim();
-    if (!trimmed || busy || disabled) return;
+    if (!trimmed || disabled) return;
     setBusy(true);
     try {
       await onSend(trimmed);
       setBody('');
     } finally { setBusy(false); }
-  };
+  });
 
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      void submit();
+      // A held-down Enter auto-repeats keydown: never a new message.
+      if (!e.repeat) void submit();
     }
   };
 

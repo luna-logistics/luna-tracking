@@ -12,7 +12,7 @@ import { OfficeNotificationLog } from '@/components/OfficeNotificationLog';
 import { ConversationRowMenu } from '@/components/ConversationRowMenu';
 import {
   fetchConversationsStrict, setConversationStatus, adminDeleteConversation, adminRestoreConversation,
-  fetchMessages, sendMessage, markConversationRead,
+  fetchMessages, sendMessage, markConversationRead, appendMessage,
   subscribeToMessages, subscribeToConversations, onPageShown,
   fetchAccessMode, setAccessMode, SUPPORT_ACCESS_MODES,
   fetchNotifyConfig, saveNotifyConfig,
@@ -107,7 +107,7 @@ export default function AdminSupport() {
       void reload();
     })();
     const unsub = subscribeToMessages(selectedId, (m) => {
-      setMessages((prev) => [...prev, m]);
+      setMessages((prev) => appendMessage(prev, m));
       if (document.visibilityState === 'visible' && m.sender_role !== 'admin') {
         void markConversationRead(selectedId).then(() => void reload());
       }
@@ -135,7 +135,7 @@ export default function AdminSupport() {
     if (!selectedId) return;
     try {
       const m = await sendMessage(selectedId, body);
-      setMessages((prev) => prev.some((x) => x.id === m.id) ? prev : [...prev, m]);
+      setMessages((prev) => appendMessage(prev, m));
     } catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); throw err; }
   };
 
