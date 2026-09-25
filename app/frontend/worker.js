@@ -20,7 +20,7 @@ const neutralTitleHandler = {
   element(el) { el.setInnerContent('Luna Tracking Logistics'); },
 };
 
-async function serveNeutralShell(request, env) {
+async function serveNeutralShell(request, env, opts = {}) {
   const shellUrl = new URL(request.url);
   shellUrl.pathname = '/';
   shellUrl.search = '';
@@ -43,8 +43,45 @@ async function serveNeutralShell(request, env) {
   // public/_headers rules only reach asset responses, NOT this hand-built
   // one — so the noindex it declares for private areas never went out
   // (verified 2026-09-24: /admin, /compte, /entreprise had no header).
-  if (isPrivatePath(new URL(request.url).pathname)) headers['x-robots-tag'] = 'noindex';
-  return new Response(stripped.body, { status: 200, headers });
+  if (isPrivatePath(new URL(request.url).pathname) || opts.noindex) headers['x-robots-tag'] = 'noindex';
+  if (opts.reason) headers['x-luna-fallback'] = opts.reason;
+  return new Response(stripped.body, { status: opts.status ?? 200, headers });
+}
+
+// ─── Product pages that are not prerendered ────────────────────────────
+// Active products are prerendered at build time. A product page that falls
+// through to here is either (a) deactivated / deleted / never existed —
+// e.g. the 10 demo products Google indexed — or (b) a product activated
+// since the last build. (a) must be a real 404 + noindex so search engines
+// drop it (the SPA still renders its "not found" message); (b) keeps a
+// normal 200 so a live product is never hidden. Decided by one read of the
+// public products table (RLS: active rows only). If the check itself fails,
+// we answer 200 — never de-index a real product because of an outage.
+const PRODUCT_PAGE = /^\/(?:achat-envoi|en\/shop-and-ship)\/([^/]+)\/?$/;
+const PRODUCT_SLUG = /^[a-z0-9-]{1,160}$/;
+
+async function productIsLive(slug, env) {
+  if (!PRODUCT_SLUG.test(slug)) return false;
+  if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) return null;
+  try {
+    const q = `select=id&is_active=eq.true&or=(slug_fr.eq.${slug},slug_en.eq.${slug})&limit=1`;
+    const res = await fetch(`${env.SUPABASE_URL}/rest/v1/products?${q}`, {
+      headers: { apikey: env.SUPABASE_ANON_KEY, authorization: `Bearer ${env.SUPABASE_ANON_KEY}` },
+      signal: AbortSignal.timeout(2500),
+    });
+    if (!res.ok) return null;
+    const rows = await res.json();
+    return Array.isArray(rows) && rows.length > 0;
+  } catch (err) {
+    console.error('[worker] product check failed:', err && err.message ? err.message : err);
+    return null;
+  }
+}
+
+async function serveProductFallback(request, env, slug) {
+  const live = await productIsLive(decodeURIComponent(slug).toLowerCase(), env);
+  if (live === false) return serveNeutralShell(request, env, { status: 404, noindex: true, reason: 'product-gone' });
+  return serveNeutralShell(request, env);
 }
 
 // ─── Shared tracking links: crawler-visible preview tags ────────────────
@@ -241,6 +278,9 @@ export default {
 
       const share = SHARE_LINK.exec(new URL(request.url).pathname);
       if (share) return await serveShareLink(request, env, share[1]);
+
+      const product = PRODUCT_PAGE.exec(pathname);
+      if (product) return await serveProductFallback(request, env, product[1]);
 
       return await serveNeutralShell(request, env);
     } catch (err) {
