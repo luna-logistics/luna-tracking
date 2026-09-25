@@ -34,7 +34,7 @@ export interface PricingConfig {
   /** Sous-douane administrative fee. Informational only — never auto-applied. */
   customsAdminFeeCents: number | null;
   volumetricDivisor: number;                 // 6000
-  volumetricSurchargeRateCentsPerKg: number; // €8/kg = 800
+  volumetricSurchargeRateCentsPerKg: number; // cents/kg, e.g. €5.50/kg = 550 (live value: pricing_config)
   /** Density surcharge is undefined → forces a quote. `appliesTo` scopes it. */
   ratioQuote: { thresholdKgPerM3: number; appliesTo: Mode[] } | null;
   modes: {

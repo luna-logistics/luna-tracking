@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { computeQuote, transitTimeFor, type PricingConfig, type PricedResult, type ModeResult } from './engine';
+import { TEST_PRICING_CONFIG } from './test-config';
 
 /**
  * The money core. These cases come straight from the owner's confirmed tariff
@@ -7,17 +8,7 @@ import { computeQuote, transitTimeFor, type PricingConfig, type PricedResult, ty
  * cent. Config mirrors the seeded `pricing_config` row so the tests are hermetic.
  */
 const CONFIG: PricingConfig = {
-  corridor: { origin: 'brussels', destination: 'kinshasa' },
-  handlingFeeCents: 500,
-  customsAdminFeeCents: 12500,
-  volumetricDivisor: 6000,
-  volumetricSurchargeRateCentsPerKg: 800,
-  ratioQuote: { thresholdKgPerM3: 374, appliesTo: ['sea'] },
-  modes: {
-    express: { perKgCents: 1800, flatMinCents: 1800, minKg: 0.1, maxKg: 200 },
-    cargo: { perKgCents: 1600, minKg: 1, maxKg: 500 },
-    sea: { tiers: [{ uptoM3: 5, perM3Cents: 75000 }, { uptoM3: 10, perM3Cents: 72500 }], maxM3: 10 },
-  },
+  ...TEST_PRICING_CONFIG,
   presets: [
     { key: 'carton_std', lengthCm: 60, widthCm: 40, heightCm: 40, seaFlatTransportCents: 7000 },
     { key: 'carton_small', lengthCm: 40, widthCm: 30, heightCm: 30, seaFlatTransportCents: 2500 },
@@ -35,15 +26,15 @@ const priced = (r: ModeResult): PricedResult => {
 const hasLine = (r: PricedResult, key: string) => r.lines.some((l) => l.key === key);
 
 describe('pricing engine — Brussels → Kinshasa', () => {
-  it('1. 6 kg in a 60×40×40 carton → express €193, cargo €181 (volumetric drives)', () => {
+  it('1. 6 kg in a 60×40×40 carton → express €168, cargo €156 (volumetric drives)', () => {
     const q = computeQuote({ weightKg: 6, lengthCm: 60, widthCm: 40, heightCm: 40 }, CONFIG);
     const ex = priced(q.express);
-    expect(ex.totalCents).toBe(19300);              // 6×18 + 10×8 + 5
+    expect(ex.totalCents).toBe(16800);              // 6×18 + 10×5.50 + 5
     expect(ex.volumetricWeightKg).toBe(16);
     expect(ex.chargeableBasis).toBe('volumetric');
     expect(hasLine(ex, 'volumetric_diff')).toBe(true);
     const ca = priced(q.cargo);
-    expect(ca.totalCents).toBe(18100);              // 6×16 + 10×8 + 5
+    expect(ca.totalCents).toBe(15600);              // 6×16 + 10×5.50 + 5
     expect(hasLine(ca, 'volumetric_diff')).toBe(true);
   });
 
@@ -134,8 +125,8 @@ describe('pricing engine — Brussels → Kinshasa', () => {
 
   it('volumetricFromVolume: 6 kg + 0.096 m³ (no dims) prices like the 60×40×40 carton; off by default', () => {
     const on = computeQuote({ weightKg: 6, volumeM3: 0.096, volumetricFromVolume: true }, CONFIG);
-    expect(priced(on.express).totalCents).toBe(19300);
-    expect(priced(on.cargo).totalCents).toBe(18100);
+    expect(priced(on.express).totalCents).toBe(16800);
+    expect(priced(on.cargo).totalCents).toBe(15600);
     const off = computeQuote({ weightKg: 6, volumeM3: 0.096 }, CONFIG);
     expect(hasLine(priced(off.express), 'volumetric_diff')).toBe(false);
   });

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { computeQuote, type PricingConfig, type QuoteResponse } from './engine';
+import { computeQuote, type QuoteResponse } from './engine';
+import { TEST_PRICING_CONFIG } from './test-config';
 import { calculatorEngineInput, tarifsEngineInput, gridEstimateLines } from './surfaces';
 import { suggestFromGrid, type ProQuoteInput } from './pro-suggest';
 import { formatM3, parseDecimal, volumeFieldValue, volumeM3FromCm } from './volume';
@@ -10,19 +11,7 @@ import { formatM3, parseDecimal, volumeFieldValue, volumeM3FromCm } from './volu
  * Reference case confirmed with the owner: 6 kg in a 60×40×40 carton
  * (0.096 m³) → express €193, cargo €181.
  */
-const CONFIG: PricingConfig = {
-  corridor: { origin: 'brussels', destination: 'kinshasa' },
-  handlingFeeCents: 500,
-  customsAdminFeeCents: 12500,
-  volumetricDivisor: 6000,
-  volumetricSurchargeRateCentsPerKg: 800,
-  ratioQuote: { thresholdKgPerM3: 374, appliesTo: ['sea'] },
-  modes: {
-    express: { perKgCents: 1800, flatMinCents: 1800, minKg: 0.1, maxKg: 200 },
-    cargo: { perKgCents: 1600, minKg: 1, maxKg: 500 },
-    sea: { tiers: [{ uptoM3: 5, perM3Cents: 75000 }, { uptoM3: 10, perM3Cents: 72500 }], maxM3: 10 },
-  },
-};
+const CONFIG = TEST_PRICING_CONFIG;
 
 const calc = (f: Partial<Parameters<typeof calculatorEngineInput>[0]>) => computeQuote(calculatorEngineInput({
   weight: '', length: '', width: '', height: '', parcels: '1', volume: '', destination: 'kinshasa', ...f,
@@ -43,10 +32,10 @@ describe('same grid on every surface', () => {
   it('reference case: express €193 / cargo €181 on calculator (dims), calculator (volume), /tarifs and pro', () => {
     for (const q of [calc({ weight: '6', length: '60', width: '40', height: '40' }), calc({ weight: '6', volume: '0,096' }),
       tarifs({ weight: '6', volume: '0.096' })]) {
-      expect(cents(q, 'express')).toBe(19300);
-      expect(cents(q, 'cargo')).toBe(18100);
+      expect(cents(q, 'express')).toBe(16800);
+      expect(cents(q, 'cargo')).toBe(15600);
     }
-    expect(pro(6, 0.096)).toEqual({ express: 19300, cargo: 18100 });
+    expect(pro(6, 0.096)).toEqual({ express: 16800, cargo: 15600 });
   });
 
   it('sea 3 m³ → €2,255 on calculator, /tarifs and pro', () => {
@@ -67,7 +56,7 @@ describe('same grid on every surface', () => {
     const t = (k: string) => k;
     const lines = gridEstimateLines(calc({ weight: '6', length: '60', width: '40', height: '40' }), t, 'fr');
     expect(lines[0]).toBe('grid_estimate.title');
-    expect(lines.join('\n')).toMatch(/193,00/);
+    expect(lines.join('\n')).toMatch(/168,00/); // express 6×18 + 10×5.50 + 5
     expect(gridEstimateLines(calc({ weight: '6', destination: 'other' }), t, 'fr')).toEqual([]);
   });
 });
@@ -98,7 +87,7 @@ describe('volume from dimensions — one formula, same answer as a typed volume'
     const dims = all(tarifs({ weight: '12', length: '60', width: '40', height: '40', parcels: '2' }));
     expect(dims).toEqual(all(tarifs({ weight: '12', volume: '0.192' })));
     expect(dims).toEqual(all(calc({ weight: '6', length: '60', width: '40', height: '40', parcels: '2' })));
-    expect(all(tarifs({ weight: '6', length: '60', width: '40', height: '40' }))).toEqual({ express: 19300, cargo: 18100, sea: all(calc({ weight: '6', volume: '0.096' })).sea });
+    expect(all(tarifs({ weight: '6', length: '60', width: '40', height: '40' }))).toEqual({ express: 16800, cargo: 15600, sea: all(calc({ weight: '6', volume: '0.096' })).sea });
   });
 
   it('pro Devis: dimensions × pièces = total volume typed = /tarifs', () => {

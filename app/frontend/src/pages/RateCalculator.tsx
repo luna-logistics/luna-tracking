@@ -79,6 +79,15 @@ export default function RateCalculator() {
   const metaTitle = useContent(P, 'meta_title', t('calc.meta_title'));
   const metaDescription = useContent(P, 'meta_description', t('calc.meta_description'));
 
+  const [config, setConfig] = useState<PricingConfig | null>(null);
+  const [configError, setConfigError] = useState(false);
+  // The volumetric surcharge rate shown in the copy comes from the active grid
+  // (pricing_config) — never a number written in the translations. Until the
+  // grid loads (or if it fails) the copy says "at the current rate".
+  const surcharge = config
+    ? `${formatEuros(config.volumetricSurchargeRateCentsPerKg, lang)}/kg`
+    : t('calc.surcharge_current_rate');
+
   // FAQ — freight/transport Q&A. Each answer may carry ONE internal link (split
   // text + <Link>, since the project has no <Trans>). FaqJsonLd is fed the
   // plain-text version so the FAQPage schema always matches the visible answer.
@@ -109,7 +118,7 @@ export default function RateCalculator() {
     { k: 'devis', link: { href: urlFor('pricing', lang), labelKey: 'l_devis' } },
   ];
   const faq = FAQ_DEFS.map(({ k, link }) => {
-    const aRaw = t(`calc.a_${k}`);
+    const aRaw = t(`calc.a_${k}`, { surcharge });
     const label = link ? t(`calc.${link.labelKey}`) : null;
     return {
       q: t(`calc.q_${k}`),
@@ -120,8 +129,6 @@ export default function RateCalculator() {
   });
   const faqJsonLd = faq.map((f) => ({ q: f.q, a: f.aText }));
 
-  const [config, setConfig] = useState<PricingConfig | null>(null);
-  const [configError, setConfigError] = useState(false);
   const [weight, setWeight] = useState('');
   const [length, setLength] = useState('');
   const [width, setWidth] = useState('');
@@ -330,7 +337,7 @@ export default function RateCalculator() {
                     <span style={{ flex: '0 0 auto', fontSize: 13, fontWeight: 600, letterSpacing: '.08em', color: '#2077C3', paddingTop: 4, fontVariantNumeric: 'tabular-nums' }}>{`0${n}`}</span>
                     <span style={{ minWidth: 0 }}>
                       <span style={{ display: 'block', fontSize: 17, fontWeight: 600, color: '#0A1650' }}>{t(`calc.how_b${n}_title`)}</span>
-                      <span style={{ display: 'block', marginTop: 4, fontSize: 16.5, color: '#4A5A75' }}>{t(`calc.how_b${n}_body`)}</span>
+                      <span style={{ display: 'block', marginTop: 4, fontSize: 16.5, color: '#4A5A75' }}>{t(`calc.how_b${n}_body`, { surcharge })}</span>
                     </span>
                   </li>
                 ))}

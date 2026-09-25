@@ -1,21 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { suggestFromGrid, type ProQuoteInput, type ProOption } from './pro-suggest';
-import type { PricingConfig } from './engine';
+import { TEST_PRICING_CONFIG } from './test-config';
 
 // Mirrors the active pricing_config row (same values as engine.test.ts).
-const CONFIG: PricingConfig = {
-  corridor: { origin: 'brussels', destination: 'kinshasa' },
-  handlingFeeCents: 500,
-  customsAdminFeeCents: 12500,
-  volumetricDivisor: 6000,
-  volumetricSurchargeRateCentsPerKg: 800,
-  ratioQuote: { thresholdKgPerM3: 374, appliesTo: ['sea'] },
-  modes: {
-    express: { perKgCents: 1800, flatMinCents: 1800, minKg: 0.1, maxKg: 200 },
-    cargo: { perKgCents: 1600, minKg: 1, maxKg: 500 },
-    sea: { tiers: [{ uptoM3: 5, perM3Cents: 75000 }, { uptoM3: 10, perM3Cents: 72500 }], maxM3: 10 },
-  },
-};
+const CONFIG = TEST_PRICING_CONFIG;
 
 const base: ProQuoteInput = {
   mode: 'air', originCountry: 'BE', destinationCountry: 'CD',
@@ -29,11 +17,11 @@ const opts = (q: Partial<ProQuoteInput>): ProOption[] => {
 const total = (o: ProOption) => (o.kind === 'price' ? o.totalCents : null);
 
 describe('pro quote suggestion — same grid as /calculateur', () => {
-  it('air → express + cargo; weight × rate + (volumetric − weight) × €8 + €5 dossier', () => {
+  it('air → express + cargo; weight × rate + (volumetric − weight) × €5.50 + €5 dossier', () => {
     const [express, cargo] = opts({});
     expect(express.mode).toBe('express');
-    expect(total(express)).toBe(19300); // 6×18 + 10×8 + 5
-    expect(total(cargo)).toBe(18100);   // 6×16 + 10×8 + 5
+    expect(total(express)).toBe(16800); // 6×18 + 10×5.50 + 5
+    expect(total(cargo)).toBe(15600);   // 6×16 + 10×5.50 + 5
   });
 
   it('real weight ≥ volumetric → no volumetric line', () => {
@@ -77,7 +65,7 @@ describe('pro quote suggestion — same grid as /calculateur', () => {
     const [anvers] = opts({ originCity: 'Anvers' });
     expect(anvers).toMatchObject({ kind: 'quote', reason: 'origin' });
     const [bxl] = opts({ originCity: 'Bruxelles', destinationCity: 'Kinshasa' });
-    expect(total(bxl)).toBe(19300);
+    expect(total(bxl)).toBe(16800);
   });
 
   it('road has no grid → explicit no_grid_for_mode', () => {
