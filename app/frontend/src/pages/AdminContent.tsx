@@ -86,7 +86,7 @@ function PageEditor({ page, uiLang }: { page: EditablePage; uiLang: 'fr' | 'en' 
             labelFr="Image d'arrière-plan de la bande d'en-tête"
             labelEn="Hero band background image"
             hintFr="16:9 recommandé (2400×1000 px, JPG ou WebP, ~200 Ko). Cliquez sur la preview pour placer le point qui reste centré sur toutes les tailles d'écran."
-            hintEn="16:9 recommended (2400×1000 px, JPG or WebP, ~200 KB). Click on the preview to set the point that stays centered at every screen size."
+            hintEn="16:9 recommended (2400×1000 px, JPG or WebP, ~200 KB). Click on the preview to set the point that stays centred at every screen size."
             uiLang={uiLang}
           />
         </section>

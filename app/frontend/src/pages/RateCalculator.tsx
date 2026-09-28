@@ -153,7 +153,7 @@ export default function RateCalculator() {
 
   const summaryLines = useMemo(() => {
     const out: string[] = [`${t('calc.field_destination')}: ${destination === 'kinshasa' ? 'Kinshasa' : t('calc.dest_other')}`];
-    out.push(`${t('calc.sum_origin')}: Bruxelles`);
+    out.push(`${t('calc.sum_origin')}: ${t('calc.sum_origin_city')}`);
     // Every filled package line, then the totals — the office sees exactly what was priced.
     const q = (v: string) => v.trim() || '?';
     lines.forEach((l, i) => {

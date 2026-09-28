@@ -143,7 +143,7 @@ export function Footer() {
               )}
               {vatNumber && <span>· {t('footer.vat_label')} {vatNumber}</span>}
               {registeredOffice && (
-                <span>· {t('footer.registered_office_label')} : {registeredOffice}</span>
+                <span>· {t('footer.registered_office_label')} {registeredOffice}</span>
               )}
             </p>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">

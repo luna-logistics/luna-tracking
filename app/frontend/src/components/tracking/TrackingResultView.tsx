@@ -118,7 +118,7 @@ export function TrackingResultView({ view, title, search }: {
 
   const share = async () => {
     const url = window.location.origin + window.location.pathname;
-    const text = `${t('tracking_v2.field_label')} : ${view.number}`;
+    const text = t('tracking_v2.share_text', { number: view.number });
     try {
       if (navigator.share) { await navigator.share({ title: t('tracking_v2.share_title'), text, url }); return; }
       await navigator.clipboard.writeText(`${text}\n${url}`);

@@ -84,7 +84,7 @@ const CASES: CaseRaw[] = [
     situation: { fr: 'Vous êtes commerçant·e. Vous avez trouvé un fournisseur en Chine, la marchandise est prête en usine, mais vous n’avez ni container complet, ni transitaire, ni la moindre idée de la procédure douanière à Matadi.', en: 'You are a trader. You found a supplier in China, the goods are ready at the factory, but you have no full container, no freight forwarder, and no idea of the customs procedure at Matadi.' },
     actions: [
       { fr: 'Notre partenaire récupère votre marchandise à l’usine ou à l’entrepôt du fournisseur.', en: 'Our partner collects your goods at the factory or the supplier’s warehouse.' },
-      { fr: 'Nous la plaçons en groupage : vous ne payez que la place que vous occupez dans le container, pas le container entier.', en: 'We place it in groupage: you only pay for the space you take in the container, not the whole container.' },
+      { fr: 'Nous la plaçons en groupage : vous ne payez que la place que vous occupez dans le container, pas le container entier.', en: 'We place them in groupage: you only pay for the space you take in the container, not the whole container.' },
       { fr: 'Le container part par bateau vers Matadi, puis nous organisons l’acheminement routier jusqu’à Kinshasa.', en: 'The container leaves by ship to Matadi, then we arrange the road leg to Kinshasa.' },
     ],
     tracking: { fr: 'Les grandes étapes sont visibles : départ usine, mise en container, départ du port, arrivée à Matadi, dédouanement, route vers Kinshasa.', en: 'The main steps are visible: factory departure, loading into the container, port departure, arrival at Matadi, customs clearance, road to Kinshasa.' },
@@ -125,9 +125,9 @@ const CASES: CaseRaw[] = [
     title: { fr: '« Je fais mes achats à Dubaï, mais je rentre avant la marchandise. »', en: '"I shop in Dubai, but I fly home before the goods."' },
     situation: { fr: 'Vous partez acheter du textile ou de l’électronique sur place. Vous ne pouvez pas tout ramener en soute, et vos fournisseurs ne savent pas expédier vers le Congo.', en: 'You travel to buy textiles or electronics on site. You can’t bring it all back in the hold, and your suppliers don’t know how to ship to the Congo.' },
     actions: [
-      { fr: 'Vous laissez la marchandise chez notre partenaire local, ou vous lui demandez de la retirer chez le fournisseur après votre départ.', en: 'You leave the goods with our local partner, or ask them to pick it up from the supplier after you leave.' },
-      { fr: 'Il la conditionne et l’enregistre à votre nom.', en: 'They pack it and register it in your name.' },
-      { fr: 'Nous l’expédions vers Kinshasa et vous la suivez comme n’importe quel envoi Luna.', en: 'We ship it to Kinshasa and you track it like any Luna shipment.' },
+      { fr: 'Vous laissez la marchandise chez notre partenaire local, ou vous lui demandez de la retirer chez le fournisseur après votre départ.', en: 'You leave the goods with our local partner, or ask them to pick them up from the supplier after you leave.' },
+      { fr: 'Il la conditionne et l’enregistre à votre nom.', en: 'They pack them and register them in your name.' },
+      { fr: 'Nous l’expédions vers Kinshasa et vous la suivez comme n’importe quel envoi Luna.', en: 'We ship them to Kinshasa and you track them like any Luna shipment.' },
     ],
     tracking: { fr: 'Votre envoi est déjà visible dans votre espace pendant que vous êtes encore dans l’avion.', en: 'Your shipment is already visible in your account while you are still on the plane.' },
     note: { fr: 'Gardez les factures d’achat. Elles servent à la déclaration en douane, et sans elles la valeur de vos marchandises est estimée à votre place.', en: 'Keep the purchase invoices. They are used for the customs declaration, and without them the value of your goods is estimated for you.' },
