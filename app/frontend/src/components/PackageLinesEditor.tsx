@@ -59,11 +59,21 @@ export function PackageLinesEditor({ lines, onChange, size, idPrefix, placeholde
       <ol className="mt-1 space-y-2">
         {lines.map((l, i) => {
           const n = i + 1;
-          const field = (k: keyof PackageLine, labelKey: string) => (
-            <Input aria-label={`${t(labelKey)} — ${t('pricing.pkg_line', { n })}`} placeholder={ph[k]}
-              type="text" inputMode="decimal" value={l[k]}
-              onChange={(e) => update(i, { [k]: e.target.value })} className="text-center" style={inputStyle} />
-          );
+          const field = (k: keyof PackageLine, labelKey: string) => {
+            const id = `${idPrefix}-line-${i}-${k}`;
+            return (
+              <div className="min-w-0">
+                {/* Visible on mobile only — the header row below covers desktop
+                    (sm:) instead, so the field name is never shown twice. */}
+                <label htmlFor={id} className="sm:hidden mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  {t(labelKey)}
+                </label>
+                <Input id={id} aria-label={`${t(labelKey)} — ${t('pricing.pkg_line', { n })}`} placeholder={ph[k]}
+                  type="text" inputMode="decimal" value={l[k]}
+                  onChange={(e) => update(i, { [k]: e.target.value })} className="text-center" style={inputStyle} />
+              </div>
+            );
+          };
           return (
             <li key={i} className="grid grid-cols-[repeat(4,minmax(0,1fr))_2.5rem] sm:grid-cols-[4.5rem_repeat(4,minmax(0,1fr))_2.5rem] items-center gap-2">
               <span className="col-span-5 sm:col-span-1 text-xs font-semibold text-luna-navy">{t('pricing.pkg_line', { n })}</span>
