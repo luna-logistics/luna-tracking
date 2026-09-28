@@ -463,23 +463,71 @@ function PriceBody({ result, lang, transit }: { result: PricedResult; lang: 'fr'
       if (l.cents > expected + 0.5) return t('calc.line_weight_min');
       return `${fmtKg(l.qtyKg ?? 0)} kg × ${formatEuros(l.rateCentsPerKg ?? 0, lang)}/kg`;
     }
-    if (l.key === 'volumetric_diff') return `${fmtKg(l.qtyKg ?? 0)} kg × ${formatEuros(l.rateCentsPerKg ?? 0, lang)}/kg`;
     if (l.key === 'volume') return `${fmtM3(l.qtyM3 ?? 0)} m³ × ${formatEuros(l.rateCentsPerM3 ?? 0, lang)}/m³`;
     return null;
   };
+
+  // Real weight, then volumetric weight, then the volumetric surcharge — always
+  // in this order, and the volumetric row always shown once it's known (even
+  // when it doesn't exceed the real weight). Everything else (handling,
+  // volume, carton flat…) keeps the generic loop below.
+  const weightLine = result.lines.find((l) => l.key === 'weight');
+  const volDiffLine = result.lines.find((l) => l.key === 'volumetric_diff');
+  const restLines = result.lines.filter((l) => l.key !== 'weight' && l.key !== 'volumetric_diff');
+  const hasVolumetric = result.volumetricWeightKg != null;
+  const volExceedsReal = volDiffLine != null;
+
+  const ROW: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 };
+  const NOTE: React.CSSProperties = { display: 'block', marginTop: 3, fontSize: 12, lineHeight: 1.4, color: '#4A5A75' };
+
   return (
     <div>
       <p style={{ marginTop: 14, fontSize: 'clamp(30px,3vw,38px)', lineHeight: 1, fontWeight: 600, letterSpacing: '-.03em', color: '#002F67', fontVariantNumeric: 'tabular-nums' }}>{formatEuros(result.totalCents, lang)}</p>
       <p style={{ marginTop: 8, fontSize: 13.5, fontWeight: 500, color: '#2077C3' }}>{t(`calc.basis_${result.chargeableBasis}`)}</p>
       <ul style={{ marginTop: 16, paddingTop: 14, borderTop: HAIR, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 11, margin: '16px 0 0' }}>
-        {result.volumetricWeightKg != null && (
-          <li style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
-            <span style={{ fontSize: 14.5, color: '#0A1650' }}>{t('calc.vol_weight')}</span>
-            <span style={{ fontSize: 14.5, color: '#0A1650', fontVariantNumeric: 'tabular-nums' }}>{fmtKg(result.volumetricWeightKg)} kg</span>
+        {weightLine && (
+          <li style={{ ...ROW, ...(hasVolumetric && !volExceedsReal ? { background: '#F4F7FB', borderRadius: 10, padding: '8px 10px', margin: '-1px -10px' } : null) }}>
+            <span style={{ minWidth: 0 }}>
+              <span style={{ display: 'block', fontSize: 14.5, color: '#0A1650' }}>{t('calc.real_weight_label')}</span>
+              {detail(weightLine) && <span style={{ display: 'block', fontSize: 12.5, color: '#4A5A75', fontVariantNumeric: 'tabular-nums' }}>{detail(weightLine)}</span>}
+              {hasVolumetric && <span style={NOTE}>{t(volExceedsReal ? 'calc.note_real_lt_vol' : 'calc.note_real_ge_vol')}</span>}
+            </span>
+            <span style={{ fontSize: 14.5, fontWeight: 500, color: '#0A1650', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{formatEuros(Math.round(weightLine.cents), lang)}</span>
           </li>
         )}
-        {result.lines.map((l, i) => (
-          <li key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
+
+        {hasVolumetric && (
+          <li style={{ ...ROW, ...(volExceedsReal ? { background: '#EAF3FC', border: '1px solid rgba(31,224,240,.4)', borderRadius: 10, padding: '8px 10px', margin: '-1px -10px' } : null) }}>
+            <span style={{ minWidth: 0 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 14.5, color: '#0A1650' }}>{t('calc.vol_weight')}</span>
+                {volExceedsReal && (
+                  <span style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '.02em', color: '#0D2E6B', background: '#fff', border: '1px solid rgba(31,224,240,.6)', borderRadius: 999, padding: '2px 8px', whiteSpace: 'nowrap' }}>
+                    {t('calc.vol_surcharge_badge')}
+                  </span>
+                )}
+              </span>
+              <span style={NOTE}>
+                {volExceedsReal
+                  ? t('calc.note_vol_gt_real', { diff: `${fmtKg(volDiffLine!.qtyKg ?? 0)} kg`, rate: `${formatEuros(volDiffLine!.rateCentsPerKg ?? 0, lang)}/kg` })
+                  : t('calc.note_vol_le_real')}
+              </span>
+            </span>
+            <span style={{ fontSize: 14.5, color: '#0A1650', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{fmtKg(result.volumetricWeightKg as number)} kg</span>
+          </li>
+        )}
+
+        {hasVolumetric && (
+          <li style={ROW}>
+            <span style={{ fontSize: 14.5, color: '#0A1650' }}>{t('calc.vol_surcharge_label')}</span>
+            <span style={{ fontSize: 14.5, fontWeight: 500, color: '#0A1650', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+              {formatEuros(volDiffLine ? Math.round(volDiffLine.cents) : 0, lang)}
+            </span>
+          </li>
+        )}
+
+        {restLines.map((l, i) => (
+          <li key={i} style={ROW}>
             <span style={{ minWidth: 0 }}>
               <span style={{ display: 'block', fontSize: 14.5, color: '#0A1650' }}>{t(`calc.line_${l.key}`)}</span>
               {detail(l) && <span style={{ display: 'block', fontSize: 12.5, color: '#4A5A75', fontVariantNumeric: 'tabular-nums' }}>{detail(l)}</span>}
