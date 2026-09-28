@@ -10,21 +10,25 @@ import { toast } from '@/components/ui/sonner';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 import {
-  fetchPricingAdminState, publishPricingSettings, type PricingAdminState,
+  fetchPricingAdminState, fetchPricingHistory, publishPricingSettings,
+  type PricingAdminState, type PricingHistoryRow,
 } from '@/lib/pricing/config';
 import { hasFallbackTariff, isTariffPath, withFallbackTariff } from '@/lib/pricing/fallback';
 import { validatePricingConfig, zeroRateFields, type ConfigError } from '@/lib/pricing/validate';
 import { diffPricingConfigs } from '@/lib/pricing/diff';
 import type { Mode, PricingConfig } from '@/lib/pricing/engine';
+import { PricingSimulator } from '@/components/admin-pricing/PricingSimulator';
+import { PricingHistory } from '@/components/admin-pricing/PricingHistory';
 import { PublishDialog } from '@/components/admin-pricing/PublishDialog';
 import { describePricingPath, presetName } from '@/components/admin-pricing/labels';
 
 /**
  * Admin — « Réglages tarifs » (/admin/tarifs). Edits the pricing_config document
  * (rates, fees, thresholds, carton flat prices, optional texts) without a
- * deploy. Strict validation, a confirmation listing every change
- * (old → new, explicit OK for any rate at 0 €) and "restore the default values"
- * (the fallback grid of lib/pricing/fallback.ts).
+ * deploy. Strict validation, a simulator running the public calculator's
+ * engine on the values being edited, a confirmation listing every change
+ * (old → new, explicit OK for any rate at 0 €), "restore the default values"
+ * (the fallback grid of lib/pricing/fallback.ts) and the change history.
  * Publishing goes through save_pricing_settings(): the database re-checks the
  * admin's permission and the grid, keeps the previous version and logs the
  * change. Money is edited in euros and stored in integer cents.
@@ -39,17 +43,19 @@ export default function AdminPricing() {
   const [state, setState] = useState<PricingAdminState | null>(null);
   const [draft, setDraft] = useState<PricingConfig | null>(null);
   const [effectiveDate, setEffectiveDate] = useState('');
+  const [history, setHistory] = useState<PricingHistoryRow[] | null>([]);
   const [loading, setLoading] = useState(true);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
-    const s = await fetchPricingAdminState();
+    const [s, h] = await Promise.all([fetchPricingAdminState(), fetchPricingHistory()]);
     setState(s);
     // The form starts from the grid the site prices with right now: the active
     // row when it is valid, the fallback grid otherwise (banner below says so).
     setDraft(structuredClone(s.live.config));
     setEffectiveDate(s.live.source === 'database' ? (s.effectiveFrom ?? '') : '');
+    setHistory(h);
   }, []);
 
   useEffect(() => { void load().finally(() => setLoading(false)); }, [load]);
@@ -303,6 +309,18 @@ export default function AdminPricing() {
             </ul>
           </section>
         )}
+
+        {/* Simulator */}
+        <section className={cn(card, 'bg-slate-50')} aria-labelledby="pc-sec-sim">
+          <h2 id="pc-sec-sim" className={h2}>{t('admin_pricing.sec_simulator')}</h2>
+          <PricingSimulator draft={errors.length ? null : candidate} live={state.live.config} lang={lang} />
+        </section>
+
+        {/* History */}
+        <section className={card} aria-labelledby="pc-sec-history">
+          <h2 id="pc-sec-history" className={cn(h2, 'mb-4')}>{t('admin_pricing.sec_history')}</h2>
+          <PricingHistory rows={history} lang={lang} />
+        </section>
       </div>
 
       {/* Sticky action bar */}
