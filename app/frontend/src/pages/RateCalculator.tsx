@@ -17,7 +17,8 @@ import {
   computeQuote, formatEuros, transitTimeFor,
   type PricingConfig, type ModeResult, type PricedResult, type Mode, type QuoteReason,
 } from '@/lib/pricing/engine';
-import { fetchActivePricingConfig } from '@/lib/pricing/config';
+import { FALLBACK_PRICING_CONFIG } from '@/lib/pricing/fallback';
+import { usePricingConfig } from '@/hooks/usePricingConfig';
 import { calculatorEngineInput, emptyPackageLine, gridEstimateLines, packageLinesSize, type PackageLine } from '@/lib/pricing/surfaces';
 import { formatM3, parseDecimal } from '@/lib/pricing/volume';
 import { PackageLinesEditor } from '@/components/PackageLinesEditor';
@@ -75,11 +76,12 @@ export default function RateCalculator() {
   const metaTitle = useContent(P, 'meta_title', t('calc.meta_title'));
   const metaDescription = useContent(P, 'meta_description', t('calc.meta_description'));
 
-  const [config, setConfig] = useState<PricingConfig | null>(null);
-  const [configError, setConfigError] = useState(false);
-  // The volumetric surcharge rate shown in the copy comes from the active grid
-  // (pricing_config) — never a number written in the translations. Until the
-  // grid loads (or if it fails) the copy says "at the current rate".
+  // Active grid (pricing_config), or the fallback grid when the database can't
+  // be used — null only while loading.
+  const { config } = usePricingConfig();
+  // The volumetric surcharge rate shown in the copy comes from the grid — never
+  // a number written in the translations. Until the grid loads the copy says
+  // "at the current rate".
   const surcharge = config
     ? `${formatEuros(config.volumetricSurchargeRateCentsPerKg, lang)}/kg`
     : t('calc.surcharge_current_rate');
@@ -120,14 +122,6 @@ export default function RateCalculator() {
   const volShown = vol.auto ? loc(vol.value) : vol.value;
   const [destination, setDestination] = useState<DestChoice>('kinshasa');
   const [live, setLive] = useState('');
-
-  useEffect(() => {
-    let alive = true;
-    fetchActivePricingConfig()
-      .then((c) => { if (alive) { if (c) setConfig(c); else setConfigError(true); } })
-      .catch(() => { if (alive) setConfigError(true); });
-    return () => { alive = false; };
-  }, []);
 
   // Shared builder (lib/pricing/surfaces) — same input rules as /tarifs and the
   // pro tool, incl. volumetric weight from a typed volume when no dimensions.
@@ -181,7 +175,7 @@ export default function RateCalculator() {
   }), [destination, quote, t, lang]);
 
   const colResult = (m: Mode): ColState => {
-    if (!config) return { kind: configError ? 'unavailable' : 'loading', mode: m };
+    if (!config) return { kind: 'loading', mode: m };
     return (quote ? quote[m] : { kind: 'empty', mode: m }) as ColState;
   };
 
@@ -314,7 +308,7 @@ export default function RateCalculator() {
                 ))}
               </ul>
               <p style={{ marginTop: 28, padding: '18px 20px', borderLeft: '2px solid #1FA3C9', background: '#F4F7FB', fontSize: 16, lineHeight: 1.55, color: '#0A1650' }}>
-                {t('calc.customs_note', { fee: config ? formatEuros(config.customsAdminFeeCents ?? 12500, lang) : '' })}
+                {t('calc.customs_note', { fee: config ? formatEuros(config.customsAdminFeeCents ?? FALLBACK_PRICING_CONFIG.customsAdminFeeCents, lang) : '' })}
               </p>
             </div>
           </div>
@@ -394,8 +388,7 @@ type ColState =
   | PricedResult
   | { kind: 'quote'; mode: Mode; reason: QuoteReason }
   | { kind: 'empty'; mode: Mode }
-  | { kind: 'loading'; mode: Mode }
-  | { kind: 'unavailable'; mode: Mode };
+  | { kind: 'loading'; mode: Mode };
 
 function PresetBtn({ label, onClick }: { label: string; onClick: () => void }) {
   return (
@@ -438,13 +431,6 @@ function ModeColumn({ mode, result, index, config, lang, summaryLines, user, has
           <span style={{ height: 12, width: '90%', borderRadius: 6, background: '#EDF2F9' }} />
           <span style={{ height: 12, width: '60%', borderRadius: 6, background: '#EDF2F9' }} />
           <span style={{ marginTop: 4, fontSize: 13, color: '#4A5A75' }}>{t('calc.loading')}</span>
-        </div>
-      )}
-
-      {result.kind === 'unavailable' && (
-        <div style={{ marginTop: 16, padding: 14, border: '1px dashed rgba(42,67,128,.3)', borderRadius: 12, background: '#F8FAFD' }}>
-          <p style={{ margin: 0, fontSize: 14.5, fontWeight: 500, color: '#0A1650' }}>{t('calc.config_unavailable_title')}</p>
-          <p style={{ marginTop: 6, fontSize: 13.5, lineHeight: 1.5, color: '#4A5A75' }}>{t('calc.config_unavailable')}</p>
         </div>
       )}
 

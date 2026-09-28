@@ -234,7 +234,7 @@ export default function AdminPricing() {
           <section className="rounded-2xl border border-red-200 bg-red-50 p-5">
             <h2 className="text-lg font-semibold text-red-800 mb-2">{t('admin_pricing.sec_errors')}</h2>
             <ul className="list-disc pl-5 text-sm text-red-800 space-y-1">
-              {errors.map((e, i) => <li key={i}>{t(`admin_pricing.err_${e.code}`, e.params)}</li>)}
+              {errors.map((e, i) => <li key={i}>{t(`admin_pricing.err_${e.code}`, { ...e.params, field: e.field })}</li>)}
             </ul>
           </section>
         )}

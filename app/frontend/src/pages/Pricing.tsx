@@ -15,8 +15,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Ed } from '@/components/Ed';
 import { toast } from '@/components/ui/sonner';
 import { urlFor } from '@/lib/url/routes';
-import { fetchActivePricingConfig } from '@/lib/pricing/config';
-import { formatEuros, type Mode as GridMode, type PricingConfig, type QuoteResponse } from '@/lib/pricing/engine';
+import { usePricingConfig } from '@/hooks/usePricingConfig';
+import { formatEuros, type Mode as GridMode, type QuoteResponse } from '@/lib/pricing/engine';
 import {
   emptyPackageLine, gridEstimateLines, quoteFor, tarifsEngineInput, packageLinesSize, type PackageLine,
 } from '@/lib/pricing/surfaces';
@@ -90,7 +90,8 @@ export default function Pricing() {
   const supportEmail    = t('footer.email');
 
   const [cities, setCities] = useState<DestinationCity[]>([]);
-  const [config, setConfig] = useState<PricingConfig | null>(null);
+  // Same grid as /calculateur (database, or the fallback grid when it can't be used).
+  const { config } = usePricingConfig();
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const shield = useFormShield();
@@ -126,8 +127,6 @@ export default function Pricing() {
 
   useEffect(() => {
     fetchDestinationCities().then(setCities);
-    // The live estimate is a bonus: without the grid the form still works.
-    fetchActivePricingConfig().then(setConfig).catch(() => setConfig(null));
   }, []);
 
   const originLabel = useMemo(() => {

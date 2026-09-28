@@ -14,8 +14,9 @@ import {
   emptyQuote, fetchQuote, upsertQuote, professionalMargin,
   type QuoteInput,
 } from '@/lib/quotes';
-import { fetchActivePricingConfig } from '@/lib/pricing/config';
+import { loadPricingConfig } from '@/lib/pricing/config';
 import { formatEuros, type PricingConfig } from '@/lib/pricing/engine';
+import type { PricingSource } from '@/lib/pricing/fallback';
 import { suggestFromGrid, type ProLine, type ProOption } from '@/lib/pricing/pro-suggest';
 import { formatM3, roundM3 } from '@/lib/pricing/volume';
 import { emptyPackageLine, packageLinesSize, type PackageLine } from '@/lib/pricing/surfaces';
@@ -50,6 +51,7 @@ export default function BusinessQuoteForm() {
   const [loading, setLoading] = useState(isEdit);
   const [suggesting, setSuggesting] = useState(false);
   const [gridConfig, setGridConfig] = useState<PricingConfig | null>(null);
+  const [gridSource, setGridSource] = useState<PricingSource | null>(null);
   const [showSuggest, setShowSuggest] = useState(false);
 
   // Package lines — the same editor + rule as /calculateur and /tarifs
@@ -140,9 +142,11 @@ export default function BusinessQuoteForm() {
     if (gridConfig) { setShowSuggest(true); return; }
     setSuggesting(true);
     try {
-      const cfg = await fetchActivePricingConfig();
-      if (!cfg) { toast.error(t('business_quote_form.suggest_config_error')); return; }
-      setGridConfig(cfg);
+      // The database grid, or the fallback grid when it can't be used (the
+      // panel then says so: the price ends up in a saved quote).
+      const grid = await loadPricingConfig();
+      setGridConfig(grid.config);
+      setGridSource(grid.source);
       setShowSuggest(true);
     } catch (err) {
       toast.error(errorMessage(err, t('common.error_generic')));
@@ -301,7 +305,7 @@ export default function BusinessQuoteForm() {
                 </Button>
               </div>
               {suggestion && (
-                <SuggestionPanel suggestion={suggestion} lang={lang} onApply={applyOption} onClose={() => setShowSuggest(false)} />
+                <SuggestionPanel suggestion={suggestion} lang={lang} fallback={gridSource === 'fallback'} onApply={applyOption} onClose={() => setShowSuggest(false)} />
               )}
               <Field label={t('business_quote_form.field_transport_cost')} hint={t('business_quote_form.help_transport_cost')}>
                 <Input type="number" step="0.01" min="0" value={f.transport_cost} onChange={(e) => setF((p) => ({ ...p, transport_cost: Number(e.target.value) }))} required />
@@ -377,9 +381,11 @@ function lineLabel(l: ProLine, t: (k: string) => string): string {
 /** The grid's answer for this quote: one card per applicable product with the
  *  line-by-line breakdown, or an explicit "sur devis" when the grid doesn't
  *  cover it — never a silent 0. */
-function SuggestionPanel({ suggestion, lang, onApply, onClose }: {
+function SuggestionPanel({ suggestion, lang, fallback, onApply, onClose }: {
   suggestion: ReturnType<typeof suggestFromGrid>;
   lang: 'fr' | 'en';
+  /** Priced with the fallback grid (the database grid couldn't be read). */
+  fallback: boolean;
   onApply: (o: Extract<ProOption, { kind: 'price' }>) => void;
   onClose: () => void;
 }) {
@@ -393,6 +399,11 @@ function SuggestionPanel({ suggestion, lang, onApply, onClose }: {
           <X className="h-4 w-4" />
         </button>
       </div>
+      {fallback && (
+        <p className="rounded-md border border-amber-300 bg-amber-50 px-2 py-1.5 text-[11px] leading-snug text-amber-900">
+          {t('business_quote_form.suggest_fallback_notice')}
+        </p>
+      )}
       {suggestion.kind === 'no_grid_for_mode' ? (
         <SurDevis text={t('business_quote_form.suggest_no_grid_road')} />
       ) : suggestion.options.map((o) => (
