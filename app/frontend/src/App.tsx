@@ -1,9 +1,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { RouteErrorBoundary } from '@/components/RouteErrorBoundary';
 import { lazy, Suspense, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { supabase, consumeRecoveryFlag } from '@/lib/supabase';
+import { urlFor } from '@/lib/url/routes';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ProfileProvider } from '@/contexts/ProfileContext';
 import { BusinessProvider } from '@/contexts/BusinessContext';
@@ -44,6 +46,7 @@ const ServiceHomeDelivery = lazy(() => import('@/pages/ServiceHomeDelivery'));
 const ServiceParcelPickup = lazy(() => import('@/pages/ServiceParcelPickup'));
 const Signup = lazy(() => import('@/pages/Signup'));
 const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
 const AuthCallback = lazy(() => import('@/pages/AuthCallback'));
 const Account = lazy(() => import('@/pages/Account'));
 const AccountOrders = lazy(() => import('@/pages/AccountOrders'));
@@ -187,6 +190,7 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
           <Route path={t('/connexion', '/login')} element={<Login />} />
           <Route path={t('/inscription', '/signup')} element={<Signup />} />
           <Route path={t('/mot-de-passe-oublie', '/forgot-password')} element={<ForgotPassword />} />
+          <Route path={t('/nouveau-mot-de-passe', '/new-password')} element={<ResetPassword />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
 
           {/* Onboarding — protected, no shell (focused first-run pick) */}
@@ -308,8 +312,27 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
   );
 }
 
+/**
+ * Password-recovery links open a signed-in session. Without this gate the visitor
+ * simply lands on the page Supabase redirected to (home, or /auth/callback →
+ * dashboard) already logged in, never asked for a new password. When the page
+ * was opened from a recovery link, send them to the "new password" page.
+ */
+function RecoveryGate() {
+  const { i18n } = useTranslation();
+  const navigate = useNavigate();
+  useEffect(() => {
+    const go = () => navigate(urlFor('resetPassword', /^\/en(\/|$)/.test(window.location.pathname) || i18n.language === 'en' ? 'en' : 'fr'), { replace: true });
+    if (consumeRecoveryFlag()) go();
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => { if (event === 'PASSWORD_RECOVERY') go(); });
+    return () => sub.subscription.unsubscribe();
+  }, [navigate, i18n.language]);
+  return null;
+}
+
 const AppRoutes = () => (
   <>
+    <RecoveryGate />
     <LanguageSync />
     <ScrollToTop />
     <AnalyticsTracker />

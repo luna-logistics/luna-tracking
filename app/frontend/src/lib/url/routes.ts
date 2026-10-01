@@ -34,6 +34,7 @@ export type RouteKey =
   | 'login'
   | 'signup'
   | 'forgotPassword'
+  | 'resetPassword'
   | 'authCallback'
   | 'onboarding'
   | 'account'
@@ -101,6 +102,7 @@ export const ROUTES: Record<RouteKey, RouteDef> = {
   login:           { indexable: false, bilingual: true,  fr: '/connexion',          en: '/login' },
   signup:          { indexable: false, bilingual: true,  fr: '/inscription',        en: '/signup' },
   forgotPassword:  { indexable: false, bilingual: true,  fr: '/mot-de-passe-oublie', en: '/forgot-password' },
+  resetPassword:   { indexable: false, bilingual: true,  fr: '/nouveau-mot-de-passe', en: '/new-password' },
   authCallback:    { indexable: false, bilingual: false, fr: '/auth/callback',      en: '/auth/callback' },
   onboarding:      { indexable: false, bilingual: true,  fr: '/bienvenue',          en: '/welcome' },
   account:         { indexable: false, bilingual: true,  fr: '/compte',             en: '/account' },

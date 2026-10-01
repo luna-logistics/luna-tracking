@@ -22,6 +22,24 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   );
 }
 
+// A password-recovery link lands as <page>#access_token=…&type=recovery. supabase-js
+// reads the token and cleans the URL right away, so remember it BEFORE that happens:
+// App's RecoveryGate then sends the visitor to the "new password" page, whichever
+// page Supabase redirected to (the allowed redirect list may fall back to the home page).
+const RECOVERY_FLAG = 'luna_password_recovery';
+if (typeof window !== 'undefined' && /(^|[#&?])type=recovery(&|$)/.test(window.location.hash + window.location.search)) {
+  try { sessionStorage.setItem(RECOVERY_FLAG, '1'); } catch { /* storage blocked: the auth event below still covers it */ }
+}
+
+/** True once per recovery link: the visitor must now choose a new password. */
+export function consumeRecoveryFlag(): boolean {
+  try {
+    const v = sessionStorage.getItem(RECOVERY_FLAG) === '1';
+    if (v) sessionStorage.removeItem(RECOVERY_FLAG);
+    return v;
+  } catch { return false; }
+}
+
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     persistSession: true,
