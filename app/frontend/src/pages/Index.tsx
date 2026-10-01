@@ -54,20 +54,20 @@ export default function Index() {
 
   // Capability strip — 5 short labels + links
   const caps = [
-    { icon: Plane,       label: t('home.cap_air'),      shortLabel: t('home.cap_air_short'),      href: `${urlFor('pricing', lang)}?mode=air` },
-    { icon: Ship,        label: t('home.cap_sea'),      shortLabel: t('home.cap_sea_short'),      href: `${urlFor('pricing', lang)}?mode=sea` },
+    { icon: Plane,       label: t('home.cap_air'),      shortLabel: t('home.cap_air_short'),      href: urlFor('serviceAir', lang) },
+    { icon: Ship,        label: t('home.cap_sea'),      shortLabel: t('home.cap_sea_short'),      href: urlFor('serviceSea', lang) },
     { icon: Search,      label: t('home.cap_tracking'), shortLabel: t('home.cap_tracking_short'), href: urlFor('tracking', lang) },
-    { icon: Home,        label: t('home.cap_home'),     shortLabel: t('home.cap_home_short'),     href: urlFor('pricing', lang) },
-    { icon: PackagePlus, label: t('home.cap_pickup'),   shortLabel: t('home.cap_pickup_short'),   href: urlFor('pricing', lang) },
+    { icon: Home,        label: t('home.cap_home'),     shortLabel: t('home.cap_home_short'),     href: urlFor('serviceHome', lang) },
+    { icon: PackagePlus, label: t('home.cap_pickup'),   shortLabel: t('home.cap_pickup_short'),   href: urlFor('servicePickup', lang) },
   ];
 
   // Five "expertises" cards with short body for mobile
   const cards = [
-    { key: 'air',      icon: Plane,       image: '/images/services/service-air-freight.webp',      alt: t('home.pillar_air_alt'),      title: useContent('home', 'pillar_air_title',      t('home.pillar_air_title')),      body: useContent('home', 'pillar_air_body',      t('home.pillar_air_body')),      shortBody: t('home.pillar_air_short'),      href: `${urlFor('pricing', lang)}?mode=air` },
-    { key: 'sea',      icon: Ship,        image: '/images/services/service-sea-freight.webp',      alt: t('home.pillar_sea_alt'),      title: useContent('home', 'pillar_sea_title',      t('home.pillar_sea_title')),      body: useContent('home', 'pillar_sea_body',      t('home.pillar_sea_body')),      shortBody: t('home.pillar_sea_short'),      href: `${urlFor('pricing', lang)}?mode=sea` },
+    { key: 'air',      icon: Plane,       image: '/images/services/service-air-freight.webp',      alt: t('home.pillar_air_alt'),      title: useContent('home', 'pillar_air_title',      t('home.pillar_air_title')),      body: useContent('home', 'pillar_air_body',      t('home.pillar_air_body')),      shortBody: t('home.pillar_air_short'),      href: urlFor('serviceAir', lang) },
+    { key: 'sea',      icon: Ship,        image: '/images/services/service-sea-freight.webp',      alt: t('home.pillar_sea_alt'),      title: useContent('home', 'pillar_sea_title',      t('home.pillar_sea_title')),      body: useContent('home', 'pillar_sea_body',      t('home.pillar_sea_body')),      shortBody: t('home.pillar_sea_short'),      href: urlFor('serviceSea', lang) },
     { key: 'tracking', icon: Search,      image: lang === 'en' ? '/images/services/online-parcel-tracking-luna-tracking.webp?v=3' : '/images/services/suivi-colis-en-ligne-luna-tracking.webp?v=3', alt: t('home.pillar_tracking_alt'), title: useContent('home', 'pillar_tracking_title', t('home.pillar_tracking_title')), body: useContent('home', 'pillar_tracking_body', t('home.pillar_tracking_body')), shortBody: t('home.pillar_tracking_short'), href: urlFor('tracking', lang) },
-    { key: 'home',     icon: Home,        image: '/images/services/livraison-domicile-luna-tracking.webp', alt: t('home.pillar_home_alt'),     title: useContent('home', 'pillar_home_title',     t('home.pillar_home_title')),     body: useContent('home', 'pillar_home_body',     t('home.pillar_home_body')),     shortBody: t('home.pillar_home_short'),     href: urlFor('pricing', lang) },
-    { key: 'pickup',   icon: PackagePlus, image: '/images/services/enlevement-colis-camionnette-luna-tracking.webp', alt: t('home.pillar_pickup_alt'),   title: useContent('home', 'pillar_pickup_title',   t('home.pillar_pickup_title')),   body: useContent('home', 'pillar_pickup_body',   t('home.pillar_pickup_body')),   shortBody: t('home.pillar_pickup_short'),   href: urlFor('pricing', lang) },
+    { key: 'home',     icon: Home,        image: '/images/services/livraison-domicile-luna-tracking.webp', alt: t('home.pillar_home_alt'),     title: useContent('home', 'pillar_home_title',     t('home.pillar_home_title')),     body: useContent('home', 'pillar_home_body',     t('home.pillar_home_body')),     shortBody: t('home.pillar_home_short'),     href: urlFor('serviceHome', lang) },
+    { key: 'pickup',   icon: PackagePlus, image: '/images/services/enlevement-colis-camionnette-luna-tracking.webp', alt: t('home.pillar_pickup_alt'),   title: useContent('home', 'pillar_pickup_title',   t('home.pillar_pickup_title')),   body: useContent('home', 'pillar_pickup_body',   t('home.pillar_pickup_body')),   shortBody: t('home.pillar_pickup_short'),   href: urlFor('servicePickup', lang) },
   ];
 
   const steps = [
