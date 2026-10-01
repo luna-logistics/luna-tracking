@@ -27,6 +27,10 @@ export type RouteKey =
   | 'contact'
   | 'shopAndShip'
   | 'forwarding'
+  | 'serviceAir'
+  | 'serviceSea'
+  | 'serviceHome'
+  | 'servicePickup'
   | 'login'
   | 'signup'
   | 'forgotPassword'
@@ -90,6 +94,10 @@ export const ROUTES: Record<RouteKey, RouteDef> = {
   contact:         { indexable: true,  bilingual: true,  fr: '/contact',            en: '/contact' },
   shopAndShip:     { indexable: true,  bilingual: true,  fr: '/achat-envoi',        en: '/shop-and-ship' },
   forwarding:      { indexable: true,  bilingual: true,  fr: '/reexpedition',       en: '/international-forwarding' },
+  serviceAir:      { indexable: true,  bilingual: true,  fr: '/fret-aerien',             en: '/air-freight' },
+  serviceSea:      { indexable: true,  bilingual: true,  fr: '/fret-maritime',           en: '/sea-freight' },
+  serviceHome:     { indexable: true,  bilingual: true,  fr: '/livraison-domicile-congo', en: '/home-delivery-congo' },
+  servicePickup:   { indexable: true,  bilingual: true,  fr: '/enlevement-colis',        en: '/parcel-pickup' },
   login:           { indexable: false, bilingual: true,  fr: '/connexion',          en: '/login' },
   signup:          { indexable: false, bilingual: true,  fr: '/inscription',        en: '/signup' },
   forgotPassword:  { indexable: false, bilingual: true,  fr: '/mot-de-passe-oublie', en: '/forgot-password' },

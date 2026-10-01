@@ -38,6 +38,10 @@ const Contact = lazy(() => import('@/pages/Contact'));
 const ShopAndShip = lazy(() => import('@/pages/ShopAndShip'));
 const ShopAndShipProduct = lazy(() => import('@/pages/ShopAndShipProduct'));
 const Forwarding = lazy(() => import('@/pages/Forwarding'));
+const ServiceAirFreight = lazy(() => import('@/pages/ServiceAirFreight'));
+const ServiceSeaFreight = lazy(() => import('@/pages/ServiceSeaFreight'));
+const ServiceHomeDelivery = lazy(() => import('@/pages/ServiceHomeDelivery'));
+const ServiceParcelPickup = lazy(() => import('@/pages/ServiceParcelPickup'));
 const Signup = lazy(() => import('@/pages/Signup'));
 const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
 const AuthCallback = lazy(() => import('@/pages/AuthCallback'));
@@ -168,6 +172,10 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
           <Route path={t('/achat-envoi', '/shop-and-ship')} element={<PublicLayout><ShopAndShip /></PublicLayout>} />
           <Route path={t('/achat-envoi/:slug', '/shop-and-ship/:slug')} element={<PublicLayout><ShopAndShipProduct /></PublicLayout>} />
           <Route path={t('/reexpedition', '/international-forwarding')} element={<PublicLayout><Forwarding /></PublicLayout>} />
+          <Route path={t('/fret-aerien', '/air-freight')} element={<PublicLayout><ServiceAirFreight /></PublicLayout>} />
+          <Route path={t('/fret-maritime', '/sea-freight')} element={<PublicLayout><ServiceSeaFreight /></PublicLayout>} />
+          <Route path={t('/livraison-domicile-congo', '/home-delivery-congo')} element={<PublicLayout><ServiceHomeDelivery /></PublicLayout>} />
+          <Route path={t('/enlevement-colis', '/parcel-pickup')} element={<PublicLayout><ServiceParcelPickup /></PublicLayout>} />
           <Route path="/blog" element={<PublicLayout><BlogIndex /></PublicLayout>} />
           <Route path="/blog/:slug" element={<PublicLayout><BlogPost /></PublicLayout>} />
           <Route path={t('/a-propos', '/about')} element={<PublicLayout><About /></PublicLayout>} />

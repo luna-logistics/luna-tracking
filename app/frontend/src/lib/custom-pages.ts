@@ -10,6 +10,8 @@ export const RESERVED_SLUGS = new Set<string>([
   'forgot-password','robots.txt','sitemap.xml','favicon.ico','brand',
   'a-propos','about','mentions-legales','legal-notice','conditions-generales','terms',
   'confidentialite','privacy','calculateur','calculator','docs',
+  'fret-aerien','fret-maritime','livraison-domicile-congo','enlevement-colis',
+  'air-freight','sea-freight','home-delivery-congo','parcel-pickup',
 ]);
 
 export type CustomPage = {

@@ -57,6 +57,10 @@ const ROUTE_I18N = {
   terms:       'legal_terms',
   privacy:     'legal_privacy',
   rateCalculator: 'calc',
+  serviceAir:     'svc_air',
+  serviceSea:     'svc_sea',
+  serviceHome:    'svc_home',
+  servicePickup:  'svc_pickup',
 };
 
 /** RouteKey → site_content page key, where it differs from the i18n key
@@ -86,6 +90,10 @@ const ROUTE_HEADINGS = {
   legalNotice: { h1: 'page_title',   h2s: ['s1_title', 's2_title', 's3_title'] },
   terms:       { h1: 'page_title',   h2s: ['s1_title', 's2_title', 's3_title'] },
   privacy:     { h1: 'page_title',   h2s: ['s1_title', 's2_title', 's3_title'] },
+  serviceAir:    { h1: 'h1', h2s: [] },
+  serviceSea:    { h1: 'h1', h2s: [] },
+  serviceHome:   { h1: 'h1', h2s: [] },
+  servicePickup: { h1: 'h1', h2s: [] },
 };
 
 // ─── Fetch admin overrides + dynamic slugs from Supabase ──────────────────
@@ -264,6 +272,39 @@ function calcFaqScript(lang) {
   return `<script type="application/ld+json" id="calc-faq-jsonld">${json}</script>`;
 }
 
+// ─── Sea-freight page meta ─────────────────────────────────────────────────
+// The /fret-maritime meta description quotes the live sea tiers and the lowest
+// flat carton price. Mirror of seaMetaTiers() / cartonFromCents() / eur() in
+// src/lib/pricing/service-figures.ts (Node can't import the .ts), same source
+// as the page: the active pricing_config row. Without it (no creds, or the row
+// is unreachable) the figure-free sentence is used — same degradation as the
+// calculator FAQ above.
+const activeGrid = pricingRows[0]?.config;
+const eurShort = (cents, lang) => new Intl.NumberFormat(lang === 'en' ? 'en-IE' : 'fr-BE', {
+  style: 'currency', currency: 'EUR', minimumFractionDigits: cents % 100 === 0 ? 0 : 2,
+}).format(cents / 100);
+const numShort = (n, lang) => new Intl.NumberFormat(lang === 'en' ? 'en-IE' : 'fr-BE', { maximumFractionDigits: 3 }).format(n);
+
+function seaMetaDescription(lang) {
+  const s = LOCALES[lang].svc_sea;
+  const tiers = activeGrid?.modes?.sea?.tiers;
+  const flats = (activeGrid?.presets ?? [])
+    .filter((p) => p.seaFlatTransportCents != null && p.lengthCm != null && p.widthCm != null && p.heightCm != null)
+    .map((p) => p.seaFlatTransportCents + activeGrid.handlingFeeCents);
+  if (!Array.isArray(tiers) || tiers.length === 0 || flats.length === 0) {
+    console.warn('[prerender] pricing_config unavailable — /fret-maritime meta uses the figure-free sentence');
+    return s.meta_description_generic;
+  }
+  const sorted = [...tiers].sort((a, b) => a.uptoM3 - b.uptoM3);
+  const phrase = sorted.map((t, i) => (i === 0 ? s.meta_tier_first : s.meta_tier_next)
+    .replace('{{rate}}', eurShort(t.perM3Cents, lang))
+    .replace('{{upto}}', numShort(t.uptoM3, lang))
+    .replace('{{from}}', i === 0 ? '' : numShort(sorted[i - 1].uptoM3, lang))).join(', ');
+  return s.meta_description
+    .replace('{{tiers}}', phrase)
+    .replace('{{cartonFrom}}', eurShort(Math.min(...flats), lang));
+}
+
 async function emitStaticRoute(key, def) {
   if (!def.indexable) return;
   const i18nPage = ROUTE_I18N[key] ?? key;
@@ -273,7 +314,8 @@ async function emitStaticRoute(key, def) {
 
     const contentPage = ROUTE_CONTENT[key] ?? i18nPage;
     const title       = overrideOr(contentPage, lang, 'meta_title',       readI18n(lang, i18nPage, 'meta_title') ?? SITE_NAME);
-    const description = overrideOr(contentPage, lang, 'meta_description', readI18n(lang, i18nPage, 'meta_description') ?? '');
+    const description = overrideOr(contentPage, lang, 'meta_description',
+      key === 'serviceSea' ? seaMetaDescription(lang) : (readI18n(lang, i18nPage, 'meta_description') ?? ''));
 
     const hreflangs = def.bilingual
       ? [
