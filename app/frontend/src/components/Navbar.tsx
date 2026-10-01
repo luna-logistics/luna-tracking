@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Menu, X, UserCircle, LayoutDashboard, Pencil, PencilOff, LogOut } from 'lucide-react';
-import { useState } from 'react';
+import { Menu, X, UserCircle, LayoutDashboard, Pencil, PencilOff, LogOut, ChevronDown } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { urlFor } from '@/lib/url/routes';
 import { useAuth } from '@/contexts/AuthContext';
@@ -28,19 +28,45 @@ export function Navbar() {
   const { user, isAdmin, signOut } = useAuth();
   const { editMode, toggle: toggleEdit } = useEditMode();
   const [open, setOpen] = useState(false);
+  const [servicesOpen, setServicesOpen] = useState(false);
+  const [mobileServicesOpen, setMobileServicesOpen] = useState(false);
+  const servicesRef = useRef<HTMLDivElement>(null);
+
+  // Close the Services dropdown on route change, outside click, or Escape.
+  useEffect(() => { setServicesOpen(false); }, [location.pathname]);
+  useEffect(() => {
+    if (!servicesOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (servicesRef.current && !servicesRef.current.contains(e.target as Node)) setServicesOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setServicesOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
+  }, [servicesOpen]);
 
   const isActive = (path: string) =>
     location.pathname === path || (path !== '/' && path !== '/en' && location.pathname.startsWith(path));
 
-  const links = [
+  // Top-level links, in order, with the "Services" group between the two lists.
+  const linksBefore = [
     { to: urlFor('home', lang), label: t('nav.home') },
     { to: urlFor('tracking', lang), label: t('nav.tracking') },
-    { to: urlFor('shopAndShip', lang), label: t('nav.shop_and_ship') },
-    { to: urlFor('forwarding', lang), label: t('nav.forwarding') },
+  ];
+  const linksAfter = [
     { to: urlFor('blogIndex', lang), label: t('nav.blog') },
     { to: urlFor('pricing', lang), label: t('nav.pricing') },
     { to: urlFor('contact', lang), label: t('nav.contact') },
   ];
+  const serviceLinks = [
+    { to: urlFor('serviceAir', lang), label: t('nav.service_air') },
+    { to: urlFor('serviceSea', lang), label: t('nav.service_sea') },
+    { to: urlFor('serviceHome', lang), label: t('nav.service_home') },
+    { to: urlFor('servicePickup', lang), label: t('nav.service_pickup') },
+    { to: urlFor('shopAndShip', lang), label: t('nav.shop_and_ship') },
+    { to: urlFor('forwarding', lang), label: t('nav.forwarding') },
+  ];
+  const servicesActive = serviceLinks.some((l) => isActive(l.to));
 
   const pill = (active: boolean) =>
     cn(
@@ -49,6 +75,23 @@ export function Navbar() {
         ? 'bg-luna-aqua border-luna-aqua text-luna-ink font-semibold hover:bg-luna-aqua2 hover:border-luna-aqua2'
         : 'bg-luna-royal border-luna-hair text-[#E4EDF9] font-medium hover:bg-luna-azure hover:border-[#4A6FA0]',
     );
+
+  const mobileLink = (l: { to: string; label: string }) => (
+    <Link
+      key={l.to}
+      to={l.to}
+      onClick={() => setOpen(false)}
+      aria-current={isActive(l.to) ? 'page' : undefined}
+      className={cn(
+        'px-3 py-2.5 rounded-lg text-[12.5px] transition-colors border lg:px-4 lg:py-3 lg:text-[13px]',
+        isActive(l.to)
+          ? 'bg-luna-aqua border-luna-aqua text-luna-ink font-semibold'
+          : 'bg-luna-royal border-luna-hair text-[#E4EDF9] font-medium',
+      )}
+    >
+      {l.label}
+    </Link>
+  );
 
   return (
     <header className="sticky top-0 z-40 w-full bg-luna-ink border-b border-luna-aqua/20">
@@ -64,7 +107,45 @@ export function Navbar() {
 
         {/* Inline nav — centered, single row (>= navfull) */}
         <nav className="hidden navfull:flex flex-1 min-w-0 items-center justify-center gap-1.5 xl:gap-2" aria-label={t('nav.main_navigation')}>
-          {links.map((l) => (
+          {linksBefore.map((l) => (
+            <Link key={l.to} to={l.to} aria-current={isActive(l.to) ? 'page' : undefined} className={pill(isActive(l.to))}>
+              {l.label}
+            </Link>
+          ))}
+
+          {/* Services — one clickable menu that groups the service pages */}
+          <div ref={servicesRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setServicesOpen((v) => !v)}
+              aria-expanded={servicesOpen}
+              aria-haspopup="true"
+              aria-controls="services-menu"
+              className={cn(pill(servicesActive), 'inline-flex items-center gap-1.5')}
+            >
+              {t('nav.services')}
+              <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', servicesOpen && 'rotate-180')} aria-hidden="true" />
+            </button>
+            {servicesOpen && (
+              <div id="services-menu" className="absolute left-1/2 top-full z-50 mt-2 w-60 -translate-x-1/2 rounded-xl border border-luna-hair bg-luna-ink p-2 shadow-lg">
+                {serviceLinks.map((l) => (
+                  <Link
+                    key={l.to}
+                    to={l.to}
+                    aria-current={isActive(l.to) ? 'page' : undefined}
+                    className={cn(
+                      'block rounded-lg px-3 py-2 text-[13px] whitespace-nowrap transition-colors',
+                      isActive(l.to) ? 'bg-luna-aqua font-semibold text-luna-ink' : 'font-medium text-[#E4EDF9] hover:bg-luna-azure',
+                    )}
+                  >
+                    {l.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {linksAfter.map((l) => (
             <Link key={l.to} to={l.to} aria-current={isActive(l.to) ? 'page' : undefined} className={pill(isActive(l.to))}>
               {l.label}
             </Link>
@@ -150,22 +231,31 @@ export function Navbar() {
       {open && (
         <nav id="mobile-nav" className="navfull:hidden border-t border-luna-hair bg-luna-ink px-4 sm:px-8 py-3 lg:px-5 lg:py-4" aria-label={t('nav.main_navigation')}>
           <div className="grid grid-cols-2 gap-1.5 lg:gap-2">
-            {links.map((l) => (
-              <Link
-                key={l.to}
-                to={l.to}
-                onClick={() => setOpen(false)}
-                aria-current={isActive(l.to) ? 'page' : undefined}
-                className={cn(
-                  'px-3 py-2.5 rounded-lg text-[12.5px] transition-colors border lg:px-4 lg:py-3 lg:text-[13px]',
-                  isActive(l.to)
-                    ? 'bg-luna-aqua border-luna-aqua text-luna-ink font-semibold'
-                    : 'bg-luna-royal border-luna-hair text-[#E4EDF9] font-medium',
-                )}
-              >
-                {l.label}
-              </Link>
-            ))}
+            {linksBefore.map(mobileLink)}
+
+            {/* Services — expandable group, full width */}
+            <button
+              type="button"
+              onClick={() => setMobileServicesOpen((v) => !v)}
+              aria-expanded={mobileServicesOpen}
+              aria-controls="services-menu-mobile"
+              className={cn(
+                'col-span-2 flex items-center justify-between px-3 py-2.5 rounded-lg text-[12.5px] transition-colors border lg:px-4 lg:py-3 lg:text-[13px]',
+                servicesActive
+                  ? 'bg-luna-aqua border-luna-aqua text-luna-ink font-semibold'
+                  : 'bg-luna-royal border-luna-hair text-[#E4EDF9] font-medium',
+              )}
+            >
+              {t('nav.services')}
+              <ChevronDown className={cn('h-4 w-4 transition-transform', mobileServicesOpen && 'rotate-180')} aria-hidden="true" />
+            </button>
+            {mobileServicesOpen && (
+              <div id="services-menu-mobile" className="col-span-2 grid grid-cols-2 gap-1.5 rounded-lg border border-luna-hair/60 p-1.5 lg:gap-2">
+                {serviceLinks.map(mobileLink)}
+              </div>
+            )}
+
+            {linksAfter.map(mobileLink)}
           </div>
         </nav>
       )}
