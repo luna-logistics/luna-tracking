@@ -16,7 +16,7 @@ const fmtNum = (n: number, digits: number) => `${Number(n.toFixed(digits))}`;
  * line, never just the first, and a line missing its weight or dimensions is
  * never guessed (the warning below says what is missing).
  */
-export function PackageLinesEditor({ lines, onChange, size, idPrefix, placeholders, inputStyle, minLines = 1 }: {
+export function PackageLinesEditor({ lines, onChange, size, idPrefix, placeholders, inputStyle, minLines = 1, hideVolumeTotal = false }: {
   lines: PackageLine[];
   onChange: (lines: PackageLine[]) => void;
   /** packageLinesSize(lines), computed by the parent (it also prices with it). */
@@ -29,6 +29,8 @@ export function PackageLinesEditor({ lines, onChange, size, idPrefix, placeholde
   inputStyle?: CSSProperties;
   /** Lines that can't be removed (the remove button disables at this count). */
   minLines?: number;
+  /** Leave the total volume out of the totals line (the host page already shows it). */
+  hideVolumeTotal?: boolean;
 }) {
   const { t, i18n } = useTranslation();
   // Decimal comma in French (the fields accept both).
@@ -44,7 +46,7 @@ export function PackageLinesEditor({ lines, onChange, size, idPrefix, placeholde
   };
   const totals = [
     size.totalWeightKg != null ? `${loc(fmtNum(size.totalWeightKg, 3))} kg` : '—',
-    size.totalVolumeM3 != null ? `${loc(formatM3(size.totalVolumeM3))} m³` : null,
+    size.totalVolumeM3 != null && !hideVolumeTotal ? `${loc(formatM3(size.totalVolumeM3))} m³` : null,
   ].filter(Boolean).join(' · ');
 
   return (

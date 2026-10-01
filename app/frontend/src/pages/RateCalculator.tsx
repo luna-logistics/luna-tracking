@@ -222,7 +222,7 @@ export default function RateCalculator() {
                 </div>
 
                 <div style={{ gridColumn: '1 / -1' }}>
-                  <PackageLinesEditor idPrefix="luna-calc" lines={lines} onChange={setLines} size={size}
+                  <PackageLinesEditor idPrefix="luna-calc" lines={lines} onChange={setLines} size={size} hideVolumeTotal
                     placeholders={{ length: '60', width: '40', height: '40', weight: '6' }}
                     inputStyle={{ height: 46, borderRadius: 10, borderColor: 'rgba(42,67,128,.24)', fontSize: 16, fontVariantNumeric: 'tabular-nums' }} />
                   <p style={NOTE}>{t('calc.dims_hint')}</p>
