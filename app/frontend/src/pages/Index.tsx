@@ -277,7 +277,7 @@ export default function Index() {
                   to={c.href}
                   className={`group flex flex-col overflow-hidden rounded-[10px] border border-[#DCE5F0] bg-white transition-shadow hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-luna-royal ${i === cards.length - 1 ? 'md:col-span-2' : ''}`}
                 >
-                  <div className="h-[140px] overflow-hidden">
+                  <div className={`overflow-hidden ${i === cards.length - 1 ? 'h-[140px] md:h-[250px]' : 'h-[140px]'}`}>
                     <img src={c.image} alt={c.alt} width={800} height={320} loading="lazy" decoding="async" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
                   </div>
                   <div className="flex flex-1 flex-col px-[18px] pb-5 pt-4">
@@ -303,7 +303,7 @@ export default function Index() {
                   to={c.href}
                   className={`group flex flex-col overflow-hidden rounded-[10px] border border-[#DCE5F0] bg-white transition-shadow hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-luna-royal ${i < 3 ? 'nav:col-span-2' : 'nav:col-span-3'}`}
                 >
-                  <div className="h-40 overflow-hidden">
+                  <div className={`overflow-hidden ${i < 3 ? 'h-40' : 'h-40 nav:h-[290px]'}`}>
                     {c.image ? (
                       <img src={c.image} alt={c.alt} width={800} height={320} loading="lazy" decoding="async" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
                     ) : (
