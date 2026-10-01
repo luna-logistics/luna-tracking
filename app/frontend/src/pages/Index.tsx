@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  Plane, Ship, Truck, Search, Home, PackagePlus,
+  Plane, Ship, Search, Home, PackagePlus,
   ArrowRight, Package, ClipboardList, HandCoins, MapPinned,
   ChevronRight, Phone,
 } from 'lucide-react';
@@ -52,21 +52,19 @@ export default function Index() {
     }
   }, []);
 
-  // Capability strip — 6 short labels + links
+  // Capability strip — 5 short labels + links
   const caps = [
     { icon: Plane,       label: t('home.cap_air'),      shortLabel: t('home.cap_air_short'),      href: `${urlFor('pricing', lang)}?mode=air` },
     { icon: Ship,        label: t('home.cap_sea'),      shortLabel: t('home.cap_sea_short'),      href: `${urlFor('pricing', lang)}?mode=sea` },
-    { icon: Truck,       label: t('home.cap_ground'),   shortLabel: t('home.cap_ground_short'),   href: `${urlFor('pricing', lang)}?mode=ground` },
     { icon: Search,      label: t('home.cap_tracking'), shortLabel: t('home.cap_tracking_short'), href: urlFor('tracking', lang) },
     { icon: Home,        label: t('home.cap_home'),     shortLabel: t('home.cap_home_short'),     href: urlFor('pricing', lang) },
     { icon: PackagePlus, label: t('home.cap_pickup'),   shortLabel: t('home.cap_pickup_short'),   href: urlFor('pricing', lang) },
   ];
 
-  // Six "expertises" cards with short body for mobile
+  // Five "expertises" cards with short body for mobile
   const cards = [
     { key: 'air',      icon: Plane,       image: '/images/services/service-air-freight.webp',      alt: t('home.pillar_air_alt'),      title: useContent('home', 'pillar_air_title',      t('home.pillar_air_title')),      body: useContent('home', 'pillar_air_body',      t('home.pillar_air_body')),      shortBody: t('home.pillar_air_short'),      href: `${urlFor('pricing', lang)}?mode=air` },
     { key: 'sea',      icon: Ship,        image: '/images/services/service-sea-freight.webp',      alt: t('home.pillar_sea_alt'),      title: useContent('home', 'pillar_sea_title',      t('home.pillar_sea_title')),      body: useContent('home', 'pillar_sea_body',      t('home.pillar_sea_body')),      shortBody: t('home.pillar_sea_short'),      href: `${urlFor('pricing', lang)}?mode=sea` },
-    { key: 'ground',   icon: Truck,       image: '/images/services/service-ground-transport.webp', alt: t('home.pillar_ground_alt'),   title: useContent('home', 'pillar_ground_title',   t('home.pillar_ground_title')),   body: useContent('home', 'pillar_ground_body',   t('home.pillar_ground_body')),   shortBody: t('home.pillar_ground_short'),   href: `${urlFor('pricing', lang)}?mode=ground` },
     { key: 'tracking', icon: Search,      image: lang === 'en' ? '/images/services/online-parcel-tracking-luna-tracking.webp?v=3' : '/images/services/suivi-colis-en-ligne-luna-tracking.webp?v=3', alt: t('home.pillar_tracking_alt'), title: useContent('home', 'pillar_tracking_title', t('home.pillar_tracking_title')), body: useContent('home', 'pillar_tracking_body', t('home.pillar_tracking_body')), shortBody: t('home.pillar_tracking_short'), href: urlFor('tracking', lang) },
     { key: 'home',     icon: Home,        image: '/images/services/livraison-domicile-luna-tracking.webp', alt: t('home.pillar_home_alt'),     title: useContent('home', 'pillar_home_title',     t('home.pillar_home_title')),     body: useContent('home', 'pillar_home_body',     t('home.pillar_home_body')),     shortBody: t('home.pillar_home_short'),     href: urlFor('pricing', lang) },
     { key: 'pickup',   icon: PackagePlus, image: '/images/services/enlevement-colis-camionnette-luna-tracking.webp', alt: t('home.pillar_pickup_alt'),   title: useContent('home', 'pillar_pickup_title',   t('home.pillar_pickup_title')),   body: useContent('home', 'pillar_pickup_body',   t('home.pillar_pickup_body')),   shortBody: t('home.pillar_pickup_short'),   href: urlFor('pricing', lang) },
@@ -213,9 +211,9 @@ export default function Index() {
               className="overflow-hidden rounded-[10px] border border-[#4A6FA0]/70"
               style={{ marginTop: 'clamp(28px,4vw,84px)' }}
             >
-              <div className="grid grid-cols-2 gap-px bg-[#4A6FA0]/45 nav:grid-cols-3">
-                {caps.map((c) => (
-                  <div key={c.label} className="flex min-w-0 items-center gap-3 bg-luna-ink/80 px-4 py-[18px] sm:px-6">
+              <div className="grid grid-cols-2 gap-px bg-[#4A6FA0]/45 nav:grid-cols-6">
+                {caps.map((c, i) => (
+                  <div key={c.label} className={`flex min-w-0 items-center gap-3 bg-luna-ink/80 px-4 py-[18px] sm:px-6 ${i < 3 ? 'nav:col-span-2' : 'nav:col-span-3'} ${i === caps.length - 1 ? 'col-span-2' : ''}`}>
                     <c.icon className="h-[22px] w-[22px] shrink-0 text-luna-aqua" />
                     <span className="text-[13px] font-medium text-white">{c.label}</span>
                   </div>
@@ -233,7 +231,7 @@ export default function Index() {
       </section>
 
       <div className="bg-luna-mist">
-        {/* ── Nos expertises — 6 cards ── */}
+        {/* ── Nos expertises — 5 cards ── */}
         <Block name="home-pillars">
           <section className="mx-auto max-w-[1220px] px-4 pt-[26px] pb-5 md:px-[26px] md:py-10 lg:px-10 lg:pt-16 lg:pb-[52px]">
             <div className="mb-3 max-w-[44em] lg:mb-6 lg:mb-[clamp(32px,4vw,48px)]">
@@ -273,11 +271,11 @@ export default function Index() {
 
             {/* md: 2-col grid with smaller images */}
             <div className="hidden md:grid md:grid-cols-2 md:gap-[14px] lg:hidden">
-              {cards.map((c) => (
+              {cards.map((c, i) => (
                 <Link
                   key={c.key}
                   to={c.href}
-                  className="group flex flex-col overflow-hidden rounded-[10px] border border-[#DCE5F0] bg-white transition-shadow hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-luna-royal"
+                  className={`group flex flex-col overflow-hidden rounded-[10px] border border-[#DCE5F0] bg-white transition-shadow hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-luna-royal ${i === cards.length - 1 ? 'md:col-span-2' : ''}`}
                 >
                   <div className="h-[140px] overflow-hidden">
                     <img src={c.image} alt={c.alt} width={800} height={320} loading="lazy" decoding="async" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
@@ -297,13 +295,13 @@ export default function Index() {
               ))}
             </div>
 
-            {/* lg: original 3-col layout (unchanged) */}
-            <div className="hidden lg:grid lg:gap-5 nav:grid-cols-3">
-              {cards.map((c) => (
+            {/* lg: 3 cards, then 2 wider ones (5 cards on a 6-column grid) */}
+            <div className="hidden lg:grid lg:gap-5 nav:grid-cols-6">
+              {cards.map((c, i) => (
                 <Link
                   key={c.key}
                   to={c.href}
-                  className="group flex flex-col overflow-hidden rounded-[10px] border border-[#DCE5F0] bg-white transition-shadow hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-luna-royal"
+                  className={`group flex flex-col overflow-hidden rounded-[10px] border border-[#DCE5F0] bg-white transition-shadow hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-luna-royal ${i < 3 ? 'nav:col-span-2' : 'nav:col-span-3'}`}
                 >
                   <div className="h-40 overflow-hidden">
                     {c.image ? (

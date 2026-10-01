@@ -82,8 +82,6 @@ export const EDITABLE_PAGES: EditablePage[] = [
       { key: 'pillar_air_body',       kind: 'textarea', i18nKey: 'home.pillar_air_body',       labelFr: 'Pilier — Fret aérien (texte)', labelEn: 'Pillar — Air freight (body)' },
       { key: 'pillar_sea_title',      kind: 'text',     i18nKey: 'home.pillar_sea_title',      labelFr: 'Pilier — Fret maritime (titre)', labelEn: 'Pillar — Sea freight (title)' },
       { key: 'pillar_sea_body',       kind: 'textarea', i18nKey: 'home.pillar_sea_body',       labelFr: 'Pilier — Fret maritime (texte)', labelEn: 'Pillar — Sea freight (body)' },
-      { key: 'pillar_ground_title',   kind: 'text',     i18nKey: 'home.pillar_ground_title',   labelFr: 'Pilier — Transport terrestre (titre)', labelEn: 'Pillar — Ground transport (title)' },
-      { key: 'pillar_ground_body',    kind: 'textarea', i18nKey: 'home.pillar_ground_body',    labelFr: 'Pilier — Transport terrestre (texte)', labelEn: 'Pillar — Ground transport (body)' },
       { key: 'pillar_tracking_title', kind: 'text',     i18nKey: 'home.pillar_tracking_title', labelFr: 'Pilier — Suivi (titre)', labelEn: 'Pillar — Tracking (title)' },
       { key: 'pillar_tracking_body',  kind: 'textarea', i18nKey: 'home.pillar_tracking_body',  labelFr: 'Pilier — Suivi (texte)', labelEn: 'Pillar — Tracking (body)' },
       { key: 'pillar_home_title',     kind: 'text',     i18nKey: 'home.pillar_home_title',     labelFr: 'Pilier — Livraison à domicile (titre)', labelEn: 'Pillar — Home delivery (title)' },

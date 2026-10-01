@@ -44,7 +44,7 @@ import {
  * retypes what they just estimated.
  */
 
-type Mode = 'any' | 'air' | 'sea' | 'ground';
+type Mode = 'any' | 'air' | 'sea';
 
 /** Departure cities we serve from Belgium — a closed list, like the
  *  destination side, plus "other" with a free-text field. */
@@ -67,14 +67,12 @@ const GRID_MODES: Record<Mode, GridMode[]> = {
   any: ['express', 'cargo', 'sea'],
   air: ['express', 'cargo'],
   sea: ['sea'],
-  ground: [],
 };
 
 const fmtNum = (n: number, digits: number) => `${Number(n.toFixed(digits))}`;
 
 function modeFromParam(v: string | null): Mode {
   if (v === 'air' || v === 'sea') return v;
-  if (v === 'road' || v === 'ground') return 'ground';
   return 'any';
 }
 
@@ -353,7 +351,6 @@ export default function Pricing() {
                         <SelectItem value="any">{t('pricing.mode_any')}</SelectItem>
                         <SelectItem value="air">{t('pricing.mode_air')}</SelectItem>
                         <SelectItem value="sea">{t('pricing.mode_sea')}</SelectItem>
-                        <SelectItem value="ground">{t('pricing.mode_ground')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -463,31 +460,27 @@ function EstimatePanel({ estimate, mode, lang, volumeM3 }: {
   return (
     <div className="rounded-xl border border-luna-blue/25 bg-luna-blue/5 p-4" aria-live="polite">
       <p className="text-xs font-semibold uppercase tracking-wide text-luna-blue">{t('pricing.estimate_title')}</p>
-      {modes.length === 0 ? (
-        <p className="mt-2 text-sm text-slate-700">{t('pricing.estimate_ground')}</p>
-      ) : (
-        <ul className="mt-2 divide-y divide-luna-blue/10">
-          {modes.map((m) => {
-            const r = estimate[m];
-            return (
-              <li key={m} className="flex items-baseline justify-between gap-3 py-1.5 text-sm">
-                <span className="text-luna-navy">{t(`calc.mode_${m}`)}</span>
-                {r.kind === 'price' && (
-                  <span className="font-semibold tabular-nums text-luna-navy">{formatEuros(r.totalCents, lang)}</span>
-                )}
-                {r.kind === 'quote' && (
-                  <span className="text-right text-xs text-slate-600">
-                    <span className="font-medium">{t('grid_estimate.sur_devis')}</span> — {t(`calc.quote_reason_${r.reason}`)}
-                  </span>
-                )}
-                {r.kind === 'empty' && (
-                  <span className="text-right text-xs text-slate-500">{t(m === 'sea' ? 'calc.empty_sea' : 'calc.empty_air')}</span>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
+      <ul className="mt-2 divide-y divide-luna-blue/10">
+        {modes.map((m) => {
+          const r = estimate[m];
+          return (
+            <li key={m} className="flex items-baseline justify-between gap-3 py-1.5 text-sm">
+              <span className="text-luna-navy">{t(`calc.mode_${m}`)}</span>
+              {r.kind === 'price' && (
+                <span className="font-semibold tabular-nums text-luna-navy">{formatEuros(r.totalCents, lang)}</span>
+              )}
+              {r.kind === 'quote' && (
+                <span className="text-right text-xs text-slate-600">
+                  <span className="font-medium">{t('grid_estimate.sur_devis')}</span> — {t(`calc.quote_reason_${r.reason}`)}
+                </span>
+              )}
+              {r.kind === 'empty' && (
+                <span className="text-right text-xs text-slate-500">{t(m === 'sea' ? 'calc.empty_sea' : 'calc.empty_air')}</span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
       {volumetric && volumetric.kind === 'price' && volumeM3 != null && (
         <p className="mt-2 rounded-lg bg-white/70 px-3 py-2 text-xs text-slate-700">
           {t('pricing.estimate_volumetric', {
