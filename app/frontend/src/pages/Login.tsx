@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/PasswordInput';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase';
 import { urlFor } from '@/lib/url/routes';
@@ -59,7 +60,7 @@ export default function Login() {
             </div>
             <div>
               <Label htmlFor="password">{t('auth.password_label')}</Label>
-              <Input id="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1.5" />
+              <div className="mt-1.5"><PasswordInput id="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} /></div>
               <div className="mt-1 text-right">
                 <Link to={urlFor('forgotPassword', lang)} className="text-xs text-luna-blue hover:underline">
                   {t('auth.forgot_password')}

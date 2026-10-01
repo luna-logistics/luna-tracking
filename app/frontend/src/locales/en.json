@@ -612,6 +612,8 @@
     "signup_intro": "One account to track shipments, keep history and retrieve invoices.",
     "email_label": "Email",
     "password_label": "Password",
+    "show_password": "Show password",
+    "hide_password": "Hide password",
     "login_submit": "Sign in",
     "signup_submit": "Create my account",
     "forgot_password": "Forgot your password?",

@@ -5,6 +5,7 @@ import { MailCheck } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/PasswordInput';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase';
 import { urlFor } from '@/lib/url/routes';
@@ -107,7 +108,7 @@ export default function Signup() {
             </div>
             <div>
               <Label htmlFor="password">{t('auth.password_label')}</Label>
-              <Input id="password" type="password" autoComplete="new-password" minLength={8} required value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1.5" />
+              <div className="mt-1.5"><PasswordInput id="password" autoComplete="new-password" minLength={8} required value={password} onChange={(e) => setPassword(e.target.value)} /></div>
             </div>
             <Button type="submit" variant="navy" className="w-full" disabled={submitting}>
               {submitting ? t('common.loading') : t('auth.signup_submit')}

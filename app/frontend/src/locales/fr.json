@@ -612,6 +612,8 @@
     "signup_intro": "Un compte pour suivre vos envois, garder l'historique et retrouver vos factures.",
     "email_label": "E-mail",
     "password_label": "Mot de passe",
+    "show_password": "Afficher le mot de passe",
+    "hide_password": "Masquer le mot de passe",
     "login_submit": "Se connecter",
     "signup_submit": "Créer mon compte",
     "forgot_password": "Mot de passe oublié ?",

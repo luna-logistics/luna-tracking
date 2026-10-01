@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/PasswordInput';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase';
 import { urlFor } from '@/lib/url/routes';
@@ -77,14 +77,18 @@ export default function ResetPassword() {
               <form onSubmit={onSubmit} className="mt-6 space-y-4">
                 <div>
                   <Label htmlFor="new-password">{t('auth.reset_password_label')}</Label>
-                  <Input id="new-password" type="password" autoComplete="new-password" minLength={MIN_LENGTH} required autoFocus
-                    value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1.5" />
+                  <div className="mt-1.5">
+                    <PasswordInput id="new-password" autoComplete="new-password" minLength={MIN_LENGTH} required autoFocus
+                      value={password} onChange={(e) => setPassword(e.target.value)} />
+                  </div>
                   <p className="mt-1 text-xs text-slate-500">{t('auth.reset_hint', { min: MIN_LENGTH })}</p>
                 </div>
                 <div>
                   <Label htmlFor="confirm-password">{t('auth.reset_confirm_label')}</Label>
-                  <Input id="confirm-password" type="password" autoComplete="new-password" minLength={MIN_LENGTH} required
-                    value={confirm} onChange={(e) => setConfirm(e.target.value)} className="mt-1.5" />
+                  <div className="mt-1.5">
+                    <PasswordInput id="confirm-password" autoComplete="new-password" minLength={MIN_LENGTH} required
+                      value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+                  </div>
                 </div>
                 {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
                 <Button type="submit" variant="navy" className="w-full" disabled={submitting}>
