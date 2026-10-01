@@ -632,12 +632,16 @@ function WorkedExample({ titleKey, mode, input, config, lang }: {
       {r.kind === 'price' && (
         <>
           <ul style={{ marginTop: 18, paddingTop: 16, borderTop: HAIR, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 11, margin: '18px 0 0' }}>
-            {r.volumetricWeightKg != null && (
-              <li style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                <span style={{ fontSize: 15, color: '#0A1650' }}>{t('calc.vol_weight')}</span>
-                <span style={{ fontSize: 15, fontVariantNumeric: 'tabular-nums' }}>{fmtKg(r.volumetricWeightKg)} kg</span>
-              </li>
-            )}
+            {r.volumetricWeightKg != null && (() => {
+              // Volumetric weight above the actual weight: show the excess that is billed extra.
+              const excessKg = r.lines.find((l) => l.key === 'volumetric_diff')?.qtyKg;
+              return (
+                <li style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                  <span style={{ fontSize: 15, color: '#0A1650' }}>{t(excessKg != null ? 'calc.vol_excess' : 'calc.vol_weight')}</span>
+                  <span style={{ fontSize: 15, fontVariantNumeric: 'tabular-nums' }}>{fmtKg(excessKg ?? (r.volumetricWeightKg as number))} kg</span>
+                </li>
+              );
+            })()}
             {r.lines.map((l, i) => (
               <li key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
                 <span style={{ minWidth: 0, fontSize: 15, color: '#0A1650' }}>{t(`calc.line_${l.key}`)}</span>
