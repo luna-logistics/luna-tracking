@@ -486,7 +486,7 @@ function PriceBody({ result, lang, transit }: { result: PricedResult; lang: 'fr'
           <li style={{ ...ROW, ...(volExceedsReal ? { background: '#EAF3FC', border: '1px solid rgba(31,224,240,.4)', borderRadius: 10, padding: '8px 10px', margin: '-1px -10px' } : null) }}>
             <span style={{ minWidth: 0 }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 14.5, color: '#0A1650' }}>{t('calc.vol_weight')}</span>
+                <span style={{ fontSize: 14.5, color: '#0A1650' }}>{t(volExceedsReal ? 'calc.vol_excess' : 'calc.vol_weight')}</span>
                 {volExceedsReal && (
                   <span style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '.02em', color: '#0D2E6B', background: '#fff', border: '1px solid rgba(31,224,240,.6)', borderRadius: 999, padding: '2px 8px', whiteSpace: 'nowrap' }}>
                     {t('calc.vol_surcharge_badge')}
@@ -495,11 +495,11 @@ function PriceBody({ result, lang, transit }: { result: PricedResult; lang: 'fr'
               </span>
               <span style={NOTE}>
                 {volExceedsReal
-                  ? t('calc.note_vol_gt_real', { diff: `${fmtKg(volDiffLine!.qtyKg ?? 0)} kg`, rate: `${formatEuros(volDiffLine!.rateCentsPerKg ?? 0, lang)}/kg` })
+                  ? t('calc.note_vol_gt_real', { vol: `${fmtKg(result.volumetricWeightKg as number)} kg`, diff: `${fmtKg(volDiffLine!.qtyKg ?? 0)} kg`, rate: `${formatEuros(volDiffLine!.rateCentsPerKg ?? 0, lang)}/kg` })
                   : t('calc.note_vol_le_real')}
               </span>
             </span>
-            <span style={{ fontSize: 14.5, color: '#0A1650', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{fmtKg(result.volumetricWeightKg as number)} kg</span>
+            <span style={{ fontSize: 14.5, color: '#0A1650', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{fmtKg(volExceedsReal ? (volDiffLine!.qtyKg ?? 0) : (result.volumetricWeightKg as number))} kg</span>
           </li>
         )}
 
