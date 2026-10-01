@@ -17,6 +17,7 @@
     { "k": "delay" },
     { "k": "deliver_kin" },
     { "k": "other_dest", "link": { "route": "pricing", "labelKey": "l_other_dest" } },
+    { "k": "from_drc", "link": { "route": "pricing", "labelKey": "l_from_drc" } },
     { "k": "devis", "link": { "route": "pricing", "labelKey": "l_devis" } }
   ]
 }
