@@ -9,22 +9,22 @@ const data = JSON.parse(readFileSync(path.resolve(__dirname, '../../assets/suivi
 const labels = { bru: 'Bruxelles', anr: 'Anvers', be: 'BELGIQUE', cd: 'RD CONGO', matadi: 'Matadi' };
 const draw = (view: Parameters<typeof TrackingMap>[0]['view'], variant: 'desktop' | 'mobile' = 'desktop') =>
   renderToStaticMarkup(<TrackingMap data={data} view={view} variant={variant} lang="fr" labels={labels} />);
-const result = (mode: 'air' | 'sea', dest: 'fih' | 'gom' = 'fih'): Pick<TrackingView, 'mode' | 'status' | 'reachedBeforeCancel' | 'route'> =>
+const result = (mode: 'air' | 'sea', dest: 'fih' | 'gom' | 'lub' = 'fih'): Pick<TrackingView, 'mode' | 'status' | 'reachedBeforeCancel' | 'route'> =>
   ({ mode, status: 'in_transit', reachedBeforeCancel: null, route: { dest, reverse: false } });
 const count = (html: string, s: string) => html.split(s).length - 1;
 
 describe('TrackingMap routes', () => {
-  it('preview (no search) shows every service: air to Kinshasa + Goma (plane) and sea via Matadi (ship)', () => {
+  it('preview (no search) shows every service: air to Kinshasa + Lubumbashi (plane) and sea via Matadi (ship)', () => {
     for (const variant of ['desktop', 'mobile'] as const) {
       const html = draw('preview', variant);
       expect(count(html, 'lucide-plane')).toBe(1);
       expect(count(html, 'lucide-ship')).toBe(1);
-      for (const name of ['Bruxelles', 'Anvers', 'Kinshasa', 'Goma', 'Matadi']) expect(html).toContain(`>${name}<`);
-      expect(count(html, 'stroke-dasharray="2 8"')).toBe(3); // Kinshasa air, Goma air, sea
+      for (const name of ['Bruxelles', 'Anvers', 'Kinshasa', 'Lubumbashi', 'Matadi']) expect(html).toContain(`>${name}<`);
+      expect(count(html, 'stroke-dasharray="2 8"')).toBe(3); // Kinshasa air, Lubumbashi air, sea
     }
   });
 
-  it('a sea result shows only its own route: ship, Anvers → Matadi → Kinshasa, no plane, no Goma', () => {
+  it('a sea result shows only its own route: ship, Anvers → Matadi → Kinshasa, no plane, no Lubumbashi', () => {
     const html = draw(result('sea'));
     expect(count(html, 'lucide-ship')).toBe(1);
     expect(html).not.toContain('lucide-plane');
@@ -32,17 +32,18 @@ describe('TrackingMap routes', () => {
     expect(html).toContain('>Matadi<');
     expect(html).not.toContain('>Bruxelles<');
     expect(html).not.toContain('>Goma<');
+    expect(html).not.toContain('>Lubumbashi<');
   });
 
   it('an air result shows only its own route: plane, Bruxelles, no ship, no Matadi, no Anvers', () => {
-    for (const dest of ['fih', 'gom'] as const) {
+    for (const dest of ['fih', 'gom', 'lub'] as const) {
       const html = draw(result('air', dest));
       expect(count(html, 'lucide-plane')).toBe(1);
       expect(html).not.toContain('lucide-ship');
       expect(html).toContain('>Bruxelles<');
       expect(html).not.toContain('>Matadi<');
       expect(html).not.toContain('>Anvers<');
-      expect(html).toContain(dest === 'gom' ? '>Goma<' : '>Kinshasa<');
+      expect(html).toContain({ fih: '>Kinshasa<', gom: '>Goma<', lub: '>Lubumbashi<' }[dest]);
     }
   });
 

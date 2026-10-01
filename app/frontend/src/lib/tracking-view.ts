@@ -21,10 +21,10 @@ export type TrackStep = 'draft' | 'confirmed' | 'pickup' | 'in_transit' | 'custo
 export const TRACK_ORDER: TrackStep[] = ['draft', 'confirmed', 'pickup', 'in_transit', 'customs', 'delivered'];
 
 /** Destinations the illustrated map has a drawn position + route for. */
-export type MapDest = 'fih' | 'gom';
+export type MapDest = 'fih' | 'gom' | 'lub';
 
 export type TrackingRoute = {
-  /** Congo-side endpoint: Kinshasa (sea via Antwerp → Matadi, or air) or Goma (air only). */
+  /** Congo-side endpoint: Kinshasa (sea via Antwerp → Matadi, or air), Goma or Lubumbashi (air only). */
   dest: MapDest;
   /** true = Congo → Belgium (import): same line, travelled the other way. */
   reverse: boolean;
@@ -66,18 +66,19 @@ const BRU = /^(bruxelles|brussels|brussel|bxl)$/i;
 const ANR = /^(anvers|antwerpen|antwerp)$/i;
 const FIH = /^kinshasa$/i;
 const GOM = /^goma$/i;
+const LUB = /^lubumbashi$/i;
 /** IATA codes seen in FileMaker parcel labels ("BRU202600001FIH 1/1"). */
-const IATA_CITY: Record<string, string> = { BRU: 'Bruxelles', FIH: 'Kinshasa', GOM: 'Goma' };
+const IATA_CITY: Record<string, string> = { BRU: 'Bruxelles', FIH: 'Kinshasa', GOM: 'Goma', FBM: 'Lubumbashi' };
 
 const LEGACY_KIND: Record<string, TrackStep> = { picked_up: 'pickup', in_transit: 'in_transit', delivered: 'delivered' };
 
 /** Which drawn route (if any) a real origin → destination pair uses. Sea only
- *  ever runs Antwerp → Matadi → Kinshasa; Goma is an air corridor. Anything
+ *  ever runs Antwerp → Matadi → Kinshasa; Goma and Lubumbashi are air corridors. Anything
  *  else → null (the page shows the status panel without a map, never a
  *  wrongly-labelled one). */
 export function routeFor(mode: 'air' | 'sea' | null, fromCity: string | null, toCity: string | null): TrackingRoute | null {
   const be = (c: string | null) => !!c && (BRU.test(c) || ANR.test(c));
-  const cd = (c: string | null): MapDest | null => (c && FIH.test(c) ? 'fih' : c && GOM.test(c) ? 'gom' : null);
+  const cd = (c: string | null): MapDest | null => (c && FIH.test(c) ? 'fih' : c && GOM.test(c) ? 'gom' : c && LUB.test(c) ? 'lub' : null);
   const out = be(fromCity) ? cd(toCity) : null;
   const back = be(toCity) ? cd(fromCity) : null;
   const dest = out ?? back;

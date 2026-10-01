@@ -7,7 +7,7 @@ import { routeFraction, type TrackingView } from '@/lib/tracking-view';
  * Route map for the tracking result ("Suivi Luna v2", Claude Design): a
  * simplified political map (Natural Earth shapes, precomputed — no map
  * library, fetched after first paint), the shipment's real route — sea
- * Antwerp → Matadi → Kinshasa, air Brussels → Kinshasa or Brussels → Goma,
+ * Antwerp → Matadi → Kinshasa, air Brussels → Kinshasa, Lubumbashi or Goma,
  * either direction (view.route, lib/tracking-view) — with the travelled part
  * solid and the rest dashed, and a marker whose position is derived from the
  * status (indicative, never GPS). Animations stop under prefers-reduced-motion.
@@ -17,7 +17,9 @@ import { routeFraction, type TrackingView } from '@/lib/tracking-view';
  * Map data: equirectangular, standard parallel 20° (x = 1081.0 + 9.397·lon,
  * y = 620 − 10·lat — fits every drawn city to 0.1). Goma and its air route
  * were added with that projection and the same curve rule as the Kinshasa
- * air route (quadratic, control point offset 12.5 % of the chord).
+ * air route (quadratic, control point offset 12.5 % of the chord). Lubumbashi
+ * and its air route follow the same rule. The no-search preview draws
+ * Kinshasa and Lubumbashi (Goma stays drawable for parcels that go there).
  */
 
 type Pt = [number, number];
@@ -25,7 +27,8 @@ export type MapData = {
   sea: { pts: Pt[]; matadiFrac: number };
   air: { pts: Pt[] };
   airGoma: { pts: Pt[] };
-  cities: { bru: Pt; anr: Pt; mat: Pt; fih: Pt; gom: Pt };
+  airLub: { pts: Pt[] };
+  cities: { bru: Pt; anr: Pt; mat: Pt; fih: Pt; gom: Pt; lub: Pt };
   countries: { id?: string; n: string; d: string; c: number }[];
 };
 
@@ -74,7 +77,7 @@ const COUNTRY_LABELS: [string, string, number, number, 1 | 'sea', 0 | 1][] = [
 type MapView = Pick<TrackingView, 'mode' | 'status' | 'reachedBeforeCancel' | 'route'>;
 
 /** The no-search state on /suivi (and the og:image drawn from it): every
- *  service at once — air Bruxelles → Kinshasa and Goma (plane), sea Anvers →
+ *  service at once — air Bruxelles → Kinshasa and Lubumbashi (plane), sea Anvers →
  *  Matadi → Kinshasa (ship) — nothing travelled, static markers. An
  *  illustration of what the tool shows, never any real shipment's position.
  *  A real result draws only its own route and its own mode's icon. */
@@ -113,9 +116,10 @@ export function TrackingMap({ data, view, variant, lang, labels, alt }: {
   const delivered = v.status === 'delivered';
   const step = cancelled ? (v.reachedBeforeCancel ?? 'confirmed') : v.status;
   const r = v.route!;
-  const goma = r.dest === 'gom';
+  const dest = r.dest;
   const seaLine = seaFromAntwerp(data);
-  const line = sea ? seaLine : goma ? data.airGoma.pts : data.air.pts;
+  const airLine = dest === 'gom' ? data.airGoma.pts : dest === 'lub' ? data.airLub.pts : data.air.pts;
+  const line = sea ? seaLine : airLine;
   const pts = r.reverse ? [...line].reverse() : line;
   const pos = along(pts, preview ? PREVIEW_FRAC : routeFraction(step as Exclude<typeof step, 'cancelled'>, v.mode, data.sea.matadiFrac));
   const done: Pt[] = preview ? [] : [...pts.slice(0, pos.i), [pos.x, pos.y]];
@@ -131,10 +135,11 @@ export function TrackingMap({ data, view, variant, lang, labels, alt }: {
   const o = sea ? anr : data.cities.bru;
   const originName = sea ? labels.anr : labels.bru;
   const shipPos = preview ? along(seaLine, PREVIEW_SEA_FRAC) : null;
-  const k = goma ? data.cities.gom : data.cities.fih;
-  const destName = goma ? 'Goma' : 'Kinshasa';
-  // Goma sits on the eastern border: its label goes to the left (inside DRC).
-  const kx = goma
+  const k = data.cities[dest];
+  const destName = { fih: 'Kinshasa', gom: 'Goma', lub: 'Lubumbashi' }[dest];
+  // Goma and Lubumbashi sit on the eastern side: their label goes to the left (inside DRC).
+  const labelLeft = dest !== 'fih';
+  const kx = labelLeft
     ? k[0] - (delivered ? (mob ? 36 : 30) : 16)
     : k[0] + (delivered ? (mob ? 36 : 30) : 16);
   const big = mob ? 21 : 17, small = mob ? 17 : 13, cf = mob ? 16 : 12.5;
@@ -190,11 +195,11 @@ export function TrackingMap({ data, view, variant, lang, labels, alt }: {
       )}
       {preview && (
         <>
-          <path d={toD(data.airGoma.pts)} fill="none" stroke="#2E6FD1" strokeWidth={sw} strokeDasharray="2 8"
+          <path d={toD(data.airLub.pts)} fill="none" stroke="#2E6FD1" strokeWidth={sw} strokeDasharray="2 8"
             strokeLinecap="round" className="ltl-dash" />
           <path d={toD(seaLine)} fill="none" stroke="#2E6FD1" strokeWidth={sw} strokeDasharray="2 8"
             strokeLinecap="round" className="ltl-dash" />
-          <circle cx={data.cities.gom[0]} cy={data.cities.gom[1]} r={mob ? 8 : 6} fill="#ffffff" stroke="#0A1650" strokeWidth={mob ? 3.2 : 2.6} />
+          <circle cx={data.cities.lub[0]} cy={data.cities.lub[1]} r={mob ? 8 : 6} fill="#ffffff" stroke="#0A1650" strokeWidth={mob ? 3.2 : 2.6} />
         </>
       )}
       <circle cx={o[0]} cy={o[1]} r={mob ? 8 : 6} fill="#ffffff" stroke="#0A1650" strokeWidth={mob ? 3.2 : 2.6} />
@@ -204,16 +209,21 @@ export function TrackingMap({ data, view, variant, lang, labels, alt }: {
           const show = mob ? m === 1 : d === 1 || (d === 'sea' && sea);
           return show ? country(fr, x, y, lang === 'en' ? en : fr) : null;
         })}
-        {country('cd', 1352, mob && preview ? 730 : 700, labels.cd, true)}
+        {mob && (preview || dest === 'lub') ? country('cd', 1388, 724, labels.cd, true) : country('cd', 1352, 700, labels.cd, true)}
         {text(o[0] + (mob ? 18 : 16), o[1] + (mob ? 30 : 26), labels.be, cf + 1, { fontWeight: 600, letterSpacing: 1.2, strokeWidth: 3 })}
         {text(o[0] + (mob ? 18 : 16), o[1] + (mob ? 7 : 6), originName, big, { fontWeight: 600 })}
         {/* Antwerp is ~45 km from Brussels — the same dot at this scale — so in
             the preview it is named on the other side of it. */}
         {preview && text(anr[0] - (mob ? 18 : 16), anr[1] + (mob ? 7 : 6), labels.anr, big, { fontWeight: 600, textAnchor: 'end' })}
-        {/* Mobile preview names both Goma and Kinshasa: Kinshasa goes under its
+        {/* Mobile preview names both Lubumbashi and Kinshasa: Kinshasa goes under its
             dot so the two labels don't stack into one ambiguous pair. */}
-        {text(kx, k[1] + (mob ? (preview ? 28 : -14) : 5), destName, big, { fontWeight: 600, ...(goma ? { textAnchor: 'end' } : {}) })}
-        {preview && text(data.cities.gom[0] - 16, data.cities.gom[1] + (mob ? -14 : 5), 'Goma', big, { fontWeight: 600, textAnchor: 'end' })}
+        {/* Lubumbashi is at the foot of the mobile frame: its label goes under-left of the dot, clear of Matadi and Angola. */}
+        {mob && dest === 'lub'
+          ? text(k[0] + 8, k[1] + 38, destName, big, { fontWeight: 600, textAnchor: 'end' })
+          : text(kx, k[1] + (mob ? (preview ? 28 : -14) : dest === 'lub' ? -12 : 5), destName, big, { fontWeight: 600, ...(labelLeft ? { textAnchor: 'end' } : {}) })}
+        {preview && (mob
+          ? text(data.cities.lub[0] + 8, data.cities.lub[1] + 38, 'Lubumbashi', big, { fontWeight: 600, textAnchor: 'end' })
+          : text(data.cities.lub[0] - 16, data.cities.lub[1] - 12, 'Lubumbashi', big, { fontWeight: 600, textAnchor: 'end' }))}
         {(sea || preview) && (
           <>
             <circle cx={mt[0]} cy={mt[1]} r={mob ? 4.5 : 3.5} fill="#0A1650" />

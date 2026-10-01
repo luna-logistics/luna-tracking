@@ -97,6 +97,9 @@ describe('tracking view', () => {
   it('routeFor: sea only to Kinshasa, Goma is air; unknown pairs → null', () => {
     expect(routeFor('sea', 'Anvers', 'Kinshasa')).toEqual({ dest: 'fih', reverse: false });
     expect(routeFor(null, 'Bruxelles', 'Goma')).toEqual({ dest: 'gom', reverse: false });
+    expect(routeFor('air', 'Bruxelles', 'Lubumbashi')).toEqual({ dest: 'lub', reverse: false });
+    expect(routeFor('air', 'Lubumbashi', 'Bruxelles')).toEqual({ dest: 'lub', reverse: true });
+    expect(routeFor('sea', 'Anvers', 'Lubumbashi')).toBeNull();
     expect(routeFor('air', 'Paris', 'Kinshasa')).toBeNull();
     expect(routeFor('air', 'Bruxelles', null)).toBeNull();
   });
