@@ -323,6 +323,8 @@
     "empty_sea": "Enter a volume or dimensions for sea freight.",
     "vol_weight": "Volumetric weight",
     "vol_excess": "Volumetric excess",
+    "volume_line_air": "Volume: {{v}} m³ — used to work out the volumetric weight",
+    "volume_line_sea": "Billed volume: {{v}} m³",
     "real_weight_label": "Actual weight",
     "vol_surcharge_label": "Volumetric surcharge",
     "vol_surcharge_badge": "Surcharge applied",

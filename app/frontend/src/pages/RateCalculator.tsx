@@ -277,6 +277,7 @@ export default function RateCalculator() {
                     <ModeColumn
                       key={m} mode={m} result={colResult(m)} index={i}
                       config={config} lang={lang} summaryLines={summaryLines} user={!!user} hasAnyInput={hasAnyInput}
+                      volumeM3={quote?.input.totalVolumeM3 ?? null}
                       request={request}
                     />
                   ))}
@@ -401,9 +402,11 @@ function PresetBtn({ label, onClick }: { label: string; onClick: () => void }) {
 
 type QuoteRequestContext = { destination: DestChoice; estimate: string[] };
 
-function ModeColumn({ mode, result, index, config, lang, summaryLines, user, hasAnyInput, request }: {
+function ModeColumn({ mode, result, index, config, lang, summaryLines, user, hasAnyInput, request, volumeM3 }: {
   mode: Mode; result: ColState; index: number; config: PricingConfig | null; lang: 'fr' | 'en';
   summaryLines: string[]; user: boolean; hasAnyInput: boolean; request: QuoteRequestContext;
+  /** Total volume of the shipment (m³), shown next to each price. */
+  volumeM3: number | null;
 }) {
   const { t } = useTranslation();
   const transit = config ? transitTimeFor(config, mode) : null;
@@ -417,7 +420,7 @@ function ModeColumn({ mode, result, index, config, lang, summaryLines, user, has
         <h3 style={{ fontSize: 16.5, fontWeight: 600, letterSpacing: '-.01em', color: '#0D2E6B', margin: 0 }}>{t(`calc.mode_${mode}`)}</h3>
       </div>
 
-      {result.kind === 'price' && <PriceBody result={result} lang={lang} transit={transit} />}
+      {result.kind === 'price' && <PriceBody result={result} lang={lang} transit={transit} mode={mode} volumeM3={volumeM3} />}
 
       {result.kind === 'empty' && (
         <p style={{ marginTop: 16, fontSize: 14.5, lineHeight: 1.5, color: '#4A5A75' }}>
@@ -441,7 +444,7 @@ function ModeColumn({ mode, result, index, config, lang, summaryLines, user, has
   );
 }
 
-function PriceBody({ result, lang, transit }: { result: PricedResult; lang: 'fr' | 'en'; transit: string | null }) {
+function PriceBody({ result, lang, transit, mode, volumeM3 }: { result: PricedResult; lang: 'fr' | 'en'; transit: string | null; mode: Mode; volumeM3: number | null }) {
   const { t } = useTranslation();
   const detail = (l: PricedResult['lines'][number]): string | null => {
     if (l.key === 'weight') {
@@ -470,6 +473,11 @@ function PriceBody({ result, lang, transit }: { result: PricedResult; lang: 'fr'
     <div>
       <p style={{ marginTop: 14, fontSize: 'clamp(30px,3vw,38px)', lineHeight: 1, fontWeight: 600, letterSpacing: '-.03em', color: '#002F67', fontVariantNumeric: 'tabular-nums' }}>{formatEuros(result.totalCents, lang)}</p>
       <p style={{ marginTop: 8, fontSize: 13.5, fontWeight: 500, color: '#2077C3' }}>{t(`calc.basis_${result.chargeableBasis}`)}</p>
+      {volumeM3 != null && (
+        <p style={{ marginTop: 4, fontSize: 13, color: '#4A5A75', fontVariantNumeric: 'tabular-nums' }}>
+          {t(mode === 'sea' ? 'calc.volume_line_sea' : 'calc.volume_line_air', { v: lang === 'fr' ? fmtM3(volumeM3).replace('.', ',') : fmtM3(volumeM3) })}
+        </p>
+      )}
       <ul style={{ marginTop: 16, paddingTop: 14, borderTop: HAIR, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 11, margin: '16px 0 0' }}>
         {weightLine && (
           <li style={{ ...ROW, ...(hasVolumetric && !volExceedsReal ? { background: '#F4F7FB', borderRadius: 10, padding: '8px 10px', margin: '-1px -10px' } : null) }}>
