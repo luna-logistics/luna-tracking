@@ -20,6 +20,7 @@ export function Footer() {
   const year = new Date().getFullYear();
   const email   = t('footer.email');
   const address = t('footer.address');
+  const addressKin = t('footer.address_kinshasa');
   const phone   = useContent('contact', 'phone', t('contact.phone')).trim();
   const companyName     = useContent('legal', 'company_name',      t('legal_identity.company_name'));
   const companyNumber   = useContent('legal', 'company_number',    t('legal_identity.company_number'));
@@ -113,6 +114,12 @@ export function Footer() {
                   <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-luna-sky" aria-hidden="true" />
                   <a href={mapsUrl(address)} target="_blank" rel="noopener noreferrer" className="hover:text-white">
                     {address}
+                  </a>
+                </li>
+                <li className="flex items-start gap-2">
+                  <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-luna-sky" aria-hidden="true" />
+                  <a href={mapsUrl(addressKin)} target="_blank" rel="noopener noreferrer" className="hover:text-white">
+                    {addressKin}
                   </a>
                 </li>
                 <li className="flex items-start gap-2">

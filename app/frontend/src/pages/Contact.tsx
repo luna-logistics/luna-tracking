@@ -262,6 +262,7 @@ export default function Contact() {
   }, [lang, email]);
 
   const mapsQuery = encodeURIComponent(t('contact.office_address'));
+  const kinMapsQuery = encodeURIComponent(t('contact.office_kin_address'));
 
   // Shared class fragments.
   const ringLight = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-luna-royal';
@@ -560,6 +561,19 @@ export default function Contact() {
                   <span className="max-w-[24em] px-4 text-center text-[12px] leading-[1.5] text-luna-muted-ink">{t('contact.map_hint')}</span>
                 </button>
               )}
+            </div>
+
+            {/* Kinshasa office */}
+            <h2 className={`${H2} mt-8`}>{t('contact.office_kin_title')}</h2>
+            <div className="mt-4 flex items-start gap-2.5">
+              <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-luna-azure" aria-hidden="true" />
+              <div>
+                <p className="text-[15px] font-medium text-luna-ink">{t('contact.office_kin_address')}</p>
+                <a href={`https://www.google.com/maps?q=${kinMapsQuery}`} target="_blank" rel="noopener noreferrer"
+                  className={`mt-2 inline-flex items-center gap-1 text-[14px] font-medium text-luna-azure hover:underline ${ringLight}`}>
+                  {t('contact.map_open')}<ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                </a>
+              </div>
             </div>
           </div>
 
