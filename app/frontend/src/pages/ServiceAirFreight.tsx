@@ -4,6 +4,7 @@ import {
   ServiceHero, ServiceBody, ServiceSection, ServiceSteps, ServiceCard, ServiceLink, ServiceFaq, ServiceCta,
 } from '@/components/service/ServiceBlocks';
 import { usePricingConfig } from '@/hooks/usePricingConfig';
+import { FALLBACK_PRICING_CONFIG } from '@/lib/pricing/fallback';
 import { eur, num } from '@/lib/pricing/service-figures';
 import { urlFor } from '@/lib/url/routes';
 
@@ -15,11 +16,15 @@ import { urlFor } from '@/lib/url/routes';
 export default function ServiceAirFreight() {
   const { t, i18n } = useTranslation();
   const lang = i18n.language === 'en' ? 'en' : 'fr';
-  const { config } = usePricingConfig();
+  // Render the body immediately with the in-code grid (same values the build
+  // prerendered); swap to the live grid in place when it resolves. No loading
+  // gate — the body, its figures and the CTA are on the first paint, so there
+  // is no late section mount and no layout shift (was CLS ~0.25).
+  const { config: liveConfig } = usePricingConfig();
+  const config = liveConfig ?? FALLBACK_PRICING_CONFIG;
   const k = (key: string, vars?: Record<string, string>) => t(`svc_air.${key}`, vars);
 
   const body = (() => {
-    if (!config) return <p className="text-slate-600">{t('calc.loading')}</p>;
     const { express, cargo } = config.modes;
     const surcharge = eur(config.volumetricSurchargeRateCentsPerKg, lang);
     const handling = eur(config.handlingFeeCents, lang);

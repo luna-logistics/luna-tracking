@@ -157,6 +157,55 @@ function injectBodySkeleton(html, { h1, h2s = [] }) {
   return html.replace(/<div id="root"><\/div>/i, skeleton);
 }
 
+// ─── Service pages: a static body for non-JS crawlers ─────────────────────
+// The four service pages render their body with React once the pricing grid is
+// in hand. Non-JS fetchers (Bing, GPTBot, ClaudeBot, …) only ever see the
+// prerendered HTML, so inject the real content here: the H1 stays the single
+// VISIBLE skeleton node (styled by index.html, LCP candidate, no layout shift),
+// while the intro, section titles and FAQ go in a visually-hidden block — in
+// the DOM for crawlers, invisible to visitors, and thrown away with the rest of
+// #root when React mounts. Section titles live in svc_common or the page's own
+// namespace ("ns.field"); the FAQ count is per page. Figure-dependent answers
+// (only svc_air.faq_a2 → {{surcharge}}) are interpolated from the build grid;
+// anything still carrying an unresolved {{var}} is skipped rather than shown raw.
+const SR_ONLY = 'position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0';
+const SERVICE_SKELETON = {
+  svc_air:    { sections: ['svc_common.how_title', 'svc_air.formulas_title', 'svc_air.dest_title', 'svc_common.from_drc_title', 'svc_common.example_title', 'svc_common.faq_title'], faq: 3 },
+  svc_sea:    { sections: ['svc_common.how_title', 'svc_sea.cartons_title', 'svc_common.from_drc_title', 'svc_common.example_title', 'svc_common.faq_title'], faq: 3 },
+  svc_home:   { sections: ['svc_common.how_title', 'svc_home.cities_title', 'svc_common.example_title', 'svc_common.faq_title'], faq: 2 },
+  svc_pickup: { sections: ['svc_common.how_title', 'svc_common.example_title', 'svc_common.faq_title'], faq: 2 },
+};
+
+function serviceSkeletonHtml(i18nPage, lang) {
+  const spec = SERVICE_SKELETON[i18nPage];
+  if (!spec) return null;
+  const h1 = overrideOr(i18nPage, lang, 'h1', readI18n(lang, i18nPage, 'h1'));
+  const surcharge = surchargeCents != null ? formatEuros(surchargeCents, lang) : null;
+
+  const detail = [];
+  const intro = overrideOr(i18nPage, lang, 'intro', readI18n(lang, i18nPage, 'intro'));
+  if (intro) detail.push(`    <p>${escapeHtml(intro)}</p>`);
+  for (const ref of spec.sections) {
+    const [ns, field] = ref.split('.');
+    const title = overrideOr(ns, lang, field, readI18n(lang, ns, field));
+    if (title) detail.push(`    <h2>${escapeHtml(title)}</h2>`);
+  }
+  for (let n = 1; n <= spec.faq; n++) {
+    const q = readI18n(lang, i18nPage, `faq_q${n}`);
+    let a = readI18n(lang, i18nPage, `faq_a${n}`);
+    if (a && surcharge) a = a.replace(/\{\{surcharge\}\}/g, surcharge);
+    if (q && a && !/\{\{/.test(a)) {
+      detail.push(`    <h3>${escapeHtml(q)}</h3>`);
+      detail.push(`    <p>${escapeHtml(a)}</p>`);
+    }
+  }
+
+  const parts = [];
+  if (h1) parts.push(`  <h1>${escapeHtml(h1)}</h1>`);
+  if (detail.length) parts.push(`  <div style="${SR_ONLY}">\n${detail.join('\n')}\n  </div>`);
+  return parts.length ? parts.join('\n') : null;
+}
+
 /**
  * Emit the head chunk. Every tag carries `data-rh="true"` so
  * react-helmet-async — which owns the exact same set once the SPA
@@ -421,7 +470,12 @@ async function emitStaticRoute(key, def) {
     if (key === 'home') {
       html = injectHead(html, '<link rel="preload" as="image" href="/brand/hero-map.webp" type="image/webp" fetchpriority="high" />');
     }
-    if (skel) html = injectBodySkeleton(html, skel);
+    const serviceHtml = serviceSkeletonHtml(i18nPage, lang);
+    if (serviceHtml) {
+      html = html.replace(/<div id="root"><\/div>/i, `<div id="root">\n${serviceHtml}\n</div>`);
+    } else if (skel) {
+      html = injectBodySkeleton(html, skel);
+    }
     await writeHtml(urlPath, html);
   }
 }
