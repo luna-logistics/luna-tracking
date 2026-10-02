@@ -25,6 +25,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { articleGraph, productSchema, customPageGraph, serviceGraph, brandFromName } from '../src/lib/seo/jsonld.data.mjs';
+import { calcFigures, FALLBACK_CALC_GRID } from '../src/lib/pricing/figures.data.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const routesMod = await import(
@@ -325,7 +326,7 @@ function heroOgImageAlt(pageKey, lang, fallback) {
 // this <script> in place by id (no data-rh: Helmet must not own it).
 const CALC_FAQ = JSON.parse(await fs.readFile(path.resolve(__dirname, '..', 'src/lib/calc-faq.json'), 'utf8'));
 const surchargeCents = pricingRows[0]?.config?.volumetricSurchargeRateCentsPerKg;
-if (surchargeCents == null) console.warn('[prerender] pricing_config unavailable — calculator FAQ uses the "current rate" wording');
+if (surchargeCents == null) console.warn('[prerender] pricing_config unavailable — calculator FAQ + service figures use the in-code fallback grid');
 
 /** Mirror of formatEuros() in src/lib/pricing/engine.ts. */
 const formatEuros = (cents, lang) => new Intl.NumberFormat(lang === 'en' ? 'en-IE' : 'fr-BE', {
@@ -334,10 +335,15 @@ const formatEuros = (cents, lang) => new Intl.NumberFormat(lang === 'en' ? 'en-I
 
 function calcFaqScript(lang) {
   const calc = LOCALES[lang].calc;
-  const surcharge = surchargeCents != null ? `${formatEuros(surchargeCents, lang)}/kg` : calc.surcharge_current_rate;
+  // Same figures the page interpolates: from the fetched active grid, or the
+  // in-code fallback when no Supabase env (local/CI). Every {{placeholder}} in
+  // the FAQ answers resolves here, so the prerendered FAQPage carries real
+  // numbers and matches the hydrated page.
+  const figures = calcFigures(pricingRows[0]?.config ?? FALLBACK_CALC_GRID, lang);
+  const interpolate = (s) => s.replace(/\{\{(\w+)\}\}/g, (m, key) => (figures[key] != null ? figures[key] : m));
   const mainEntity = CALC_FAQ.items.map(({ k, link }) => {
     const q = calc[`q_${k}`];
-    const aRaw = calc[`a_${k}`]?.replace(/\{\{surcharge\}\}/g, surcharge);
+    const aRaw = typeof calc[`a_${k}`] === 'string' ? interpolate(calc[`a_${k}`]) : undefined;
     const label = link ? calc[link.labelKey] : null;
     if (!q || !aRaw || /\{\{/.test(aRaw) || (link && !label)) throw new Error(`[prerender] calculator FAQ: missing/uninterpolated text for "${k}" (${lang})`);
     return { '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: label ? `${aRaw} ${label}` : aRaw } };

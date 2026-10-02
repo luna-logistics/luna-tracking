@@ -18,6 +18,7 @@ import {
   type PricingConfig, type ModeResult, type PricedResult, type Mode, type QuoteReason,
 } from '@/lib/pricing/engine';
 import { FALLBACK_PRICING_CONFIG } from '@/lib/pricing/fallback';
+import { calcFigures } from '@/lib/pricing/figures.data.mjs';
 import { usePricingConfig } from '@/hooks/usePricingConfig';
 import { calculatorEngineInput, emptyPackageLine, gridEstimateLines, packageLinesSize, type PackageLine } from '@/lib/pricing/surfaces';
 import { formatM3, parseDecimal } from '@/lib/pricing/volume';
@@ -79,12 +80,13 @@ export default function RateCalculator() {
   // Active grid (pricing_config), or the fallback grid when the database can't
   // be used — null only while loading.
   const { config } = usePricingConfig();
-  // The volumetric surcharge rate shown in the copy comes from the grid — never
-  // a number written in the translations. Until the grid loads the copy says
-  // "at the current rate".
-  const surcharge = config
-    ? `${formatEuros(config.volumetricSurchargeRateCentsPerKg, lang)}/kg`
-    : t('calc.surcharge_current_rate');
+  // Every tariff figure shown as text (the rate card, the "how a price is built"
+  // bullets, the FAQ answers + the FAQPage JSON-LD) is formatted from the grid —
+  // never a number written in the translations. The in-code fallback paints the
+  // correct figures on the first frame; the live grid swaps in when it resolves
+  // (identical unless an admin just edited /admin/tarifs). `figures.surcharge`
+  // carries its "/kg" suffix.
+  const figures = calcFigures(config ?? FALLBACK_PRICING_CONFIG, lang);
 
   // FAQ — freight/transport Q&A. Each answer may carry ONE internal link (split
   // text + <Link>, since the project has no <Trans>). FaqJsonLd is fed the
@@ -99,7 +101,7 @@ export default function RateCalculator() {
     },
   }));
   const faq = FAQ_DEFS.map(({ k, link }) => {
-    const aRaw = t(`calc.a_${k}`, { surcharge });
+    const aRaw = t(`calc.a_${k}`, figures);
     const label = link ? t(`calc.${link.labelKey}`) : null;
     return {
       q: t(`calc.q_${k}`),
@@ -303,13 +305,13 @@ export default function RateCalculator() {
                     <span style={{ flex: '0 0 auto', fontSize: 13, fontWeight: 600, letterSpacing: '.08em', color: '#2077C3', paddingTop: 4, fontVariantNumeric: 'tabular-nums' }}>{`0${n}`}</span>
                     <span style={{ minWidth: 0 }}>
                       <span style={{ display: 'block', fontSize: 17, fontWeight: 600, color: '#0A1650' }}>{t(`calc.how_b${n}_title`)}</span>
-                      <span style={{ display: 'block', marginTop: 4, fontSize: 16.5, color: '#4A5A75' }}>{t(`calc.how_b${n}_body`, { surcharge })}</span>
+                      <span style={{ display: 'block', marginTop: 4, fontSize: 16.5, color: '#4A5A75' }}>{t(`calc.how_b${n}_body`, figures)}</span>
                     </span>
                   </li>
                 ))}
               </ul>
               <p style={{ marginTop: 28, padding: '18px 20px', borderLeft: '2px solid #1FA3C9', background: '#F4F7FB', fontSize: 16, lineHeight: 1.55, color: '#0A1650' }}>
-                {t('calc.customs_note', { fee: config ? formatEuros(config.customsAdminFeeCents ?? FALLBACK_PRICING_CONFIG.customsAdminFeeCents, lang) : '' })}
+                {t('calc.customs_note', figures)}
               </p>
             </div>
           </div>
@@ -331,7 +333,7 @@ export default function RateCalculator() {
                       <h3 style={{ fontSize: 19, fontWeight: 600, letterSpacing: '-.01em', color: '#0D2E6B', margin: 0 }}>{t(`calc.mode_${m}`)}</h3>
                     </div>
                     <p style={{ marginTop: 12, fontSize: 16.5, color: '#4A5A75' }}>{t(`calc.mode_${m}_suits`)}</p>
-                    <p style={{ marginTop: 16, fontSize: 20, fontWeight: 600, color: '#002F67', fontVariantNumeric: 'tabular-nums' }}>{t(`calc.mode_${m}_rate`)}</p>
+                    <p style={{ marginTop: 16, fontSize: 20, fontWeight: 600, color: '#002F67', fontVariantNumeric: 'tabular-nums' }}>{t(`calc.mode_${m}_rate`, figures)}</p>
                     {transit && (
                       <p style={{ marginTop: 18, paddingTop: 12, borderTop: '1px dashed rgba(42,67,128,.3)', fontSize: 14.5, color: '#4A5A75' }}>{t('calc.transit_label', { value: transit })}</p>
                     )}

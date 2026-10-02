@@ -5,11 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/check-i18n.mjs && tsc -p tsconfig.app.json --noEmit && vite build && node scripts/generate-sitemap.mjs && node scripts/generate-llms.mjs && node scripts/prerender-metas.mjs && node scripts/check-sitemap.mjs",
+    "build": "node scripts/check-i18n.mjs && node scripts/check-calc-figures.mjs && tsc -p tsconfig.app.json --noEmit && vite build && node scripts/generate-sitemap.mjs && node scripts/generate-llms.mjs && node scripts/prerender-metas.mjs && node scripts/check-sitemap.mjs",
     "lint": "eslint --quiet ./src",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
     "check-i18n": "node scripts/check-i18n.mjs",
+    "check-calc-figures": "node scripts/check-calc-figures.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:eligibility": "node scripts/check-eligibility.mjs",
