@@ -53,6 +53,7 @@ const ROUTE_I18N = {
   shopAndShip: 'shop',
   forwarding:  'forwarding',
   blogIndex:   'blog',
+  apiDocs:     'api_docs',
   about:       'about',
   legalNotice: 'legal_notice',
   terms:       'legal_terms',
@@ -381,9 +382,10 @@ async function emitStaticRoute(key, def) {
       : [];
 
     // Homepage carries a small graph: Organization (feeds Google's
-    // Knowledge Graph / business panel), WebSite with SearchAction (the
-    // sitelinks-search-box entrypoint), plus WebPage. Other static pages
-    // ship a single WebPage node linked back to the WebSite.
+    // Knowledge Graph / business panel), WebSite and WebPage. No
+    // SearchAction / sitelinks-search-box node: Google retired that rich
+    // result, and the site exposes no text-search endpoint to point one at.
+    // Other static pages ship a single WebPage node linked back to the WebSite.
     const jsonLd = key === 'home'
       ? {
           '@context': 'https://schema.org',
@@ -451,7 +453,7 @@ async function emitStaticRoute(key, def) {
               '@id': `${SITE_URL}/#site`,
               name: SITE_NAME,
               url: SITE_URL,
-              inLanguage: lang,
+              inLanguage: ['fr', 'en'],
               publisher: { '@id': `${SITE_URL}/#org` },
             },
             {
