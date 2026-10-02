@@ -231,6 +231,7 @@ export default function Contact() {
     const obj: Record<string, unknown> = {
       '@context': 'https://schema.org',
       '@type': 'LocalBusiness',
+      '@id': 'https://lunatrackinglogistics.com/#org',
       name: 'Luna Tracking Logistics',
       url: `https://lunatrackinglogistics.com${urlFor('contact', lang)}`,
       address: {

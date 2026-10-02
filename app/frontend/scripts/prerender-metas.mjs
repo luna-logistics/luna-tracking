@@ -411,10 +411,38 @@ async function emitStaticRoute(key, def) {
               },
               hasMap: 'https://www.google.com/maps/search/?api=1&query=Rue+de+l%27Automne+59+1050+Ixelles+Bruxelles',
               sameAs: ['https://www.instagram.com/Luna_TrackingLogistics/'],
+              // Opening hours + contactPoint copied from lib/contact-data.ts
+              // (OFFICE_HOURS: Mon–Fri 10–18, Sat 12–18) and the /contact
+              // LocalBusiness — same data, not newly declared. No `geo`: no
+              // coordinates exist in the code to copy, so none are invented.
+              openingHoursSpecification: [
+                { '@type': 'OpeningHoursSpecification', dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'], opens: '10:00', closes: '18:00' },
+                { '@type': 'OpeningHoursSpecification', dayOfWeek: ['Saturday'], opens: '12:00', closes: '18:00' },
+              ],
+              contactPoint: [{
+                '@type': 'ContactPoint',
+                telephone: '+32 2 241 96 72',
+                contactType: 'customer service',
+                availableLanguage: ['fr', 'en'],
+                areaServed: ['BE', 'CD'],
+              }],
+              // Second office in Kinshasa, alongside the Ixelles address above.
+              location: [{
+                '@type': 'Place',
+                name: 'Luna Tracking Logistics — Kinshasa',
+                address: {
+                  '@type': 'PostalAddress',
+                  streetAddress: '8e rue Industrielle n° 22, Limete',
+                  addressLocality: 'Kinshasa',
+                  addressCountry: 'CD',
+                },
+              }],
               areaServed: [
                 { '@type': 'Country', name: 'Belgium'   },
                 { '@type': 'City',    name: 'Bruxelles' },
                 { '@type': 'City',    name: 'Ixelles'   },
+                { '@type': 'City',    name: 'Kinshasa'  },
+                { '@type': 'City',    name: 'Lubumbashi' },
                 { '@type': 'Country', name: 'Democratic Republic of the Congo' },
               ],
             },
