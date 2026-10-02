@@ -345,7 +345,6 @@ export default function Forwarding() {
         <section className="bg-luna-mist">
           <div className="mx-auto max-w-[1220px] px-5 sm:px-8" style={{ paddingTop: 'clamp(48px,6vw,88px)', paddingBottom: 'clamp(48px,6vw,88px)' }}>
             <Ed page="forwarding" field="refused_title" as="h2" className={`mb-5 block ${H2}`}>{t('forwarding.refused_title')}</Ed>
-            <p className="mb-7 max-w-[38em] text-[15px] leading-[1.6] text-luna-body">{t('forwarding.refused_disclaimer')}</p>
             <ul className="mb-7 grid max-w-[58em] list-none grid-cols-1 gap-x-8 gap-y-3 p-0 sm:grid-cols-2 nav:grid-cols-3">
               {data.refused.map((x, i) => (
                 <li key={i} className="flex items-start gap-2.5 border-b border-[#D9E2EC] pb-3 text-[15px] leading-[1.6] text-[#0F1B33]">
