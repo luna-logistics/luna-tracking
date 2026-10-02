@@ -43,8 +43,8 @@ export default function ServiceAirFreight() {
 
         <ServiceSection title={k('formulas_title')}>
           <ServiceCard>
-            <p><strong className="text-luna-navy">{k('formula_express_label')}</strong> : {k('formula_express_text', { rate: eur(express.perKgCents, lang), min: eur(express.flatMinCents, lang) })}</p>
-            <p className="mt-3"><strong className="text-luna-navy">{k('formula_cargo_label')}</strong> : {k('formula_cargo_text', { rate: eur(cargo.perKgCents, lang) })}</p>
+            <p><strong className="text-luna-navy">{k('formula_express_label')}</strong>{lang === 'fr' ? ' : ' : ': '}{k('formula_express_text', { rate: eur(express.perKgCents, lang), min: eur(express.flatMinCents, lang) })}</p>
+            <p className="mt-3"><strong className="text-luna-navy">{k('formula_cargo_label')}</strong>{lang === 'fr' ? ' : ' : ': '}{k('formula_cargo_text', { rate: eur(cargo.perKgCents, lang) })}</p>
           </ServiceCard>
           <p>
             {k('fees_note', { handling })}
