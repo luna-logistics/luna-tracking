@@ -10,6 +10,24 @@
  * never take the site down.
  */
 
+import { ROUTES, urlFor, SUPPORTED_LANGS } from './src/lib/url/routes.data.mjs';
+
+// Every fixed route path, both languages (incl. non-indexable SPA routes like
+// /connexion, /compte/*, …) — the allow-list that keeps a real app route a 200
+// even when it has no prerendered file on disk. Dynamic content (products, blog
+// posts, custom pages) is confirmed live against the DB instead (below).
+const KNOWN_ROUTES = (() => {
+  const set = new Set();
+  for (const [key, def] of Object.entries(ROUTES)) {
+    for (const lang of SUPPORTED_LANGS) {
+      if (lang === 'en' && !def.bilingual) continue;
+      set.add(urlFor(key, lang).replace(/\/+$/, '') || '/');
+    }
+  }
+  return set;
+})();
+const normPath = (p) => p.replace(/\/+$/, '') || '/';
+
 // Plain-object handlers only — HTMLRewriter reads the `element` /
 // `text` / `comments` FIELDS off the handler; a class with a public
 // `.text` property (say, holding replacement text) trips
@@ -59,6 +77,11 @@ async function serveNeutralShell(request, env, opts = {}) {
 // we answer 200 — never de-index a real product because of an outage.
 const PRODUCT_PAGE = /^\/(?:achat-envoi|en\/shop-and-ship)\/([^/]+)\/?$/;
 const PRODUCT_SLUG = /^[a-z0-9-]{1,160}$/;
+const BLOG_PAGE = /^\/(?:blog|en\/blog)\/([^/]+)\/?$/;
+// A custom (admin-authored) top-level page: a single segment, FR "/slug" or EN
+// "/en/slug". Only tried AFTER the fixed-route allow-list and the product/blog
+// matchers, so it can never shadow a real route.
+const CUSTOM_PAGE = /^\/(?:en\/)?([a-z0-9-]{1,160})\/?$/;
 
 async function productIsLive(slug, env) {
   if (!PRODUCT_SLUG.test(slug)) return false;
@@ -83,6 +106,29 @@ async function serveProductFallback(request, env, slug) {
   if (live === false) return serveNeutralShell(request, env, { status: 404, noindex: true, reason: 'product-gone' });
   return serveNeutralShell(request, env);
 }
+
+// Blog posts and custom pages published since the last build aren't prerendered
+// either — same yes/no live check as products (published rows only), and the
+// same "never de-index on an outage" rule (null → keep the 200).
+async function rowExists(table, slug, env) {
+  if (!PRODUCT_SLUG.test(slug)) return false;
+  if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) return null;
+  try {
+    const q = `select=id&published=eq.true&or=(slug_fr.eq.${slug},slug_en.eq.${slug})&limit=1`;
+    const res = await fetch(`${env.SUPABASE_URL}/rest/v1/${table}?${q}`, {
+      headers: { apikey: env.SUPABASE_ANON_KEY, authorization: `Bearer ${env.SUPABASE_ANON_KEY}` },
+      signal: AbortSignal.timeout(2500),
+    });
+    if (!res.ok) return null;
+    const rows = await res.json();
+    return Array.isArray(rows) && rows.length > 0;
+  } catch (err) {
+    console.error(`[worker] ${table} check failed:`, err && err.message ? err.message : err);
+    return null;
+  }
+}
+const blogIsLive = (slug, env) => rowExists('blog_posts', slug, env);
+const customPageIsLive = (slug, env) => rowExists('custom_pages', slug, env);
 
 // ─── Shared tracking links: crawler-visible preview tags ────────────────
 // /suivi/lien/:token can't be prerendered per token, so it used to fall
@@ -282,7 +328,27 @@ export default {
       const product = PRODUCT_PAGE.exec(pathname);
       if (product) return await serveProductFallback(request, env, product[1]);
 
-      return await serveNeutralShell(request, env);
+      // A real app route — a fixed registry path, or any private/auth sub-path
+      // the client renders — keeps the 200 SPA shell.
+      if (isPrivatePath(pathname) || KNOWN_ROUTES.has(normPath(pathname))) {
+        return await serveNeutralShell(request, env);
+      }
+
+      // A blog post / custom page published since the last build is a real 200;
+      // everything else is an honest 404 + noindex so search engines drop it
+      // (no more soft-404 served as a 200 homepage shell).
+      const blog = BLOG_PAGE.exec(pathname);
+      if (blog) {
+        const live = await blogIsLive(decodeURIComponent(blog[1]).toLowerCase(), env);
+        return serveNeutralShell(request, env, live === false ? { status: 404, noindex: true, reason: 'blog-missing' } : {});
+      }
+      const custom = CUSTOM_PAGE.exec(pathname);
+      if (custom) {
+        const live = await customPageIsLive(decodeURIComponent(custom[1]).toLowerCase(), env);
+        return serveNeutralShell(request, env, live === false ? { status: 404, noindex: true, reason: 'page-missing' } : {});
+      }
+
+      return await serveNeutralShell(request, env, { status: 404, noindex: true, reason: 'not-found' });
     } catch (err) {
       console.error('[worker] fetch failed:', err && err.stack ? err.stack : err);
       try {
