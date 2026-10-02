@@ -50,6 +50,8 @@ export function productSchema(args: {
   image?: string | null;
 }): JsonLd;
 
+export function brandFromName(name: string | null | undefined): string | null;
+
 export function serviceGraph(args: {
   lang: string;
   canonical: string;

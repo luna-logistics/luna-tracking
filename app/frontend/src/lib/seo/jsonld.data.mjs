@@ -84,6 +84,16 @@ export function customPageGraph({ canonical, lang, title, description, image, da
 }
 
 /**
+ * A brand only when the product NAME shows one in all-caps (e.g. "PARKSIDE"),
+ * else null — keeps Product.brand off unbranded groceries. Shared so the
+ * prerender and the runtime detect it identically.
+ */
+export function brandFromName(name) {
+  const m = typeof name === 'string' ? name.match(/\b[A-Z]{3,}\b/) : null;
+  return m ? m[0] : null;
+}
+
+/**
  * Product. `offers` is emitted only when a price is given (quote-only items
  * omit it); `image` / `brand` / `sku` / `gtin` / `category` / `weightKg` are all
  * optional. `price` is a number in euros; `inStock` toggles availability.

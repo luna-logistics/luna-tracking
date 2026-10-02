@@ -24,7 +24,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { articleGraph, productSchema, customPageGraph, serviceGraph } from '../src/lib/seo/jsonld.data.mjs';
+import { articleGraph, productSchema, customPageGraph, serviceGraph, brandFromName } from '../src/lib/seo/jsonld.data.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const routesMod = await import(
@@ -119,7 +119,7 @@ async function sbFetch(table, query) {
 // row on the synthetic `image` page (used for og:image:alt overrides).
 const overrideRows  = await sbFetch('site_content', 'select=page_key,lang,field_key,value&or=(field_key.in.(meta_title,meta_description),page_key.eq.image)');
 const imageRows     = await sbFetch('site_images',  'select=image_key,url');
-const productRows   = await sbFetch('products',     'select=slug_fr,slug_en,name_fr,name_en,description_fr,description_en,meta_title_fr,meta_title_en,meta_description_fr,meta_description_en,image_url&is_active=eq.true');
+const productRows   = await sbFetch('products',     'select=slug_fr,slug_en,name_fr,name_en,description_fr,description_en,meta_title_fr,meta_title_en,meta_description_fr,meta_description_en,image_url,price,barcode,weight_kg,is_active&is_active=eq.true');
 const blogRows      = await sbFetch('blog_posts',   'select=slug_fr,slug_en,title_fr,title_en,excerpt_fr,excerpt_en,meta_title_fr,meta_title_en,meta_description_fr,meta_description_en,featured_image,featured_image_en,faq_fr,faq_en,published_at,updated_at&published=eq.true');
 const pricingRows   = await sbFetch('pricing_config', 'select=config&is_active=eq.true');
 const customRows    = await sbFetch('custom_pages', 'select=slug_fr,slug_en,title_fr,title_en,meta_title_fr,meta_title_en,meta_description_fr,meta_description_en,og_image,published_at,updated_at&published=eq.true');
@@ -625,6 +625,11 @@ async function emitProduct(row) {
       canonical, lang, name,
       description: description || undefined,
       sku: slug,
+      gtin: row.barcode || undefined,
+      brand: brandFromName(name),
+      weightKg: row.weight_kg != null ? Number(row.weight_kg) : undefined,
+      price: row.price != null ? Number(row.price) : undefined,
+      inStock: row.is_active !== false,
       image: ogImage,
     });
 

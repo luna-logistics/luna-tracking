@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ShoppingCart, ArrowLeft, Plus } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { JsonLd } from '@/components/JsonLd';
-import { productSchema } from '@/lib/seo/jsonld.data.mjs';
+import { productSchema, brandFromName } from '@/lib/seo/jsonld.data.mjs';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/sonner';
 import { useCart } from '@/contexts/CartContext';
@@ -81,6 +81,7 @@ export default function ShopAndShipProduct() {
     description: displayDescription ?? undefined,
     sku: productSlug(product, lang),
     gtin: product.barcode ?? undefined,
+    brand: brandFromName(displayName),
     category: displayCategory || undefined,
     weightKg: product.weight_kg ?? undefined,
     price: product.price,
