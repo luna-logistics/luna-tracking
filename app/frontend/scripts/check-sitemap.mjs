@@ -43,16 +43,21 @@ function isRedirected(pathname) {
   return null;
 }
 
-// Without prerendering (see vite.config.ts note), the SPA fallback serves
-// dist/index.html on every URL — so the disk check is deferred until we
-// restore prerender. We still guard against the sitemap listing URLs that
-// _redirects would 301 away — the class-of-bug that de-indexed Homie Book.
+// Prerendering is active (scripts/prerender-metas.mjs writes one
+// dist/<path>/index.html per URL), so we assert every sitemap URL both
+// resolves to a real prerendered file on disk AND is not 301'd away by
+// _redirects — the same-shape guard that would have caught Homie Book's
+// de-indexing.
 const bad = [];
 for (const url of urls) {
   const u = new URL(url);
   const pathname = u.pathname;
   const red = isRedirected(pathname);
-  if (red) bad.push(`${url} — redirected by _redirects (${red.from} → ${red.to} ${red.status})`);
+  if (red) { bad.push(`${url} — redirected by _redirects (${red.from} → ${red.to} ${red.status})`); continue; }
+  const segs = pathname.split('/').filter(Boolean);
+  if (!existsSync(join(DIST, ...segs, 'index.html'))) {
+    bad.push(`${url} — no prerendered file on disk (expected dist/${[...segs, 'index.html'].join('/')})`);
+  }
 }
 
 if (bad.length) {

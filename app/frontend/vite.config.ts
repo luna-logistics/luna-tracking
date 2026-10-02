@@ -48,11 +48,11 @@ function wellKnownAiCatalog(): Plugin {
   };
 }
 
-// Prerendering is deliberately DISABLED in this initial scaffold — see the
-// handoff report's "known follow-up chantiers" section. Until it lands,
-// crawlers see the SPA shell on every URL and the per-page SEO tags arrive
-// only after JS hydration. Non-critical for a soft launch, must be built
-// before we care about search rankings.
+// Prerendering is ACTIVE — not via a Vite plugin but a post-build Node step:
+// scripts/prerender-metas.mjs runs after `vite build` (see package.json
+// "build") and writes one dist/<path>/index.html per route with the full
+// <head> (title, description, canonical, hreflang, OG, JSON-LD) plus an
+// H1/body skeleton, so crawlers get per-page SEO on the first byte.
 
 export default defineConfig(() => ({
   plugins: [react(), preloadCriticalFonts(), wellKnownAiCatalog()],
