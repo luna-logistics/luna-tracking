@@ -24,6 +24,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { articleGraph, productSchema, customPageGraph } from '../src/lib/seo/jsonld.data.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const routesMod = await import(
@@ -186,7 +187,12 @@ function metaTagsFor({ lang, title, description, canonical, ogImage, ogImageAlt,
   parts.push(`<meta ${RH} name="twitter:title" content="${escapeHtml(title)}" />`);
   if (description) parts.push(`<meta ${RH} name="twitter:description" content="${escapeHtml(description)}" />`);
   parts.push(`<meta ${RH} name="twitter:image" content="${escapeHtml(ogImage)}" />`);
-  if (jsonLd) parts.push(`<script ${RH} type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>`);
+  // JSON-LD is emitted WITHOUT data-rh and with a stable id: react-helmet-async
+  // must NOT own it (it would strip the block ~100 ms after load, the way it
+  // used to), so it stays in the DOM for crawlers that render. The runtime
+  // <JsonLd> on dynamic pages (blog/product/custom) updates this same node in
+  // place, so there is always exactly one.
+  if (jsonLd) parts.push(`<script id="ld-page" type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>`);
   return parts.join('\n  ');
 }
 
@@ -466,46 +472,25 @@ async function emitBlogPost(row) {
     if (row.slug_en) hreflangs.push({ hreflang: 'en',        href: `${SITE_URL}${blogPostUrl(row.slug_en, 'en')}` });
     if (row.slug_fr) hreflangs.push({ hreflang: 'x-default', href: `${SITE_URL}${blogPostUrl(row.slug_fr, 'fr')}` });
 
-    // Article + BreadcrumbList (+ FAQPage when the post carries a FAQ),
-    // mirroring what the runtime BlogPost page emits so crawlers see the same
-    // structured data. FAQ is read from the row (never a static block).
+    // Article + BreadcrumbList (+ FAQPage when the post carries a FAQ), built by
+    // the SHARED builder so this prerendered block and the runtime BlogPost
+    // emitter stay identical. FAQ is read from the row (never a static block).
     const faq = Array.isArray(lang === 'en' ? row.faq_en : row.faq_fr)
       ? (lang === 'en' ? row.faq_en : row.faq_fr).filter((x) => x && x.q && x.a)
       : [];
-    const graph = [
-      {
-        '@type': 'Article',
-        headline: (lang === 'en' ? row.title_en : row.title_fr),
-        description,
-        image: ogImage ? [ogImage] : undefined,
-        datePublished: row.published_at,
-        dateModified: row.updated_at,
-        author: { '@type': 'Organization', name: SITE_NAME },
-        publisher: {
-          '@type': 'Organization', name: SITE_NAME,
-          logo: { '@type': 'ImageObject', url: `${SITE_URL}/brand/logo-luna-navbar2.png` },
-        },
-        mainEntityOfPage: { '@type': 'WebPage', '@id': canonical },
-        inLanguage: lang,
-      },
-      {
-        '@type': 'BreadcrumbList',
-        itemListElement: [
-          { '@type': 'ListItem', position: 1, name: lang === 'en' ? 'Home' : 'Accueil', item: `${SITE_URL}${urlFor('home', lang)}` },
-          { '@type': 'ListItem', position: 2, name: 'Blog', item: `${SITE_URL}${urlFor('blogIndex', lang)}` },
-          { '@type': 'ListItem', position: 3, name: (lang === 'en' ? row.title_en : row.title_fr), item: canonical },
-        ],
-      },
-    ];
-    if (faq.length > 0) {
-      graph.push({
-        '@type': 'FAQPage',
-        mainEntity: faq.map((f) => ({
-          '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a },
-        })),
-      });
-    }
-    const jsonLd = { '@context': 'https://schema.org', '@graph': graph };
+    const jsonLd = articleGraph({
+      canonical, lang,
+      title: (lang === 'en' ? row.title_en : row.title_fr),
+      description,
+      image: ogImage || undefined,
+      datePublished: row.published_at,
+      dateModified: row.updated_at,
+      homeUrl: urlFor('home', lang),
+      homeLabel: lang === 'en' ? 'Home' : 'Accueil',
+      blogUrl: urlFor('blogIndex', lang),
+      blogLabel: 'Blog',
+      faq,
+    });
 
     const head = metaTagsFor({
       lang, title, description, canonical, ogImage, ogImageAlt: title,
@@ -536,18 +521,14 @@ async function emitCustomPage(row) {
     if (row.slug_en) hreflangs.push({ hreflang: 'en',        href: `${SITE_URL}${customPageUrl(row.slug_en, 'en')}` });
     if (row.slug_fr) hreflangs.push({ hreflang: 'x-default', href: `${SITE_URL}${customPageUrl(row.slug_fr, 'fr')}` });
 
-    const jsonLd = {
-      '@context': 'https://schema.org',
-      '@type': 'WebPage',
-      name: (lang === 'en' ? row.title_en : row.title_fr),
-      description: description || undefined,
-      url: canonical,
-      inLanguage: lang,
+    const jsonLd = customPageGraph({
+      canonical, lang,
+      title: (lang === 'en' ? row.title_en : row.title_fr),
+      description,
+      image: ogImage,
       datePublished: row.published_at,
       dateModified: row.updated_at,
-      isPartOf: { '@type': 'WebSite', name: SITE_NAME, url: SITE_URL },
-      image: ogImage,
-    };
+    });
 
     const head = metaTagsFor({
       lang, title, description, canonical, ogImage, ogImageAlt: title,
@@ -579,15 +560,12 @@ async function emitProduct(row) {
     if (row.slug_en) hreflangs.push({ hreflang: 'en',        href: `${SITE_URL}${productUrl(row.slug_en, 'en')}` });
     if (row.slug_fr) hreflangs.push({ hreflang: 'x-default', href: `${SITE_URL}${productUrl(row.slug_fr, 'fr')}` });
 
-    const jsonLd = {
-      '@context': 'https://schema.org',
-      '@type': 'Product',
-      name,
+    const jsonLd = productSchema({
+      canonical, lang, name,
       description: description || undefined,
+      sku: slug,
       image: ogImage,
-      inLanguage: lang,
-      url: canonical,
-    };
+    });
 
     const head = metaTagsFor({
       lang, title, description, canonical, ogImage, ogImageAlt: name,

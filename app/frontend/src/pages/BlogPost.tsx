@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Helmet } from 'react-helmet-async';
 import { ArrowLeft, CalendarDays } from 'lucide-react';
 import { SEO } from '@/components/SEO';
+import { JsonLd } from '@/components/JsonLd';
+import { articleGraph } from '@/lib/seo/jsonld.data.mjs';
 import { Button } from '@/components/ui/button';
 import {
   fetchPostBySlug,
@@ -72,45 +73,21 @@ export default function BlogPostPage() {
   const faq = postFaq(post, lang);
   const heroImg = postImage(post, lang);
 
-  // Article + BreadcrumbList (+ FAQPage when the post carries a FAQ), all in
-  // one @graph and all derived from the post data — never a static block.
-  const graph: Record<string, unknown>[] = [
-    {
-      '@type': 'Article',
-      headline: title,
-      description: postMetaDescription(post, lang) ?? postExcerpt(post, lang) ?? undefined,
-      image: heroImg ? [heroImg] : undefined,
-      datePublished: post.published_at,
-      dateModified: post.updated_at,
-      author: { '@type': 'Organization', name: 'Luna Tracking Logistics' },
-      publisher: {
-        '@type': 'Organization',
-        name: 'Luna Tracking Logistics',
-        logo: { '@type': 'ImageObject', url: `${SITE_URL}/brand/logo-luna-navbar2.png` },
-      },
-      mainEntityOfPage: { '@type': 'WebPage', '@id': canonical },
-      inLanguage: lang,
-    },
-    {
-      '@type': 'BreadcrumbList',
-      itemListElement: [
-        { '@type': 'ListItem', position: 1, name: t('nav.home'), item: `${SITE_URL}${urlFor('home', lang)}` },
-        { '@type': 'ListItem', position: 2, name: t('nav.blog'), item: `${SITE_URL}${urlFor('blogIndex', lang)}` },
-        { '@type': 'ListItem', position: 3, name: title, item: canonical },
-      ],
-    },
-  ];
-  if (faq.length > 0) {
-    graph.push({
-      '@type': 'FAQPage',
-      mainEntity: faq.map((f) => ({
-        '@type': 'Question',
-        name: f.q,
-        acceptedAnswer: { '@type': 'Answer', text: f.a },
-      })),
-    });
-  }
-  const jsonLd = { '@context': 'https://schema.org', '@graph': graph };
+  // Article + BreadcrumbList (+ FAQPage when the post has a FAQ), from the
+  // SHARED builder so this matches the prerendered block exactly.
+  const jsonLd = articleGraph({
+    canonical, lang,
+    title,
+    description: postMetaDescription(post, lang) ?? postExcerpt(post, lang) ?? undefined,
+    image: heroImg,
+    datePublished: post.published_at,
+    dateModified: post.updated_at,
+    homeUrl: urlFor('home', lang),
+    homeLabel: t('nav.home'),
+    blogUrl: urlFor('blogIndex', lang),
+    blogLabel: t('nav.blog'),
+    faq,
+  });
 
   return (
     <>
@@ -121,9 +98,7 @@ export default function BlogPostPage() {
         image={heroImg ?? undefined}
         imageAlt={postImageAlt(post, lang)}
       />
-      <Helmet>
-        <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
-      </Helmet>
+      <JsonLd data={jsonLd} />
 
       <article className="py-10 sm:py-14">
         <div className="mx-auto max-w-3xl px-4 sm:px-6">

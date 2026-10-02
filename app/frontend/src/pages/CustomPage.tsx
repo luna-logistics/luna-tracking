@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
 import { ArrowLeft } from 'lucide-react';
 import { SEO } from '@/components/SEO';
+import { JsonLd } from '@/components/JsonLd';
+import { customPageGraph } from '@/lib/seo/jsonld.data.mjs';
 import { Button } from '@/components/ui/button';
 import {
   fetchPageBySlug, pageTitle, pageContent, pageMetaTitle, pageMetaDescription, pageImageAlt,
@@ -86,22 +88,14 @@ export default function CustomPage() {
   const langSlug = lang === 'en' ? page.slug_en : page.slug_fr;
   const canonical = `${SITE_URL}${lang === 'en' ? `/en/${langSlug}` : `/${langSlug}`}`;
 
-  const jsonLd = isPublished ? {
-    '@context': 'https://schema.org',
-    '@type': 'WebPage',
-    name: title,
+  const jsonLd = isPublished ? customPageGraph({
+    canonical, lang,
+    title,
     description: pageMetaDescription(page, lang) ?? undefined,
-    url: canonical,
-    inLanguage: lang,
+    image: page.og_image ?? undefined,
     datePublished: page.published_at,
     dateModified: page.updated_at,
-    isPartOf: {
-      '@type': 'WebSite',
-      name: 'Luna Tracking Logistics',
-      url: SITE_URL,
-    },
-    image: page.og_image ?? undefined,
-  } : null;
+  }) : null;
 
   // Only emit the alternate hreflang when the OTHER language's slug is
   // actually populated. Custom pages started bilingual by contract, but a
@@ -125,8 +119,8 @@ export default function CustomPage() {
       <Helmet>
         {isPublished && altHref && <link rel="alternate" hrefLang={lang === 'en' ? 'fr' : 'en'} href={altHref} />}
         {isPublished && page.slug_fr && <link rel="alternate" hrefLang="x-default" href={`${SITE_URL}/${page.slug_fr}`} />}
-        {jsonLd && <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>}
       </Helmet>
+      {jsonLd && <JsonLd data={jsonLd} />}
 
       <article className="py-10 sm:py-14">
         <div className="mx-auto max-w-3xl px-4 sm:px-6">

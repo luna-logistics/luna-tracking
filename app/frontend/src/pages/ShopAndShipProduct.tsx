@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Helmet } from 'react-helmet-async';
 import { ShoppingCart, ArrowLeft, Plus } from 'lucide-react';
 import { SEO } from '@/components/SEO';
+import { JsonLd } from '@/components/JsonLd';
+import { productSchema } from '@/lib/seo/jsonld.data.mjs';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/sonner';
 import { useCart } from '@/contexts/CartContext';
@@ -70,26 +71,22 @@ export default function ShopAndShipProduct() {
   const displayDescription = productDescription(product, lang);
   const displayCategory = cat ? categoryName(cat, lang) : '';
 
-  // Product JSON-LD (schema.org). Uses the ACTUAL page language, so a crawler
-  // seeing the /en/ variant reads the English name/description. offers.price
-  // is the same across locales — one price in €.
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'Product',
+  // Product JSON-LD (schema.org), from the SHARED builder so this matches the
+  // prerendered block exactly. Uses the ACTUAL page language, so a crawler
+  // seeing the /en/ variant reads the English name/description. One price in €.
+  const canonical = `${SITE_URL}${lang === 'en' ? `/en/shop-and-ship/${product.slug_en}` : `/achat-envoi/${product.slug_fr}`}`;
+  const jsonLd = productSchema({
+    canonical, lang,
     name: displayName,
     description: displayDescription ?? undefined,
     sku: productSlug(product, lang),
-    gtin13: product.barcode ?? undefined,
-    category: displayCategory,
-    weight: product.weight_kg ? { '@type': 'QuantitativeValue', value: product.weight_kg, unitCode: 'KGM' } : undefined,
-    offers: {
-      '@type': 'Offer',
-      price: product.price.toFixed(2),
-      priceCurrency: 'EUR',
-      availability: product.is_active ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
-      url: `${SITE_URL}${lang === 'en' ? `/en/shop-and-ship/${product.slug_en}` : `/achat-envoi/${product.slug_fr}`}`,
-    },
-  };
+    gtin: product.barcode ?? undefined,
+    category: displayCategory || undefined,
+    weightKg: product.weight_kg ?? undefined,
+    price: product.price,
+    inStock: product.is_active,
+    image: product.image_url ?? undefined,
+  });
 
   return (
     <>
@@ -100,9 +97,7 @@ export default function ShopAndShipProduct() {
         image={product.image_url ?? undefined}
         imageAlt={productName(product, lang)}
       />
-      <Helmet>
-        <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
-      </Helmet>
+      <JsonLd data={jsonLd} />
 
       <section className="py-10 sm:py-14">
         <div className="mx-auto max-w-4xl px-4 sm:px-6">
