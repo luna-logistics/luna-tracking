@@ -49,6 +49,13 @@ export default function ServiceParcelPickup() {
             { q: k('faq_q2'), a: k('faq_a2') },
           ]} />
         </ServiceSection>
+
+        <ServiceSection title={t('internal_links.related_title')}>
+          <ul className="space-y-2">
+            <li><ServiceLink to={urlFor('transitaire', lang)}>{t('internal_links.transitaire')}</ServiceLink></li>
+            <li><ServiceLink to={urlFor('diaspora', lang)}>{t('internal_links.diaspora')}</ServiceLink></li>
+          </ul>
+        </ServiceSection>
       </ServiceBody>
       <ServiceCta to={urlFor('pricing', lang)} label={k('cta')} />
     </>

@@ -81,6 +81,12 @@ export default function ServiceAirFreight() {
         <ServiceSection title={t('svc_common.faq_title')}>
           <ServiceFaq items={faqItems} />
         </ServiceSection>
+
+        <ServiceSection title={t('internal_links.related_title')}>
+          <ul className="space-y-2">
+            <li><ServiceLink to={urlFor('transitaire', lang)}>{t('internal_links.transitaire')}</ServiceLink></li>
+          </ul>
+        </ServiceSection>
       </>
     );
   })();

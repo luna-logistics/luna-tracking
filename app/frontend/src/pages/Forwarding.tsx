@@ -138,6 +138,12 @@ export default function Forwarding() {
             <Ed page="forwarding" field="intro" as="div" multiline markdown className="block max-w-[34em] text-[17px] leading-[1.65] text-[#D7E4F5]">
               {pageIntro}
             </Ed>
+
+            <p className="mt-4 max-w-[34em] text-[15px] leading-[1.6] text-[#D7E4F5]">
+              {t('internal_links.inline_lead')}
+              <Link to={urlFor('transitaire', lang)} className="font-medium text-luna-aqua underline-offset-2 hover:underline">{t('internal_links.transitaire')}</Link>
+              {t('internal_links.inline_after')}
+            </p>
           </div>
 
           <div className="min-w-0 flex-1 basis-[min(100%,420px)] rounded-[14px] border border-[#4A6FA0]/75 bg-luna-ink/60 p-[clamp(20px,2.5vw,28px)]">

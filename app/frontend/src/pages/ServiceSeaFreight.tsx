@@ -86,6 +86,12 @@ export default function ServiceSeaFreight() {
             { q: k('faq_q3'), a: k('faq_a3') },
           ]} />
         </ServiceSection>
+
+        <ServiceSection title={t('internal_links.related_title')}>
+          <ul className="space-y-2">
+            <li><ServiceLink to={urlFor('transitaire', lang)}>{t('internal_links.transitaire')}</ServiceLink></li>
+          </ul>
+        </ServiceSection>
       </>
     );
   })();

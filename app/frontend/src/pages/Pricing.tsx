@@ -222,6 +222,12 @@ export default function Pricing() {
             {pageIntro}
           </Ed>
 
+          <p className="mt-3 text-slate-600">
+            {t('internal_links.inline_lead')}
+            <Link to={urlFor('transitaire', lang)} className="font-medium text-luna-blue underline-offset-2 hover:underline">{t('internal_links.transitaire')}</Link>
+            {t('internal_links.inline_after')}
+          </p>
+
           {/* The menu says "Tarifs": give the visitor who only wants an
               order of magnitude a one-click route to the calculator. */}
           <div className="mt-8 rounded-2xl bg-luna-gradient text-white p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4">

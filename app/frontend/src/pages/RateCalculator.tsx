@@ -379,6 +379,11 @@ export default function RateCalculator() {
               {t('calc.faq_more_lead')}{' '}
               <Link to={urlFor('blogIndex', lang)} className="faq-link" style={FAQ_LINK}>{t('calc.faq_more_link')}</Link>.
             </p>
+            <p style={{ marginTop: 12, maxWidth: '70ch', fontSize: 15, color: '#4A5A75' }}>
+              {t('internal_links.inline_lead')}
+              <Link to={urlFor('transitaire', lang)} className="faq-link" style={FAQ_LINK}>{t('internal_links.transitaire')}</Link>
+              {t('internal_links.inline_after')}
+            </p>
           </div>
         </section>
       </Block>

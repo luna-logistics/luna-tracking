@@ -174,10 +174,10 @@ function injectBodySkeleton(html, { h1, h2s = [] }) {
 // anything still carrying an unresolved {{var}} is skipped rather than shown raw.
 const SR_ONLY = 'position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0';
 const SERVICE_SKELETON = {
-  svc_air:    { sections: ['svc_common.how_title', 'svc_air.formulas_title', 'svc_air.dest_title', 'svc_common.from_drc_title', 'svc_common.example_title', 'svc_common.faq_title'], faq: 5 },
-  svc_sea:    { sections: ['svc_common.how_title', 'svc_sea.cartons_title', 'svc_common.from_drc_title', 'svc_common.example_title', 'svc_common.faq_title'], faq: 3 },
-  svc_home:   { sections: ['svc_common.how_title', 'svc_home.cities_title', 'svc_common.example_title', 'svc_common.faq_title'], faq: 2 },
-  svc_pickup: { sections: ['svc_common.how_title', 'svc_common.example_title', 'svc_common.faq_title'], faq: 2 },
+  svc_air:    { sections: ['svc_common.how_title', 'svc_air.formulas_title', 'svc_air.dest_title', 'svc_common.from_drc_title', 'svc_common.example_title', 'svc_common.faq_title'], faq: 5, related: [{ route: 'transitaire', field: 'transitaire' }] },
+  svc_sea:    { sections: ['svc_common.how_title', 'svc_sea.cartons_title', 'svc_common.from_drc_title', 'svc_common.example_title', 'svc_common.faq_title'], faq: 3, related: [{ route: 'transitaire', field: 'transitaire' }] },
+  svc_home:   { sections: ['svc_common.how_title', 'svc_home.cities_title', 'svc_common.example_title', 'svc_common.faq_title'], faq: 2, related: [{ route: 'transitaire', field: 'transitaire' }, { route: 'diaspora', field: 'diaspora' }] },
+  svc_pickup: { sections: ['svc_common.how_title', 'svc_common.example_title', 'svc_common.faq_title'], faq: 2, related: [{ route: 'transitaire', field: 'transitaire' }, { route: 'diaspora', field: 'diaspora' }] },
   transitaire: { sections: ['transitaire.who_title', 'transitaire.services_title', 'transitaire.how_title', 'transitaire.pricing_title', 'transitaire.tracking_title', 'svc_common.faq_title'], faq: 5 },
   diaspora: { sections: ['diaspora.how_title', 'diaspora.what_title', 'diaspora.pricing_title', 'diaspora.delivery_title', 'svc_common.faq_title'], faq: 5 },
 };
@@ -208,6 +208,18 @@ function serviceSkeletonHtml(i18nPage, lang) {
     if (q && a && !/\{\{/.test(a)) {
       detail.push(`    <h3>${escapeHtml(q)}</h3>`);
       detail.push(`    <p>${escapeHtml(a)}</p>`);
+    }
+  }
+
+  // "À découvrir aussi" — real <a> links to the pillar / diaspora pages, so the
+  // inbound links are in the static HTML for non-JS crawlers too (not only the
+  // runtime React related section). Labels from the shared internal_links keys.
+  if (Array.isArray(spec.related) && spec.related.length) {
+    const relTitle = readI18n(lang, 'internal_links', 'related_title');
+    if (relTitle) detail.push(`    <h2>${escapeHtml(relTitle)}</h2>`);
+    for (const r of spec.related) {
+      const label = readI18n(lang, 'internal_links', r.field);
+      if (label) detail.push(`    <a href="${escapeHtml(urlFor(r.route, lang))}">${escapeHtml(label)}</a>`);
     }
   }
 
