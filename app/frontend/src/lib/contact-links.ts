@@ -14,7 +14,12 @@ export function whatsappUrl(phone: string): string {
   return `https://wa.me/${phone.replace(/\D/g, '')}`;
 }
 
-/** Google Maps search for a postal address (works on desktop + mobile apps). */
-export function mapsUrl(address: string): string {
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${address}, Belgique`)}`;
+/**
+ * Google Maps search for a postal address (works on desktop + mobile apps).
+ * `country` is appended to disambiguate the query; it defaults to Belgium, so a
+ * non-Belgian office (e.g. the Kinshasa branch) MUST pass its own country —
+ * otherwise the pin lands in the wrong country.
+ */
+export function mapsUrl(address: string, country = 'Belgique'): string {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${address}, ${country}`)}`;
 }
