@@ -4,5 +4,27 @@
     "displayName": "Luna Tracking Logistics",
     "identifier": "lunatrackinglogistics.com"
   },
-  "entries": []
+  "entries": [
+    {
+      "identifier": "urn:ai:lunatrackinglogistics.com:api:tracking",
+      "displayName": "Luna Tracking API (OpenAPI 3.1)",
+      "type": "application/openapi+json",
+      "url": "https://zlpzajjfzezjildvchoz.functions.supabase.co/api-v1/openapi.json",
+      "description": "OpenAPI 3.1 specification for the Luna Tracking API: shipment tracking, quotes, rate calculator and webhooks."
+    },
+    {
+      "identifier": "urn:ai:lunatrackinglogistics.com:doc:api",
+      "displayName": "API documentation",
+      "type": "text/html",
+      "url": "https://lunatrackinglogistics.com/docs/api",
+      "description": "Developer guide for the Luna Tracking API: getting started, authentication, endpoints, cURL examples and error handling."
+    },
+    {
+      "identifier": "urn:ai:lunatrackinglogistics.com:doc:llms",
+      "displayName": "Site guide for AI assistants",
+      "type": "text/plain",
+      "url": "https://lunatrackinglogistics.com/llms.txt",
+      "description": "Plain-text overview of the site's pages and services (Belgium–DR Congo freight) for AI assistants."
+    }
+  ]
 }
