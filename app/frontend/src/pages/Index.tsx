@@ -328,6 +328,15 @@ export default function Index() {
                 </Link>
               ))}
             </div>
+
+            {/* Hub links to the pillar + diaspora pages (internal linking) */}
+            <p className="mt-6 text-[13px] leading-[1.6] text-luna-muted-ink md:mt-8 md:text-[15px]">
+              {t('home.hub_lead')}
+              <Link to={urlFor('transitaire', lang)} className="font-medium text-luna-royal underline-offset-2 hover:underline">{t('home.hub_transitaire')}</Link>
+              {t('home.hub_mid')}
+              <Link to={urlFor('diaspora', lang)} className="font-medium text-luna-royal underline-offset-2 hover:underline">{t('home.hub_diaspora')}</Link>
+              {t('home.hub_end')}
+            </p>
           </section>
         </Block>
 

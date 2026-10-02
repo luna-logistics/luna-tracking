@@ -59,6 +59,7 @@ export function Navbar() {
     { to: urlFor('contact', lang), label: t('nav.contact') },
   ];
   const serviceLinks = [
+    { to: urlFor('transitaire', lang), label: t('nav.service_transitaire') },
     { to: urlFor('serviceAir', lang), label: t('nav.service_air') },
     { to: urlFor('serviceSea', lang), label: t('nav.service_sea') },
     { to: urlFor('serviceHome', lang), label: t('nav.service_home') },

@@ -47,6 +47,8 @@ export function Footer() {
               <span className="text-[15px] font-semibold text-white">{t('brand.name')}</span>
             </div>
             <nav aria-label={t('footer.services_title')} className="grid grid-cols-2 gap-x-6 gap-y-2 mb-5 text-sm">
+              <Link to={urlFor('transitaire', lang)} className="text-white/80 hover:text-white">{t('nav.service_transitaire')}</Link>
+              <Link to={urlFor('diaspora', lang)} className="text-white/80 hover:text-white">{t('nav.diaspora')}</Link>
               <Link to={urlFor('tracking', lang)} className="text-white/80 hover:text-white">{t('nav.tracking')}</Link>
               <Link to={urlFor('shopAndShip', lang)} className="text-white/80 hover:text-white">{t('nav.shop_and_ship')}</Link>
               <Link to={urlFor('forwarding', lang)} className="text-white/80 hover:text-white">{t('nav.forwarding')}</Link>
@@ -82,6 +84,8 @@ export function Footer() {
                 {t('footer.services_title')}
               </h3>
               <ul className="space-y-2 text-sm">
+                <li><Link to={urlFor('transitaire', lang)} className="text-white/80 hover:text-white">{t('nav.service_transitaire')}</Link></li>
+                <li><Link to={urlFor('diaspora', lang)} className="text-white/80 hover:text-white">{t('nav.diaspora')}</Link></li>
                 <li><Link to={urlFor('tracking', lang)} className="text-white/80 hover:text-white">{t('nav.tracking')}</Link></li>
                 <li><Link to={urlFor('shopAndShip', lang)} className="text-white/80 hover:text-white">{t('nav.shop_and_ship')}</Link></li>
                 <li><Link to={urlFor('forwarding', lang)} className="text-white/80 hover:text-white">{t('nav.forwarding')}</Link></li>

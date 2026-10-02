@@ -16,6 +16,8 @@
     "service_sea": "Sea freight",
     "service_home": "Home delivery",
     "service_pickup": "Parcel pickup",
+    "service_transitaire": "Belgium–Congo forwarder",
+    "diaspora": "Send a parcel to family",
     "blog": "Blog",
     "calculator": "Calculator",
     "api_docs": "API",
@@ -30,6 +32,11 @@
     "about": "About us",
     "menu": "Menu",
     "main_navigation": "Main navigation"
+  },
+  "internal_links": {
+    "related_title": "Explore further",
+    "transitaire": "Belgium–Congo freight forwarder",
+    "diaspora": "Send a parcel to your family in Congo"
   },
   "footer": {
     "about_title": "Luna Tracking Logistics",
@@ -85,6 +92,11 @@
     "pillar_pickup_body": "We come and pick up your parcels at home or at your workplace — no travel on your side.",
     "pillar_pickup_alt": "Luna Tracking Logistics van picking up parcels at home in Belgium",
     "pillar_cta": "Learn more",
+    "hub_lead": "To go further, see our role as a ",
+    "hub_transitaire": "Belgium–Congo freight forwarder",
+    "hub_mid": ", or how to ",
+    "hub_diaspora": "send a parcel to your family in Congo",
+    "hub_end": ".",
     "hero_subtitle_short": "Air and sea freight between Belgium and Congo — transparent tracking at every step.",
     "pillar_air_short": "Urgent shipments and high-value goods.",
     "pillar_sea_short": "Cost-effective for large volumes and containers.",

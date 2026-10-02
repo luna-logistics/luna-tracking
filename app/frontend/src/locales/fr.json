@@ -16,6 +16,8 @@
     "service_sea": "Fret maritime",
     "service_home": "Livraison à domicile",
     "service_pickup": "Enlèvement de colis",
+    "service_transitaire": "Transitaire Belgique–Congo",
+    "diaspora": "Envoyer un colis à la famille",
     "blog": "Blog",
     "calculator": "Calculateur",
     "api_docs": "API",
@@ -30,6 +32,11 @@
     "about": "À propos",
     "menu": "Menu",
     "main_navigation": "Navigation principale"
+  },
+  "internal_links": {
+    "related_title": "À découvrir aussi",
+    "transitaire": "Transitaire Belgique–Congo",
+    "diaspora": "Envoyer un colis à votre famille au Congo"
   },
   "footer": {
     "about_title": "Luna Tracking Logistics",
@@ -85,6 +92,11 @@
     "pillar_pickup_body": "Nous passons récupérer vos colis chez vous ou sur votre lieu de travail — aucun déplacement de votre côté.",
     "pillar_pickup_alt": "Camionnette Luna Tracking Logistics venant enlever des colis à domicile en Belgique",
     "pillar_cta": "En savoir plus",
+    "hub_lead": "Pour aller plus loin, découvrez notre rôle de ",
+    "hub_transitaire": "transitaire Belgique–Congo",
+    "hub_mid": ", ou comment ",
+    "hub_diaspora": "envoyer un colis à votre famille au Congo",
+    "hub_end": ".",
     "hero_subtitle_short": "Fret aérien et maritime entre la Belgique et le Congo — suivi transparent à chaque étape.",
     "pillar_air_short": "Envois urgents et marchandises à haute valeur.",
     "pillar_sea_short": "Économique pour les gros volumes et conteneurs.",
