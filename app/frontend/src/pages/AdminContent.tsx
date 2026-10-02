@@ -16,6 +16,7 @@ import {
   contentKey,
 } from '@/lib/site-content';
 import { useSiteContentContext } from '@/contexts/SiteContentContext';
+import { ensureLanguageLoaded } from '@/i18n';
 import { translateText } from '@/lib/translate';
 import { cn } from '@/lib/utils';
 import { errorMessage } from '@/lib/errors';
@@ -33,6 +34,20 @@ export default function AdminContent() {
   const ctx = useSiteContentContext();
   const [activeKey, setActiveKey] = useState<string>(EDITABLE_PAGES[0].key);
   const activePage = useMemo(() => EDITABLE_PAGES.find((p) => p.key === activeKey)!, [activeKey]);
+
+  // The EN translation bundle is lazy-loaded (only on /en/* URLs or via the
+  // language switcher). The admin lives on a FR URL, so without this the EN
+  // column's default — i18n.t(key, { lng: 'en' }) in FieldSlot — would fall
+  // back to the FR text, making every field without an EN override look like
+  // a missing/duplicated translation even though en.json is correct. Load it
+  // once on mount; the state flip re-renders the tree so the EN defaults
+  // resolve to real English.
+  const [, setEnLoaded] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    void ensureLanguageLoaded('en').then(() => { if (alive) setEnLoaded(true); });
+    return () => { alive = false; };
+  }, []);
 
   return (
     <>
