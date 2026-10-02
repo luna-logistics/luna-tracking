@@ -273,7 +273,7 @@ export default function Pricing() {
               )}
             </div>
           ) : (
-            <form onSubmit={onSubmit} className="relative mt-8 rounded-2xl border-2 border-luna-blue/30 bg-white p-6 shadow-sm grid gap-6">
+            <form onSubmit={onSubmit} aria-label={t('pricing.page_title')} className="relative mt-8 rounded-2xl border-2 border-luna-blue/30 bg-white p-6 shadow-sm grid gap-6">
               {!user && <FormShield shield={shield} />}
               {prefilled && (
                 <p className="rounded-xl bg-luna-cyan/10 border border-luna-cyan/40 px-4 py-2.5 text-sm text-luna-navy">
@@ -382,7 +382,7 @@ export default function Pricing() {
 
                 <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer w-fit">
                   <input type="checkbox" checked={isBusiness} onChange={(e) => setIsBusiness(e.target.checked)}
-                    className="rounded border-slate-300 text-luna-navy focus:ring-luna-navy/20" />
+                    className="h-6 w-6 rounded border-slate-300 text-luna-navy focus:ring-luna-navy/20" />
                   {t('pricing.business_toggle')}
                 </label>
                 {isBusiness && (

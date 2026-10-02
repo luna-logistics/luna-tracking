@@ -35,7 +35,7 @@ export function Footer() {
   ];
 
   return (
-    <footer className="mt-auto">
+    <footer className="mt-auto [&_a]:inline-block [&_a]:py-1">
       {/* Wave transitions the off-white body ground INTO the navy footer */}
       <WaveDivider side="bottom" color="text-luna-ink" />
       <div className="bg-luna-ink text-[#B9C9E0]">

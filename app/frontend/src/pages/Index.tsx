@@ -119,6 +119,7 @@ export default function Index() {
                 <Search className="h-4 w-4 shrink-0 text-luna-aqua" />
                 <input
                   type="text"
+                  aria-label={t('tracking.password_label')}
                   value={trackingNumber}
                   onChange={(e) => { setTrackingNumber(e.target.value); setTrackingMsg(''); }}
                   onKeyDown={(e) => e.key === 'Enter' && handleTrack()}
@@ -301,6 +302,7 @@ export default function Index() {
                 <Link
                   key={c.key}
                   to={c.href}
+                  aria-label={c.title}
                   className={`group flex flex-col overflow-hidden rounded-[10px] border border-[#DCE5F0] bg-white transition-shadow hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-luna-royal ${i < 3 ? 'nav:col-span-2' : 'nav:col-span-3'}`}
                 >
                   <div className={`overflow-hidden ${i < 3 ? 'h-40' : 'h-40 nav:h-[290px]'}`}>
