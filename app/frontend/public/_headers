@@ -80,3 +80,9 @@
 
 /brand/*
   Cache-Control: public, max-age=2592000, stale-while-revalidate=604800
+
+# llms.txt is generated at build (scripts/generate-llms.mjs) from the route
+# registry. Declare UTF-8 explicitly — the file carries accented copy (é, ↔, …)
+# and some clients otherwise guess the charset.
+/llms.txt
+  Content-Type: text/plain; charset=utf-8
