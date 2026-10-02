@@ -64,6 +64,7 @@ const ROUTE_I18N = {
   serviceSea:     'svc_sea',
   serviceHome:    'svc_home',
   servicePickup:  'svc_pickup',
+  transitaire:    'transitaire',
 };
 
 /** RouteKey → site_content page key, where it differs from the i18n key
@@ -176,7 +177,13 @@ const SERVICE_SKELETON = {
   svc_sea:    { sections: ['svc_common.how_title', 'svc_sea.cartons_title', 'svc_common.from_drc_title', 'svc_common.example_title', 'svc_common.faq_title'], faq: 3 },
   svc_home:   { sections: ['svc_common.how_title', 'svc_home.cities_title', 'svc_common.example_title', 'svc_common.faq_title'], faq: 2 },
   svc_pickup: { sections: ['svc_common.how_title', 'svc_common.example_title', 'svc_common.faq_title'], faq: 2 },
+  transitaire: { sections: ['transitaire.who_title', 'transitaire.services_title', 'transitaire.how_title', 'transitaire.pricing_title', 'transitaire.tracking_title', 'svc_common.faq_title'], faq: 5 },
 };
+
+// Service-skeleton pages whose runtime serviceGraph ALSO passes `faq`, so the
+// prerendered FAQPage and the hydrated one match. The plain service pages
+// (svc_sea/home/pickup) emit no FAQPage on either side.
+const FAQ_GRAPH_PAGES = new Set(['svc_air', 'transitaire']);
 
 function serviceSkeletonHtml(i18nPage, lang) {
   const spec = SERVICE_SKELETON[i18nPage];
@@ -498,10 +505,9 @@ async function emitStaticRoute(key, def) {
             homeUrl: urlFor('home', lang),
             homeLabel: lang === 'en' ? 'Home' : 'Accueil',
             serviceName: overrideOr(i18nPage, lang, 'h1', readI18n(lang, i18nPage, 'h1')) || title,
-            // FAQPage only on /fret-aerien for now — the page whose runtime
-            // serviceGraph also passes faq, so the prerendered and hydrated
-            // JSON-LD match (other service pages emit no FAQPage either side).
-            faq: i18nPage === 'svc_air' ? serviceFaqForGraph(i18nPage, lang) : undefined,
+            // FAQPage only where the runtime serviceGraph also passes faq, so
+            // the prerendered and hydrated JSON-LD match (see FAQ_GRAPH_PAGES).
+            faq: FAQ_GRAPH_PAGES.has(i18nPage) ? serviceFaqForGraph(i18nPage, lang) : undefined,
           })
         : {
             '@context': 'https://schema.org',

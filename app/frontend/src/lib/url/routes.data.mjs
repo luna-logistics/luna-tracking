@@ -22,6 +22,7 @@ export const ROUTES = {
   serviceSea:      { indexable: true,  bilingual: true,  fr: '/fret-maritime',           en: '/sea-freight' },
   serviceHome:     { indexable: true,  bilingual: true,  fr: '/livraison-domicile-congo', en: '/home-delivery-congo' },
   servicePickup:   { indexable: true,  bilingual: true,  fr: '/enlevement-colis',        en: '/parcel-pickup' },
+  transitaire:     { indexable: true,  bilingual: true,  fr: '/transitaire-belgique-congo', en: '/freight-forwarder-belgium-congo' },
   login:           { indexable: false, bilingual: true,  fr: '/connexion',          en: '/login' },
   signup:          { indexable: false, bilingual: true,  fr: '/inscription',        en: '/signup' },
   forgotPassword:  { indexable: false, bilingual: true,  fr: '/mot-de-passe-oublie', en: '/forgot-password' },

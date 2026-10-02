@@ -44,6 +44,7 @@ const ServiceAirFreight = lazy(() => import('@/pages/ServiceAirFreight'));
 const ServiceSeaFreight = lazy(() => import('@/pages/ServiceSeaFreight'));
 const ServiceHomeDelivery = lazy(() => import('@/pages/ServiceHomeDelivery'));
 const ServiceParcelPickup = lazy(() => import('@/pages/ServiceParcelPickup'));
+const Transitaire = lazy(() => import('@/pages/Transitaire'));
 const Signup = lazy(() => import('@/pages/Signup'));
 const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
@@ -179,6 +180,7 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
           <Route path={t('/fret-maritime', '/sea-freight')} element={<PublicLayout><ServiceSeaFreight /></PublicLayout>} />
           <Route path={t('/livraison-domicile-congo', '/home-delivery-congo')} element={<PublicLayout><ServiceHomeDelivery /></PublicLayout>} />
           <Route path={t('/enlevement-colis', '/parcel-pickup')} element={<PublicLayout><ServiceParcelPickup /></PublicLayout>} />
+          <Route path={t('/transitaire-belgique-congo', '/freight-forwarder-belgium-congo')} element={<PublicLayout><Transitaire /></PublicLayout>} />
           <Route path="/blog" element={<PublicLayout><BlogIndex /></PublicLayout>} />
           <Route path="/blog/:slug" element={<PublicLayout><BlogPost /></PublicLayout>} />
           <Route path={t('/a-propos', '/about')} element={<PublicLayout><About /></PublicLayout>} />
