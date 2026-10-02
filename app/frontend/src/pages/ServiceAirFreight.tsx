@@ -26,9 +26,21 @@ export default function ServiceAirFreight() {
   const config = liveConfig ?? FALLBACK_PRICING_CONFIG;
   const k = (key: string, vars?: Record<string, string>) => t(`svc_air.${key}`, vars);
 
+  // FAQ built once: the SAME array feeds the visible accordion and the FAQPage
+  // JSON-LD, so the structured data can never drift from what the page shows.
+  // The only figure in an answer is the volumetric surcharge ({{surcharge}}),
+  // read from the active grid; every other answer is figure-free.
+  const surcharge = eur(config.volumetricSurchargeRateCentsPerKg, lang);
+  const faqItems = [
+    { q: k('faq_q1'), a: k('faq_a1') },
+    { q: k('faq_q2'), a: k('faq_a2', { surcharge }) },
+    { q: k('faq_q3'), a: k('faq_a3') },
+    { q: k('faq_q4'), a: k('faq_a4') },
+    { q: k('faq_q5'), a: k('faq_a5') },
+  ];
+
   const body = (() => {
     const { express, cargo } = config.modes;
-    const surcharge = eur(config.volumetricSurchargeRateCentsPerKg, lang);
     const handling = eur(config.handlingFeeCents, lang);
     return (
       <>
@@ -67,11 +79,7 @@ export default function ServiceAirFreight() {
         </ServiceSection>
 
         <ServiceSection title={t('svc_common.faq_title')}>
-          <ServiceFaq items={[
-            { q: k('faq_q1'), a: k('faq_a1') },
-            { q: k('faq_q2'), a: k('faq_a2', { surcharge }) },
-            { q: k('faq_q3'), a: k('faq_a3') },
-          ]} />
+          <ServiceFaq items={faqItems} />
         </ServiceSection>
       </>
     );
@@ -88,6 +96,7 @@ export default function ServiceAirFreight() {
         homeUrl: urlFor('home', lang),
         homeLabel: t('nav.home'),
         serviceName: k('h1'),
+        faq: faqItems,
       })} />
       <ServiceHero title={k('h1')} intro={k('intro')} image="/images/services/service-air-freight.webp" imageAlt={t('home.pillar_air_alt')} />
       <ServiceBody>{body}</ServiceBody>

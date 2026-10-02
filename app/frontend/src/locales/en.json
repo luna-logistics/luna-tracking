@@ -2821,10 +2821,10 @@
     "from_drc_link": "Open the quote form"
   },
   "svc_air": {
-    "meta_title": "Air freight Brussels–Kinshasa — Luna Tracking Logistics",
-    "meta_description": "Send your parcels by air to Kinshasa. The price is based on actual weight and volumetric weight, with an express or cargo option.",
+    "meta_title": "Air freight to Kinshasa (Brussels → DRC) — Luna Tracking Logistics",
+    "meta_description": "Air freight to Kinshasa from Belgium: express or cargo option, with the price based on actual weight and volumetric weight. Get an instant estimate in the calculator.",
     "h1": "Air freight Brussels–Kinshasa",
-    "intro": "Air freight carries your parcels by plane between Brussels and Kinshasa. Two options are available: express and cargo.",
+    "intro": "Air freight carries your parcels by plane from Brussels to Kinshasa, in the Democratic Republic of the Congo. Two options cover individuals and businesses alike: express for small urgent parcels, cargo for heavier shipments and goods. The price is based on actual weight and volumetric weight.",
     "step1": "Enter your parcel's weight and dimensions on the ",
     "step1_link": "Calculator",
     "step1_after": " page.",
@@ -2851,6 +2851,10 @@
     "faq_a2": "The actual weight is charged at the rate of the option you choose. If the volumetric weight is higher, the difference is added at {{surcharge}}/kg.",
     "faq_q3": "Do you ship from the DRC to Belgium?",
     "faq_a3": "Yes, on quote. Describe your needs in the \"Additional details\" field of the quote form.",
+    "faq_q4": "How much does air freight to Kinshasa cost?",
+    "faq_a4": "The price depends on your parcel's actual weight and volumetric weight, and on the option you choose (express or cargo). Enter the dimensions and weight in the calculator: the Brussels → Kinshasa estimate appears instantly.",
+    "faq_q5": "Can I send goods or a pallet by air freight to Kinshasa?",
+    "faq_a5": "Yes. The cargo option handles heavier shipments and goods. For a very large volume or a pallet, request a quote: we also offer sea freight, which is often more economical by volume.",
     "cta": "Calculate the price of my shipment"
   },
   "svc_sea": {

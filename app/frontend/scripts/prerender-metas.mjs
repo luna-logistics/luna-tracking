@@ -171,7 +171,7 @@ function injectBodySkeleton(html, { h1, h2s = [] }) {
 // anything still carrying an unresolved {{var}} is skipped rather than shown raw.
 const SR_ONLY = 'position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0';
 const SERVICE_SKELETON = {
-  svc_air:    { sections: ['svc_common.how_title', 'svc_air.formulas_title', 'svc_air.dest_title', 'svc_common.from_drc_title', 'svc_common.example_title', 'svc_common.faq_title'], faq: 3 },
+  svc_air:    { sections: ['svc_common.how_title', 'svc_air.formulas_title', 'svc_air.dest_title', 'svc_common.from_drc_title', 'svc_common.example_title', 'svc_common.faq_title'], faq: 5 },
   svc_sea:    { sections: ['svc_common.how_title', 'svc_sea.cartons_title', 'svc_common.from_drc_title', 'svc_common.example_title', 'svc_common.faq_title'], faq: 3 },
   svc_home:   { sections: ['svc_common.how_title', 'svc_home.cities_title', 'svc_common.example_title', 'svc_common.faq_title'], faq: 2 },
   svc_pickup: { sections: ['svc_common.how_title', 'svc_common.example_title', 'svc_common.faq_title'], faq: 2 },
@@ -205,6 +205,24 @@ function serviceSkeletonHtml(i18nPage, lang) {
   if (h1) parts.push(`  <h1>${escapeHtml(h1)}</h1>`);
   if (detail.length) parts.push(`  <div style="${SR_ONLY}">\n${detail.join('\n')}\n  </div>`);
   return parts.length ? parts.join('\n') : null;
+}
+
+/** FAQ items (q + fully-resolved a) for a service page's FAQPage JSON-LD, built
+ *  from the same locale keys + grid as serviceSkeletonHtml so the schema matches
+ *  the visible answers. The only figure is {{surcharge}} (from the build grid);
+ *  an answer still carrying an unresolved {{var}} is skipped, never emitted raw. */
+function serviceFaqForGraph(i18nPage, lang) {
+  const spec = SERVICE_SKELETON[i18nPage];
+  if (!spec) return undefined;
+  const surcharge = surchargeCents != null ? formatEuros(surchargeCents, lang) : null;
+  const out = [];
+  for (let n = 1; n <= spec.faq; n++) {
+    const q = readI18n(lang, i18nPage, `faq_q${n}`);
+    let a = readI18n(lang, i18nPage, `faq_a${n}`);
+    if (a && surcharge) a = a.replace(/\{\{surcharge\}\}/g, surcharge);
+    if (q && a && !/\{\{/.test(a)) out.push({ q, a });
+  }
+  return out.length ? out : undefined;
 }
 
 /**
@@ -474,6 +492,10 @@ async function emitStaticRoute(key, def) {
             homeUrl: urlFor('home', lang),
             homeLabel: lang === 'en' ? 'Home' : 'Accueil',
             serviceName: overrideOr(i18nPage, lang, 'h1', readI18n(lang, i18nPage, 'h1')) || title,
+            // FAQPage only on /fret-aerien for now — the page whose runtime
+            // serviceGraph also passes faq, so the prerendered and hydrated
+            // JSON-LD match (other service pages emit no FAQPage either side).
+            faq: i18nPage === 'svc_air' ? serviceFaqForGraph(i18nPage, lang) : undefined,
           })
         : {
             '@context': 'https://schema.org',
