@@ -297,7 +297,7 @@
     "lbl_corridor_destination": "Corridor — arrivée"
   },
   "calc": {
-    "meta_title": "Calculateur de tarif — Bruxelles → Kinshasa | Luna Tracking Logistics",
+    "meta_title": "Calculateur Bruxelles → Kinshasa — Luna Tracking Logistics",
     "meta_description": "Estimez en un instant le prix de votre envoi de Bruxelles vers Kinshasa : fret express, cargo et maritime, avec le détail du calcul.",
     "corridor_badge": "Bruxelles → Kinshasa",
     "hero_title": "Calculez le prix de votre envoi vers Kinshasa",
@@ -543,7 +543,7 @@
   },
   "contact": {
     "meta_title": "Contact — Luna Tracking Logistics | Bruxelles ↔ Congo",
-    "meta_description": "Joignez Luna Tracking Logistics : téléphone, e-mail et bureau à Ixelles. Suivi d'un envoi, devis, question sur un colis vers le Congo — nous vous aiguillons vers le bon canal.",
+    "meta_description": "Joignez Luna Tracking Logistics : téléphone, e-mail et bureau à Ixelles. Suivi d'un envoi, devis ou question sur un colis vers le Congo.",
     "page_title": "Contacter Luna Tracking Logistics",
     "page_intro": "Dites-nous d'abord de quoi il s'agit — nous vous envoyons directement au bon endroit, et vous saurez quoi préparer avant d'écrire.",
     "email_title": "E-mail",
@@ -2076,8 +2076,8 @@
     "imp_summary": "{{created}} créés, {{updated}} mis à jour, {{failed}} en échec (détail par ligne dans l'aperçu)."
   },
   "shop": {
-    "meta_title": "Achat & Envoi — Nous achetons pour vous en Belgique et livrons au Congo",
-    "meta_description": "Commandez vos produits belges (alimentation, hygiène, conserves) : Luna les achète en Belgique et les livre chez vous au Congo. Paiement à l'avance, livraison suivie.",
+    "meta_title": "Achat & Envoi Belgique → Congo — Luna Tracking Logistics",
+    "meta_description": "Commandez vos produits belges : Luna les achète en Belgique et les livre chez vous au Congo. Paiement à l'avance, livraison suivie.",
     "page_title": "Achetez vos produits en Belgique et faites-les livrer en RDC",
     "page_intro": "Commandez des produits disponibles chez Lidl, Carrefour et d'autres enseignes belges. Choisissez vos articles, passez commande, nous acheminons le tout vers la République démocratique du Congo.",
     "how_title": "Comment ça marche",
@@ -2622,7 +2622,7 @@
   },
   "legal_terms": {
     "meta_title": "Conditions générales de transport — Luna Tracking Logistics",
-    "meta_description": "Conditions générales de transport et de logistique de Luna Tracking Logistics SRL : obligations du donneur d'ordre, responsabilité, assurance, tarifs, paiement, réclamations, droit applicable.",
+    "meta_description": "Conditions générales de transport de Luna Tracking Logistics SRL : obligations, responsabilité, assurance, tarifs, paiement, réclamations et droit applicable.",
     "page_title": "Conditions générales de transport et de logistique",
     "page_intro": "Les présentes conditions générales régissent l'ensemble des opérations de transport, de logistique, de manutention et de services accessoires effectuées par Luna Tracking Logistics SRL. Le donneur d'ordre les accepte sans réserve par le seul fait de la remise de la marchandise.",
     "s1_title": "Article 1 : Champ d'application et définitions",
@@ -2676,7 +2676,7 @@
   },
   "about": {
     "meta_title": "À propos — Luna Tracking Logistics SRL, fret Belgique-Congo",
-    "meta_description": "Qui sommes-nous ? Luna Tracking Logistics SRL, agence de transport et de logistique entre la Belgique et le Congo, fondée sur la confiance, le sérieux, la proximité et la qualité du service.",
+    "meta_description": "Qui sommes-nous ? Luna Tracking Logistics SRL, agence de transport et de logistique entre la Belgique et le Congo.",
     "page_title": "À propos de nous",
     "page_intro": "Une agence de transport entre la Belgique et le Congo, créée par des professionnels du service et de l'import-export.",
     "story_title": "La société",
@@ -2832,8 +2832,8 @@
     "from_drc_link": "Ouvrir le formulaire de devis"
   },
   "svc_air": {
-    "meta_title": "Fret aérien Kinshasa (Bruxelles → RDC) — Luna Tracking Logistics",
-    "meta_description": "Fret aérien vers Kinshasa depuis la Belgique : formule express ou cargo, prix calculé sur le poids réel et le poids volumétrique. Estimation immédiate dans le calculateur.",
+    "meta_title": "Fret aérien Bruxelles → Kinshasa — Luna Tracking Logistics",
+    "meta_description": "Fret aérien vers Kinshasa depuis la Belgique : express ou cargo, prix selon le poids réel et volumétrique. Estimation immédiate dans le calculateur.",
     "h1": "Fret aérien Bruxelles–Kinshasa",
     "intro": "Le fret aérien achemine vos colis par avion de Bruxelles vers Kinshasa, en République démocratique du Congo. Deux formules couvrent les particuliers comme les entreprises : l'express pour les petits colis urgents, le cargo pour les envois plus lourds et les marchandises. Le prix se calcule sur le poids réel et le poids volumétrique.",
     "step1": "Indiquez le poids et les dimensions de votre colis sur la page ",
@@ -2915,7 +2915,7 @@
     "cta": "Demander un devis"
   },
   "svc_pickup": {
-    "meta_title": "Enlèvement de colis à domicile ou au travail — Luna Tracking Logistics",
+    "meta_title": "Enlèvement de colis en Belgique — Luna Tracking Logistics",
     "meta_description": "Luna Tracking vient récupérer votre colis chez vous ou sur votre lieu de travail. Le prix est calculé selon la distance et le poids, inclus dans votre devis.",
     "h1": "Enlèvement de vos colis à domicile ou au travail",
     "intro": "Plutôt que de déposer votre colis en agence, demandez un enlèvement : l'équipe Luna Tracking vient le récupérer chez vous ou sur votre lieu de travail.",
@@ -2932,8 +2932,8 @@
     "cta": "Demander un devis"
   },
   "transitaire": {
-    "meta_title": "Transitaire Belgique–Congo : fret, douane et suivi — Luna Tracking Logistics",
-    "meta_description": "Transitaire spécialisé Belgique ↔ RDC : fret aérien et maritime Bruxelles → Kinshasa, enlèvement, livraison à domicile au Congo, tarifs en ligne et suivi. Demandez un devis gratuit.",
+    "meta_title": "Transitaire Belgique–Congo — Luna Tracking Logistics",
+    "meta_description": "Transitaire spécialisé Belgique ↔ RDC : fret aérien et maritime Bruxelles → Kinshasa, enlèvement, livraison et suivi. Devis gratuit.",
     "h1": "Transitaire Belgique–Congo",
     "hero_alt": "Transport de marchandises entre la Belgique et la République démocratique du Congo",
     "intro": "Luna Tracking Logistics est votre transitaire entre la Belgique et la République démocratique du Congo. Nous organisons le transport de vos colis et de vos marchandises de Bruxelles vers Kinshasa, par avion ou par bateau, avec un prix calculé en ligne et un suivi à chaque étape.",
@@ -2990,8 +2990,8 @@
     "cta": "Demander un devis"
   },
   "diaspora": {
-    "meta_title": "Envoyer un colis à sa famille au Congo depuis la Belgique — Luna Tracking Logistics",
-    "meta_description": "Envoyez un colis à votre famille au Congo depuis la Belgique : enlèvement en Belgique, fret aérien ou maritime vers Kinshasa, livraison à domicile et suivi. Tarifs en ligne, devis gratuit.",
+    "meta_title": "Envoyer un colis à sa famille au Congo — Luna Tracking Logistics",
+    "meta_description": "Envoyer un colis à votre famille au Congo : enlèvement en Belgique, fret aérien ou maritime vers Kinshasa, livraison à domicile et suivi. Devis gratuit.",
     "h1": "Envoyer un colis à votre famille au Congo",
     "hero_alt": "Colis remis à une famille à Kinshasa après un envoi depuis la Belgique",
     "intro": "Vous vivez en Belgique et vous voulez envoyer un colis à votre famille en République démocratique du Congo ? Luna Tracking récupère votre colis en Belgique, l'expédie vers Kinshasa par avion ou par bateau, et le fait livrer à domicile. Vous suivez chaque étape en ligne.",

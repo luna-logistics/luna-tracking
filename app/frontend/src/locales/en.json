@@ -297,7 +297,7 @@
     "lbl_corridor_destination": "Corridor — destination"
   },
   "calc": {
-    "meta_title": "Rate calculator — Brussels → Kinshasa | Luna Tracking Logistics",
+    "meta_title": "Rate calculator Brussels–Kinshasa — Luna Tracking Logistics",
     "meta_description": "Instantly estimate the price of your shipment from Brussels to Kinshasa: express, cargo and sea freight, with a full breakdown of the calculation.",
     "corridor_badge": "Brussels → Kinshasa",
     "hero_title": "Work out the price of your shipment to Kinshasa",
@@ -543,7 +543,7 @@
   },
   "contact": {
     "meta_title": "Contact — Luna Tracking Logistics | Brussels ↔ Congo",
-    "meta_description": "Reach Luna Tracking Logistics: phone, email and office in Ixelles. Tracking a shipment, a quote, a question about a parcel to Congo — we point you to the right channel.",
+    "meta_description": "Reach Luna Tracking Logistics: phone, email and office in Ixelles. Tracking, a quote or a question about a parcel to Congo.",
     "page_title": "Contact Luna Tracking Logistics",
     "page_intro": "Tell us first what it is about — we send you straight to the right place, and you will know what to prepare before writing.",
     "email_title": "Email",
@@ -2675,8 +2675,8 @@
     "publisher": ""
   },
   "about": {
-    "meta_title": "About us — Luna Tracking Logistics SRL, Belgium-Congo freight",
-    "meta_description": "Who we are: Luna Tracking Logistics SRL, a transport and logistics agency between Belgium and the Congo, built on trust, reliability, proximity and service quality.",
+    "meta_title": "About us — Luna Tracking Logistics, Belgium–Congo freight",
+    "meta_description": "Who we are: Luna Tracking Logistics SRL, a transport and logistics agency between Belgium and the Congo.",
     "page_title": "About us",
     "page_intro": "A transport agency between Belgium and the Congo, founded by professionals from the service and import-export sectors.",
     "story_title": "The company",
@@ -2832,8 +2832,8 @@
     "from_drc_link": "Open the quote form"
   },
   "svc_air": {
-    "meta_title": "Air freight to Kinshasa (Brussels → DRC) — Luna Tracking Logistics",
-    "meta_description": "Air freight to Kinshasa from Belgium: express or cargo option, with the price based on actual weight and volumetric weight. Get an instant estimate in the calculator.",
+    "meta_title": "Air freight Brussels → Kinshasa — Luna Tracking Logistics",
+    "meta_description": "Air freight to Kinshasa from Belgium: express or cargo, priced on actual and volumetric weight. Instant estimate in the calculator.",
     "h1": "Air freight Brussels–Kinshasa",
     "intro": "Air freight carries your parcels by plane from Brussels to Kinshasa, in the Democratic Republic of the Congo. Two options cover individuals and businesses alike: express for small urgent parcels, cargo for heavier shipments and goods. The price is based on actual weight and volumetric weight.",
     "step1": "Enter your parcel's weight and dimensions on the ",
@@ -2932,8 +2932,8 @@
     "cta": "Request a quote"
   },
   "transitaire": {
-    "meta_title": "Freight forwarder Belgium–Congo: freight, customs and tracking — Luna Tracking Logistics",
-    "meta_description": "Freight forwarder specialised in Belgium ↔ DRC: air and sea freight Brussels → Kinshasa, pickup, home delivery in Congo, online pricing and tracking. Request a free quote.",
+    "meta_title": "Freight forwarder Belgium–Congo — Luna Tracking Logistics",
+    "meta_description": "Freight forwarder specialised in Belgium ↔ DRC: air and sea freight Brussels → Kinshasa, pickup, home delivery and tracking. Free quote.",
     "h1": "Freight forwarder Belgium–Congo",
     "hero_alt": "Transport of goods between Belgium and the Democratic Republic of the Congo",
     "intro": "Luna Tracking Logistics is your freight forwarder between Belgium and the Democratic Republic of the Congo. We organise the transport of your parcels and goods from Brussels to Kinshasa, by air or by sea, with a price calculated online and tracking at every step.",
@@ -2990,7 +2990,7 @@
     "cta": "Request a quote"
   },
   "diaspora": {
-    "meta_title": "Send a parcel to your family in Congo from Belgium — Luna Tracking Logistics",
+    "meta_title": "Send a parcel to your family in Congo — Luna Tracking Logistics",
     "meta_description": "Send a parcel to your family in Congo from Belgium: pickup in Belgium, air or sea freight to Kinshasa, home delivery and tracking. Online pricing, free quote.",
     "h1": "Send a parcel to your family in Congo",
     "hero_alt": "A parcel handed to a family in Kinshasa after a shipment from Belgium",

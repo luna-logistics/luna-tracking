@@ -95,6 +95,8 @@ const ROUTE_HEADINGS = {
   legalNotice: { h1: 'page_title',   h2s: ['s1_title', 's2_title', 's3_title'] },
   terms:       { h1: 'page_title',   h2s: ['s1_title', 's2_title', 's3_title'] },
   privacy:     { h1: 'page_title',   h2s: ['s1_title', 's2_title', 's3_title'] },
+  rateCalculator: { h1: 'hero_title', h2s: ['how_title', 'modes_title', 'faq_title'] },
+  apiDocs:        { h1: 'hero_title', h2s: [] },
   serviceAir:    { h1: 'h1', h2s: [] },
   serviceSea:    { h1: 'h1', h2s: [] },
   serviceHome:   { h1: 'h1', h2s: [] },
