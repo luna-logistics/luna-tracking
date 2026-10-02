@@ -65,6 +65,7 @@ const ROUTE_I18N = {
   serviceHome:    'svc_home',
   servicePickup:  'svc_pickup',
   transitaire:    'transitaire',
+  diaspora:       'diaspora',
 };
 
 /** RouteKey → site_content page key, where it differs from the i18n key
@@ -178,12 +179,13 @@ const SERVICE_SKELETON = {
   svc_home:   { sections: ['svc_common.how_title', 'svc_home.cities_title', 'svc_common.example_title', 'svc_common.faq_title'], faq: 2 },
   svc_pickup: { sections: ['svc_common.how_title', 'svc_common.example_title', 'svc_common.faq_title'], faq: 2 },
   transitaire: { sections: ['transitaire.who_title', 'transitaire.services_title', 'transitaire.how_title', 'transitaire.pricing_title', 'transitaire.tracking_title', 'svc_common.faq_title'], faq: 5 },
+  diaspora: { sections: ['diaspora.how_title', 'diaspora.what_title', 'diaspora.pricing_title', 'diaspora.delivery_title', 'svc_common.faq_title'], faq: 5 },
 };
 
 // Service-skeleton pages whose runtime serviceGraph ALSO passes `faq`, so the
 // prerendered FAQPage and the hydrated one match. The plain service pages
 // (svc_sea/home/pickup) emit no FAQPage on either side.
-const FAQ_GRAPH_PAGES = new Set(['svc_air', 'transitaire']);
+const FAQ_GRAPH_PAGES = new Set(['svc_air', 'transitaire', 'diaspora']);
 
 function serviceSkeletonHtml(i18nPage, lang) {
   const spec = SERVICE_SKELETON[i18nPage];

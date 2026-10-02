@@ -31,14 +31,14 @@ const PAGE_KEYS = {
   contact: 'contact', about: 'about', blogIndex: 'blog', apiDocs: 'api_docs',
   shopAndShip: 'shop', forwarding: 'forwarding',
   serviceAir: 'svc_air', serviceSea: 'svc_sea', serviceHome: 'svc_home', servicePickup: 'svc_pickup',
-  transitaire: 'transitaire',
+  transitaire: 'transitaire', diaspora: 'diaspora',
   legalNotice: 'legal_notice', terms: 'legal_terms', privacy: 'legal_privacy',
 };
 
 // The groups, in reading order. Everything indexable is covered.
 const GROUPS = [
   { title: 'Pages principales', keys: ['home', 'tracking', 'rateCalculator', 'pricing', 'contact', 'about'] },
-  { title: 'Services', keys: ['transitaire', 'serviceAir', 'serviceSea', 'serviceHome', 'servicePickup', 'shopAndShip', 'forwarding'] },
+  { title: 'Services', keys: ['transitaire', 'diaspora', 'serviceAir', 'serviceSea', 'serviceHome', 'servicePickup', 'shopAndShip', 'forwarding'] },
   { title: 'Ressources', keys: ['blogIndex', 'apiDocs'] },
   { title: 'Informations légales', keys: ['legalNotice', 'terms', 'privacy'] },
 ];
