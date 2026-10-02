@@ -50,7 +50,7 @@ export default function ServiceHomeDelivery() {
           ]} />
         </ServiceSection>
       </ServiceBody>
-      <ServiceCta to={urlFor('tracking', lang)} label={k('cta')} />
+      <ServiceCta to={urlFor('pricing', lang)} label={k('cta')} />
     </>
   );
 }
