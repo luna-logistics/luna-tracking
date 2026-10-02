@@ -117,3 +117,45 @@ export function productSchema({
       : undefined,
   };
 }
+
+/**
+ * Service page graph: WebPage + Service + BreadcrumbList (Accueil → page).
+ * Self-contained — provider/WebSite are inlined, no dangling @id references, so
+ * the block validates on a page that carries no Organization node of its own.
+ * `serviceName` is the page's H1; `homeUrl` is a registry path (urlFor).
+ */
+export function serviceGraph({ lang, canonical, title, description, homeUrl, homeLabel, serviceName }) {
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebPage',
+        '@id': `${canonical}#page`,
+        url: canonical,
+        name: title,
+        description: description || undefined,
+        inLanguage: lang,
+        isPartOf: { '@type': 'WebSite', name: SITE_NAME, url: SITE_URL },
+      },
+      {
+        '@type': 'Service',
+        name: serviceName,
+        serviceType: serviceName,
+        description: description || undefined,
+        provider: { '@type': 'Organization', name: SITE_NAME, url: SITE_URL },
+        areaServed: [
+          { '@type': 'Country', name: 'Belgium' },
+          { '@type': 'Country', name: 'Democratic Republic of the Congo' },
+        ],
+        inLanguage: lang,
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: homeLabel, item: `${SITE_URL}${homeUrl}` },
+          { '@type': 'ListItem', position: 2, name: serviceName, item: canonical },
+        ],
+      },
+    ],
+  };
+}

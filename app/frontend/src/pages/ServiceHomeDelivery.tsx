@@ -4,6 +4,8 @@ import {
   ServiceHero, ServiceBody, ServiceSection, ServiceSteps, ServiceCard, ServiceLink, ServiceFaq, ServiceCta,
 } from '@/components/service/ServiceBlocks';
 import { urlFor } from '@/lib/url/routes';
+import { JsonLd } from '@/components/JsonLd';
+import { serviceGraph, SITE_URL } from '@/lib/seo/jsonld.data.mjs';
 
 /** /livraison-domicile-congo — delivery to the recipient's address in Kinshasa after customs. */
 export default function ServiceHomeDelivery() {
@@ -14,6 +16,15 @@ export default function ServiceHomeDelivery() {
   return (
     <>
       <SEO title={k('meta_title')} description={k('meta_description')} />
+      <JsonLd data={serviceGraph({
+        lang,
+        canonical: `${SITE_URL}${urlFor('serviceHome', lang)}`,
+        title: k('meta_title'),
+        description: k('meta_description'),
+        homeUrl: urlFor('home', lang),
+        homeLabel: t('nav.home'),
+        serviceName: k('h1'),
+      })} />
       <ServiceHero title={k('h1')} intro={k('intro')} image="/images/services/livraison-domicile-luna-tracking.webp" imageAlt={t('home.pillar_home_alt')} />
       <ServiceBody>
         <ServiceSection title={t('svc_common.how_title')}>

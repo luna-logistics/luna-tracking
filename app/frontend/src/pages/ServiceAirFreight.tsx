@@ -7,6 +7,8 @@ import { usePricingConfig } from '@/hooks/usePricingConfig';
 import { FALLBACK_PRICING_CONFIG } from '@/lib/pricing/fallback';
 import { eur, num } from '@/lib/pricing/service-figures';
 import { urlFor } from '@/lib/url/routes';
+import { JsonLd } from '@/components/JsonLd';
+import { serviceGraph, SITE_URL } from '@/lib/seo/jsonld.data.mjs';
 
 /**
  * /fret-aerien — express and cargo air freight, Brussels → Kinshasa.
@@ -78,6 +80,15 @@ export default function ServiceAirFreight() {
   return (
     <>
       <SEO title={k('meta_title')} description={k('meta_description')} />
+      <JsonLd data={serviceGraph({
+        lang,
+        canonical: `${SITE_URL}${urlFor('serviceAir', lang)}`,
+        title: k('meta_title'),
+        description: k('meta_description'),
+        homeUrl: urlFor('home', lang),
+        homeLabel: t('nav.home'),
+        serviceName: k('h1'),
+      })} />
       <ServiceHero title={k('h1')} intro={k('intro')} image="/images/services/service-air-freight.webp" imageAlt={t('home.pillar_air_alt')} />
       <ServiceBody>{body}</ServiceBody>
       <ServiceCta to={urlFor('rateCalculator', lang)} label={k('cta')} />

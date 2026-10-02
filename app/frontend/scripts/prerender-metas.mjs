@@ -24,7 +24,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { articleGraph, productSchema, customPageGraph } from '../src/lib/seo/jsonld.data.mjs';
+import { articleGraph, productSchema, customPageGraph, serviceGraph } from '../src/lib/seo/jsonld.data.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const routesMod = await import(
@@ -438,15 +438,22 @@ async function emitStaticRoute(key, def) {
             },
           ],
         }
-      : {
-          '@context': 'https://schema.org',
-          '@type': 'WebPage',
-          name: title,
-          description: description || undefined,
-          url: canonical,
-          inLanguage: lang,
-          isPartOf: { '@type': 'WebSite', name: SITE_NAME, url: SITE_URL },
-        };
+      : SERVICE_SKELETON[i18nPage]
+        ? serviceGraph({
+            lang, canonical, title, description,
+            homeUrl: urlFor('home', lang),
+            homeLabel: lang === 'en' ? 'Home' : 'Accueil',
+            serviceName: overrideOr(i18nPage, lang, 'h1', readI18n(lang, i18nPage, 'h1')) || title,
+          })
+        : {
+            '@context': 'https://schema.org',
+            '@type': 'WebPage',
+            name: title,
+            description: description || undefined,
+            url: canonical,
+            inLanguage: lang,
+            isPartOf: { '@type': 'WebSite', name: SITE_NAME, url: SITE_URL },
+          };
 
     const head = metaTagsFor({
       lang, title, description, canonical,

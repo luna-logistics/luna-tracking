@@ -7,6 +7,8 @@ import { usePricingConfig } from '@/hooks/usePricingConfig';
 import { FALLBACK_PRICING_CONFIG } from '@/lib/pricing/fallback';
 import { cartonForfaits, cartonFromCents, eur, num, seaMetaTiers, seaTiers } from '@/lib/pricing/service-figures';
 import { urlFor } from '@/lib/url/routes';
+import { JsonLd } from '@/components/JsonLd';
+import { serviceGraph, SITE_URL } from '@/lib/seo/jsonld.data.mjs';
 
 /**
  * /fret-maritime — sea freight priced per m³ in brackets, plus flat carton
@@ -91,6 +93,15 @@ export default function ServiceSeaFreight() {
   return (
     <>
       <SEO title={k('meta_title')} description={metaDescription} />
+      <JsonLd data={serviceGraph({
+        lang,
+        canonical: `${SITE_URL}${urlFor('serviceSea', lang)}`,
+        title: k('meta_title'),
+        description: metaDescription,
+        homeUrl: urlFor('home', lang),
+        homeLabel: t('nav.home'),
+        serviceName: k('h1'),
+      })} />
       <ServiceHero title={k('h1')} intro={k('intro')} image="/images/services/service-sea-freight.webp" imageAlt={t('home.pillar_sea_alt')} />
       <ServiceBody>{body}</ServiceBody>
       <ServiceCta to={`${urlFor('pricing', lang)}?mode=sea`} label={k('cta')} />

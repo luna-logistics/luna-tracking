@@ -4,6 +4,8 @@ import {
   ServiceHero, ServiceBody, ServiceSection, ServiceSteps, ServiceCard, ServiceLink, ServiceFaq, ServiceCta,
 } from '@/components/service/ServiceBlocks';
 import { urlFor } from '@/lib/url/routes';
+import { JsonLd } from '@/components/JsonLd';
+import { serviceGraph, SITE_URL } from '@/lib/seo/jsonld.data.mjs';
 
 /**
  * /enlevement-colis — pickup at the customer's home or workplace. No price and
@@ -18,6 +20,15 @@ export default function ServiceParcelPickup() {
   return (
     <>
       <SEO title={k('meta_title')} description={k('meta_description')} />
+      <JsonLd data={serviceGraph({
+        lang,
+        canonical: `${SITE_URL}${urlFor('servicePickup', lang)}`,
+        title: k('meta_title'),
+        description: k('meta_description'),
+        homeUrl: urlFor('home', lang),
+        homeLabel: t('nav.home'),
+        serviceName: k('h1'),
+      })} />
       <ServiceHero title={k('h1')} intro={k('intro')} image="/images/services/enlevement-colis-camionnette-luna-tracking.webp" imageAlt={t('home.pillar_pickup_alt')} />
       <ServiceBody>
         <ServiceSection title={t('svc_common.how_title')}>
