@@ -248,10 +248,19 @@ export default function AdminSupport() {
       </CollapsiblePanel>
       {/* minmax(0,…) tracks + min-w-0 panes: a long unbreakable header line
           (truncate = nowrap) must ellipsize, never widen the detail column past
-          the card — that clipped the right-aligned (staff-side) bubbles. */}
-      <div ref={inboxRef} className="grid gap-0 grid-cols-1 lg:grid-cols-[380px_minmax(0,1fr)] h-[calc(100vh-14rem)] min-h-[500px] rounded-2xl border border-slate-200 bg-white overflow-hidden">
+          the card — that clipped the right-aligned (staff-side) bubbles.
+          An explicit height (clamped, not a bare max-height) so expanding the
+          settings panels above can't push the reply box past the viewport:
+          grid/flex children need a *definite* height to shrink against for
+          their own overflow-y-auto to kick in — max-height alone leaves that
+          height auto/content-based, so the message list never shrinks and the
+          reply box gets clipped off by the card's overflow-hidden instead of
+          staying reachable. clamp() keeps the card from collapsing below
+          28rem or growing past the viewport; dvh (not vh) so mobile browser
+          chrome doesn't clip it either. */}
+      <div ref={inboxRef} className="grid gap-0 grid-cols-1 lg:grid-cols-[380px_minmax(0,1fr)] h-[clamp(28rem,calc(100dvh-6rem),100dvh)] rounded-2xl border border-slate-200 bg-white overflow-hidden">
         {/* List */}
-        <aside className={cn('min-w-0 border-r border-slate-200 flex flex-col', selectedId && 'hidden lg:flex')}>
+        <aside className={cn('min-w-0 min-h-0 border-r border-slate-200 flex flex-col', selectedId && 'hidden lg:flex')}>
           <header className="px-4 py-3 border-b border-slate-200 space-y-2">
             <h1 className="text-lg font-bold text-luna-navy flex items-center gap-2">
               <MessageSquare className="h-5 w-5" />
@@ -337,7 +346,7 @@ export default function AdminSupport() {
         </aside>
 
         {/* Detail */}
-        <section className={cn('min-w-0 flex flex-col', !selectedId && 'hidden lg:flex')}>
+        <section className={cn('min-w-0 min-h-0 flex flex-col', !selectedId && 'hidden lg:flex')}>
           {selected && (
             <>
               <header className="px-4 py-3 border-b border-slate-200 flex items-center gap-3">
