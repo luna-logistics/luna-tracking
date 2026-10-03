@@ -56,6 +56,7 @@ export function Navbar() {
   const linksAfter = [
     { to: urlFor('blogIndex', lang), label: t('nav.blog') },
     { to: urlFor('pricing', lang), label: t('nav.pricing') },
+    { to: urlFor('rateCalculator', lang), label: t('nav.calculator') },
     { to: urlFor('contact', lang), label: t('nav.contact') },
   ];
   const serviceLinks = [
