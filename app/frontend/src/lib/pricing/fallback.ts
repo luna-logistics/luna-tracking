@@ -1,4 +1,4 @@
-import type { PricingConfig } from './engine';
+import type { CorridorGrid, PricingConfig } from './engine';
 import { validatePricingConfig } from './validate';
 import { diffPricingConfigs } from './diff';
 
@@ -50,6 +50,48 @@ const GRID: PricingConfig = {
   },
   effectiveFrom: null,
 };
+
+/**
+ * Default Brussels → Lubumbashi grid (PDF « Grille tarifaire Lubumbashi »):
+ * express €21/kg (min €21), cargo €17.50/kg, sea 750/725/700 €/m³ up to 30 m³
+ * with a flat +€3/kg on every tier and carton, the €5 dossier fee, and NO
+ * sous-douane (customsAdminFeeCents null). The live corridor lives in the DB
+ * (pricing_config.config.corridors.lubumbashi); this copy is only what
+ * /admin/tarifs restores with "valeurs par défaut" for this corridor. It is NOT
+ * part of the root fallback GRID, which stays the Kinshasa grid so an offline
+ * site degrades Lubumbashi to "Sur devis" rather than inventing a price.
+ */
+const LUBUMBASHI_GRID: CorridorGrid = {
+  handlingFeeCents: 500,
+  customsAdminFeeCents: null,
+  volumetricDivisor: 6000,
+  volumetricSurchargeRateCentsPerKg: 550,
+  seaWeightSurchargeCentsPerKg: 300,
+  ratioQuote: { thresholdKgPerM3: 374, appliesTo: ['sea'] },
+  modes: {
+    express: { perKgCents: 2100, flatMinCents: 2100, minKg: 0.1, maxKg: 200 },
+    cargo: { perKgCents: 1750, minKg: 1, maxKg: 500 },
+    sea: {
+      tiers: [
+        { uptoM3: 5, perM3Cents: 75000 },
+        { uptoM3: 10, perM3Cents: 72500 },
+        { uptoM3: 30, perM3Cents: 70000 },
+      ],
+      maxM3: 30,
+    },
+  },
+  presets: [
+    { key: 'carton_std', lengthCm: 60, widthCm: 40, heightCm: 40, sheetPriceCents: 7500, seaFlatTransportCents: 7000 },
+    { key: 'carton_small', lengthCm: 40, widthCm: 30, heightCm: 30, sheetPriceCents: 3000, seaFlatTransportCents: 2500 },
+    { key: 'suitcase', weightKg: 23 },
+    { key: 'move_3m3', volumeM3: 3 },
+  ],
+  transitTimes: { express: null, cargo: null, sea: null },
+  vatStatus: null,
+  includes: null,
+};
+
+export const FALLBACK_LUBUMBASHI_CORRIDOR: CorridorGrid = deepFreeze(structuredClone(LUBUMBASHI_GRID));
 
 function deepFreeze<T>(o: T): T {
   if (o && typeof o === 'object') {
@@ -114,4 +156,28 @@ export function withFallbackTariff(config: PricingConfig): PricingConfig {
 
 export function hasFallbackTariff(config: PricingConfig): boolean {
   return diffPricingConfigs(tariffOf(config), tariffOf(FALLBACK_PRICING_CONFIG)).length === 0;
+}
+
+/** Default grid for an extra corridor, or null when none is known. Only
+ *  Lubumbashi has a built-in default (the published PDF grid). */
+export function fallbackCorridorGrid(slug: string): CorridorGrid | null {
+  return slug === 'lubumbashi' ? structuredClone(FALLBACK_LUBUMBASHI_CORRIDOR) : null;
+}
+
+/** Reset one extra corridor to its default grid (admin "restaurer les valeurs
+ *  par défaut" while editing that corridor). No-op when the slug has no default. */
+export function withFallbackCorridor(config: PricingConfig, slug: string): PricingConfig {
+  const grid = fallbackCorridorGrid(slug);
+  if (!grid) return config;
+  const out = structuredClone(config);
+  out.corridors = { ...(out.corridors ?? {}), [slug]: grid };
+  return out;
+}
+
+/** Is this corridor already on its default grid? */
+export function hasFallbackCorridor(config: PricingConfig, slug: string): boolean {
+  const grid = fallbackCorridorGrid(slug);
+  const entry = config.corridors?.[slug];
+  if (!grid || !entry) return false;
+  return diffPricingConfigs(entry, grid).length === 0;
 }

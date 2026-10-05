@@ -55,7 +55,10 @@ export type CalculatorFields = {
   lines: PackageLine[];
   /** Typed TOTAL volume override ('' while the field follows the lines). */
   volume: string;
-  destination: 'kinshasa' | 'other';
+  /** Destination city slug ('kinshasa', 'lubumbashi', …), or 'other' for a
+   *  free-text destination the online grid does not cover. The engine prices the
+   *  matching corridor and returns a quote for anything it has no grid for. */
+  destination: string;
 };
 
 /** /calculateur form → engine input. Origin is always the corridor origin.
@@ -65,7 +68,7 @@ export function calculatorEngineInput(f: CalculatorFields): ShipmentInput {
   const s = packageLinesSize(f.lines).fields;
   return {
     ...sizeInput({ ...s, weightIsTotal: true, volume: toNum(f.volume) ?? s.volume }),
-    destination: f.destination === 'kinshasa' ? 'kinshasa' : 'autre',
+    destination: f.destination === 'other' ? 'autre' : f.destination,
   };
 }
 

@@ -35,6 +35,10 @@ export interface PricingConfig {
   customsAdminFeeCents: number | null;
   volumetricDivisor: number;                 // 6000
   volumetricSurchargeRateCentsPerKg: number; // cents/kg, e.g. €5.50/kg = 550 (live value: pricing_config)
+  /** Flat €/kg surcharge added to EVERY sea shipment of THIS corridor (per-m³
+   *  tiers AND carton flats), billed on the actual weight to the gram. Absent or
+   *  0 on Kinshasa; the Lubumbashi corridor sets it to 300 (€3/kg). */
+  seaWeightSurchargeCentsPerKg?: number | null;
   /** Density surcharge is undefined → forces a quote. `appliesTo` scopes it. */
   ratioQuote: { thresholdKgPerM3: number; appliesTo: Mode[] } | null;
   modes: {
@@ -47,7 +51,18 @@ export interface PricingConfig {
   vatStatus?: string | null;
   includes?: Record<string, string | null> | null;
   effectiveFrom?: string | null;
+  /** Extra priced destinations keyed by city slug (e.g. "lubumbashi"). Each entry
+   *  is a COMPLETE grid for Brussels → <slug> (same shape as the root, minus the
+   *  corridor identity). The root stays the Kinshasa grid, untouched; a shipment
+   *  is priced with the entry whose slug matches its destination, or on quote
+   *  when no entry (or no grid) covers it. */
+  corridors?: Record<string, CorridorGrid> | null;
 }
+
+/** A full pricing grid for one extra destination — every field a root config has
+ *  except the corridor identity (the key is the destination slug; the origin is
+ *  inherited from the root). Includes the optional sea weight surcharge. */
+export type CorridorGrid = Omit<PricingConfig, 'corridor' | 'corridors'>;
 
 export interface PricingPreset {
   key: string;
@@ -85,7 +100,7 @@ export interface ShipmentInput {
 }
 
 export interface BreakdownLine {
-  key: 'weight' | 'volumetric_diff' | 'volume' | 'carton_flat' | 'handling';
+  key: 'weight' | 'volumetric_diff' | 'volume' | 'carton_flat' | 'sea_weight_surcharge' | 'handling';
   cents: number;              // exact cents for this line (round only for display)
   qtyKg?: number;
   qtyM3?: number;
@@ -188,6 +203,27 @@ function corridorReason(n: NormalizedInput, config: PricingConfig): QuoteReason 
   return null;
 }
 
+/**
+ * The grid to price a given destination with: the root config for the root
+ * corridor (Kinshasa — byte-for-byte the same object, so its pricing is
+ * untouched), the matching `corridors[slug]` entry (as a full config whose
+ * corridor is Brussels → slug) for an extra destination, or null when no entry
+ * covers the destination (the caller then returns a quote request). An empty
+ * destination resolves to the root corridor, exactly as `normalizeInput` defaults it.
+ */
+export function resolveCorridorConfig(config: PricingConfig, destination?: string | null): PricingConfig | null {
+  const slug = norm(destination) || norm(config.corridor.destination);
+  if (slug === norm(config.corridor.destination)) return config;
+  const grid = config.corridors?.[slug];
+  if (!grid) return null;
+  return {
+    ...grid,
+    corridor: { origin: config.corridor.origin, destination: slug },
+    corridors: undefined,
+    effectiveFrom: grid.effectiveFrom ?? config.effectiveFrom ?? null,
+  };
+}
+
 /** Density surcharge → quote, when scoped to this mode and computable. */
 function ratioForcesQuote(mode: Mode, n: NormalizedInput, config: PricingConfig): boolean {
   const r = config.ratioQuote;
@@ -277,6 +313,13 @@ function priceSea(n: NormalizedInput, config: PricingConfig): ModeResult {
   if (n.totalVolumeM3 > sea.maxM3) return { mode: 'sea', kind: 'quote', reason: 'over_max_volume' };
   if (ratioForcesQuote('sea', n, config)) return { mode: 'sea', kind: 'quote', reason: 'ratio' };
 
+  // Some corridors add a flat €/kg sea surcharge (Lubumbashi: +€3/kg on every
+  // tier and carton). It is billed on the actual weight, so without a weight the
+  // mode waits for input rather than under-charging. Absent/0 on Kinshasa → the
+  // guard and the line below never fire and the price is identical.
+  const surchargeRate = config.seaWeightSurchargeCentsPerKg ?? 0;
+  if (surchargeRate > 0 && !isPos(n.totalWeightKg)) return { mode: 'sea', kind: 'empty' };
+
   // A carton of EXACTLY a preset's dimensions ships at its printed flat transport
   // price (handling added once), so the site never quotes above the paper sheet.
   // Any other dimensions fall through to the per-m³ rule.
@@ -289,6 +332,9 @@ function priceSea(n: NormalizedInput, config: PricingConfig): ModeResult {
     // in (not marginal). First tier whose upper bound covers the volume wins.
     const tier = sea.tiers.find((tt) => n.totalVolumeM3! <= tt.uptoM3) ?? sea.tiers[sea.tiers.length - 1];
     lines.push({ key: 'volume', cents: n.totalVolumeM3 * tier.perM3Cents, qtyM3: n.totalVolumeM3, rateCentsPerM3: tier.perM3Cents });
+  }
+  if (surchargeRate > 0 && isPos(n.totalWeightKg)) {
+    lines.push({ key: 'sea_weight_surcharge', cents: n.totalWeightKg * surchargeRate, qtyKg: n.totalWeightKg, rateCentsPerKg: surchargeRate });
   }
   lines.push({ key: 'handling', cents: config.handlingFeeCents });
   return {
@@ -309,10 +355,20 @@ function priceSea(n: NormalizedInput, config: PricingConfig): ModeResult {
  */
 export function computeQuote(input: ShipmentInput, config: PricingConfig): QuoteResponse {
   const n = normalizeInput(input, config);
+  // Pick the grid for the chosen destination. The root corridor (Kinshasa) is
+  // returned unchanged; an extra corridor (Lubumbashi) is priced with its own
+  // grid; an unknown destination has no grid → every mode is a quote request,
+  // with the origin checked first so a wrong origin still reads 'origin'.
+  const eff = resolveCorridorConfig(config, n.destination);
+  if (!eff) {
+    const reason: QuoteReason = n.origin !== norm(config.corridor.origin) ? 'origin' : 'destination';
+    const q = (mode: Mode): QuoteResult => ({ mode, kind: 'quote', reason });
+    return { express: q('express'), cargo: q('cargo'), sea: q('sea'), input: n };
+  }
   return {
-    express: priceAir('express', n, config),
-    cargo: priceAir('cargo', n, config),
-    sea: priceSea(n, config),
+    express: priceAir('express', n, eff),
+    cargo: priceAir('cargo', n, eff),
+    sea: priceSea(n, eff),
     input: n,
   };
 }

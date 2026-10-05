@@ -13,7 +13,7 @@
  *   • the sous-douane admin fee (config.customsAdminFeeCents) is added only when
  *     the quote is flagged "under customs"; the dossier fee is in every price.
  */
-import { computeQuote, type BreakdownLine, type Mode, type ModeResult, type PricingConfig, type QuoteReason } from './engine';
+import { computeQuote, resolveCorridorConfig, type BreakdownLine, type Mode, type ModeResult, type PricingConfig, type QuoteReason } from './engine';
 import { BRUSSELS_RE as BRUSSELS, KINSHASA_RE as KINSHASA, sizeInput } from './surfaces';
 import { volumeM3FromCm } from './volume';
 
@@ -74,7 +74,12 @@ export function suggestFromGrid(q: ProQuoteInput, config: PricingConfig): ProSug
   }, config);
 
   const modes: Mode[] = q.mode === 'air' ? ['express', 'cargo'] : ['sea'];
-  const customs = q.underCustoms && config.customsAdminFeeCents ? config.customsAdminFeeCents : 0;
+  // The sous-douane admin fee is a per-corridor value: Kinshasa charges €125,
+  // Lubumbashi has none (customsAdminFeeCents null). Read it from the corridor the
+  // destination actually resolves to, never the root, so a Lubumbashi quote under
+  // customs is never charged the Kinshasa fee.
+  const corridorFee = resolveCorridorConfig(config, destination)?.customsAdminFeeCents ?? null;
+  const customs = q.underCustoms && corridorFee ? corridorFee : 0;
 
   const options = modes.map((m): ProOption => {
     const r: ModeResult = res[m];

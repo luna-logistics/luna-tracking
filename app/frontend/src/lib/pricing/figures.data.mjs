@@ -63,6 +63,10 @@ export function calcFigures(config, lang) {
   const tiers = [...((sea && sea.tiers) || [])].sort((a, b) => a.uptoM3 - b.uptoM3);
   const first = tiers[0];
   const last = tiers[tiers.length - 1];
+  // A corridor may have no sous-douane fee (Lubumbashi: customsAdminFeeCents null);
+  // format it as an empty string rather than "NaN €" (the copy that uses it is
+  // only shown for corridors that do charge one).
+  const customs = config.customsAdminFeeCents == null ? '' : eur(config.customsAdminFeeCents, lang);
   return {
     expressRate: eur(express.perKgCents, lang),
     expressMin: eur(express.flatMinCents, lang),
@@ -74,8 +78,8 @@ export function calcFigures(config, lang) {
     seaRate2: last ? eur(last.perM3Cents, lang) : '',
     seaTier: first ? num(first.uptoM3, lang) : '',
     handling: eur(config.handlingFeeCents, lang),
-    customs: eur(config.customsAdminFeeCents, lang),
-    fee: eur(config.customsAdminFeeCents, lang),
+    customs,
+    fee: customs,
     divisor: num(config.volumetricDivisor, lang),
     surcharge: `${eur(config.volumetricSurchargeRateCentsPerKg, lang)}/kg`,
   };
