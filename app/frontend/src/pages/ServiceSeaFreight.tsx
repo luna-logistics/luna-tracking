@@ -48,6 +48,7 @@ export default function ServiceSeaFreight() {
       : k('step3_no_ratio', { max: num(config.modes.sea.maxM3, lang) });
     return (
       <>
+        <p className="text-sm text-slate-500">{t('svc_common.figures_note')}</p>
         <ServiceSection title={t('svc_common.how_title')}>
           <ServiceSteps items={[
             k('step1'),

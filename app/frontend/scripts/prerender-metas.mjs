@@ -386,26 +386,21 @@ const activeGrid = pricingRows[0]?.config;
 const eurShort = (cents, lang) => new Intl.NumberFormat(lang === 'en' ? 'en-IE' : 'fr-BE', {
   style: 'currency', currency: 'EUR', minimumFractionDigits: cents % 100 === 0 ? 0 : 2,
 }).format(cents / 100);
-const numShort = (n, lang) => new Intl.NumberFormat(lang === 'en' ? 'en-IE' : 'fr-BE', { maximumFractionDigits: 3 }).format(n);
 
 function seaMetaDescription(lang) {
+  // The /fret-maritime meta names both corridors and quotes only the lowest flat
+  // carton price (a true "from" floor for Kinshasa AND Lubumbashi); the per-tier
+  // detail is Kinshasa-specific and stays off the meta. Without the grid, the
+  // figure-free sentence is used — same degradation as the calculator FAQ above.
   const s = LOCALES[lang].svc_sea;
-  const tiers = activeGrid?.modes?.sea?.tiers;
   const flats = (activeGrid?.presets ?? [])
     .filter((p) => p.seaFlatTransportCents != null && p.lengthCm != null && p.widthCm != null && p.heightCm != null)
     .map((p) => p.seaFlatTransportCents + activeGrid.handlingFeeCents);
-  if (!Array.isArray(tiers) || tiers.length === 0 || flats.length === 0) {
+  if (flats.length === 0) {
     console.warn('[prerender] pricing_config unavailable — /fret-maritime meta uses the figure-free sentence');
     return s.meta_description_generic;
   }
-  const sorted = [...tiers].sort((a, b) => a.uptoM3 - b.uptoM3);
-  const phrase = sorted.map((t, i) => (i === 0 ? s.meta_tier_first : s.meta_tier_next)
-    .replace('{{rate}}', eurShort(t.perM3Cents, lang))
-    .replace('{{upto}}', numShort(t.uptoM3, lang))
-    .replace('{{from}}', i === 0 ? '' : numShort(sorted[i - 1].uptoM3, lang))).join(', ');
-  return s.meta_description
-    .replace('{{tiers}}', phrase)
-    .replace('{{cartonFrom}}', eurShort(Math.min(...flats), lang));
+  return s.meta_description.replace('{{cartonFrom}}', eurShort(Math.min(...flats), lang));
 }
 
 async function emitStaticRoute(key, def) {

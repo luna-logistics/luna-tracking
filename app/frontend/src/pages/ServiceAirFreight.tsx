@@ -54,6 +54,7 @@ export default function ServiceAirFreight() {
         </ServiceSection>
 
         <ServiceSection title={k('formulas_title')}>
+          <p className="text-sm text-slate-500">{t('svc_common.figures_note')}</p>
           <ServiceCard>
             <p><strong className="text-luna-navy">{k('formula_express_label')}</strong>{lang === 'fr' ? ' : ' : ': '}{k('formula_express_text', { rate: eur(express.perKgCents, lang), min: eur(express.flatMinCents, lang) })}</p>
             <p className="mt-3"><strong className="text-luna-navy">{k('formula_cargo_label')}</strong>{lang === 'fr' ? ' : ' : ': '}{k('formula_cargo_text', { rate: eur(cargo.perKgCents, lang) })}</p>
