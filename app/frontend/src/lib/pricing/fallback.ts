@@ -14,6 +14,57 @@ import { diffPricingConfigs } from './diff';
  * when the published tariff changes durably. The effective date stays null: the
  * site does not claim a date while it runs on this copy.
  */
+/**
+ * Default Brussels → Lubumbashi grid (PDF « Grille tarifaire Lubumbashi »):
+ * express €21/kg (min €21), cargo €17.50/kg, sea 750/725/700 €/m³ up to 30 m³
+ * with a flat +€3/kg on every tier and carton, the €5 dossier fee, and NO
+ * sous-douane (customsAdminFeeCents null). This is the ONE in-code source for the
+ * Lubumbashi corridor: it is both the block the fallback GRID carries under
+ * corridors.lubumbashi (so an offline site prices Lubumbashi for real, never
+ * "Sur devis") AND what /admin/tarifs restores with "valeurs par défaut" for
+ * this corridor. It must stay deep-equal to the data migration 20261005140000
+ * inserts into pricing_config.config.corridors.lubumbashi — fallback.test.ts
+ * fails if the two drift.
+ */
+const LUBUMBASHI_GRID: CorridorGrid = {
+  handlingFeeCents: 500,
+  customsAdminFeeCents: null,
+  volumetricDivisor: 6000,
+  volumetricSurchargeRateCentsPerKg: 550,
+  seaWeightSurchargeCentsPerKg: 300,
+  ratioQuote: { thresholdKgPerM3: 374, appliesTo: ['sea'] },
+  modes: {
+    express: { perKgCents: 2100, flatMinCents: 2100, minKg: 0.1, maxKg: 200 },
+    cargo: { perKgCents: 1750, minKg: 1, maxKg: 500 },
+    sea: {
+      tiers: [
+        { uptoM3: 5, perM3Cents: 75000 },
+        { uptoM3: 10, perM3Cents: 72500 },
+        { uptoM3: 30, perM3Cents: 70000 },
+      ],
+      maxM3: 30,
+    },
+  },
+  presets: [
+    { key: 'carton_std', lengthCm: 60, widthCm: 40, heightCm: 40, sheetPriceCents: 7500, seaFlatTransportCents: 7000 },
+    { key: 'carton_small', lengthCm: 40, widthCm: 30, heightCm: 30, sheetPriceCents: 3000, seaFlatTransportCents: 2500 },
+    { key: 'suitcase', weightKg: 23 },
+    { key: 'move_3m3', volumeM3: 3 },
+  ],
+  transitTimes: { express: null, cargo: null, sea: null },
+  vatStatus: null,
+  includes: null,
+};
+
+/**
+ * VALEURS DE SECOURS — the grid the site prices with whenever the pricing_config
+ * row can't be used. The ROOT is the Brussels → Kinshasa grid published on
+ * 2026-09-25, byte-for-byte the seed JSON of migration 20260928100000
+ * (fallback.test.ts pins the two together). `corridors.lubumbashi` carries the
+ * full Lubumbashi grid so an offline site prices BOTH corridors for real; it
+ * mirrors the data migration 20261005140000. Used as a WHOLE — never mixed with
+ * a database value.
+ */
 const GRID: PricingConfig = {
   corridor: { origin: 'brussels', destination: 'kinshasa' },
   handlingFeeCents: 500,
@@ -49,49 +100,8 @@ const GRID: PricingConfig = {
     insuranceCeiling: null,
   },
   effectiveFrom: null,
+  corridors: { lubumbashi: LUBUMBASHI_GRID },
 };
-
-/**
- * Default Brussels → Lubumbashi grid (PDF « Grille tarifaire Lubumbashi »):
- * express €21/kg (min €21), cargo €17.50/kg, sea 750/725/700 €/m³ up to 30 m³
- * with a flat +€3/kg on every tier and carton, the €5 dossier fee, and NO
- * sous-douane (customsAdminFeeCents null). The live corridor lives in the DB
- * (pricing_config.config.corridors.lubumbashi); this copy is only what
- * /admin/tarifs restores with "valeurs par défaut" for this corridor. It is NOT
- * part of the root fallback GRID, which stays the Kinshasa grid so an offline
- * site degrades Lubumbashi to "Sur devis" rather than inventing a price.
- */
-const LUBUMBASHI_GRID: CorridorGrid = {
-  handlingFeeCents: 500,
-  customsAdminFeeCents: null,
-  volumetricDivisor: 6000,
-  volumetricSurchargeRateCentsPerKg: 550,
-  seaWeightSurchargeCentsPerKg: 300,
-  ratioQuote: { thresholdKgPerM3: 374, appliesTo: ['sea'] },
-  modes: {
-    express: { perKgCents: 2100, flatMinCents: 2100, minKg: 0.1, maxKg: 200 },
-    cargo: { perKgCents: 1750, minKg: 1, maxKg: 500 },
-    sea: {
-      tiers: [
-        { uptoM3: 5, perM3Cents: 75000 },
-        { uptoM3: 10, perM3Cents: 72500 },
-        { uptoM3: 30, perM3Cents: 70000 },
-      ],
-      maxM3: 30,
-    },
-  },
-  presets: [
-    { key: 'carton_std', lengthCm: 60, widthCm: 40, heightCm: 40, sheetPriceCents: 7500, seaFlatTransportCents: 7000 },
-    { key: 'carton_small', lengthCm: 40, widthCm: 30, heightCm: 30, sheetPriceCents: 3000, seaFlatTransportCents: 2500 },
-    { key: 'suitcase', weightKg: 23 },
-    { key: 'move_3m3', volumeM3: 3 },
-  ],
-  transitTimes: { express: null, cargo: null, sea: null },
-  vatStatus: null,
-  includes: null,
-};
-
-export const FALLBACK_LUBUMBASHI_CORRIDOR: CorridorGrid = deepFreeze(structuredClone(LUBUMBASHI_GRID));
 
 function deepFreeze<T>(o: T): T {
   if (o && typeof o === 'object') {
@@ -102,6 +112,10 @@ function deepFreeze<T>(o: T): T {
 }
 
 export const FALLBACK_PRICING_CONFIG: PricingConfig = deepFreeze(GRID);
+
+/** The default Lubumbashi corridor — the same frozen block the fallback carries,
+ *  the ONE source the admin "restore defaults" clones for this corridor. */
+export const FALLBACK_LUBUMBASHI_CORRIDOR: CorridorGrid = FALLBACK_PRICING_CONFIG.corridors!.lubumbashi;
 
 export type PricingSource = 'database' | 'fallback';
 /** Why the fallback grid is in use: the database could not be reached (or the

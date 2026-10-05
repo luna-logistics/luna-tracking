@@ -63,11 +63,68 @@ describe('fallback grid = the tariff published on 2026-09-25', () => {
     expect(FB.effectiveFrom).toBeNull();
   });
 
-  it('is exactly the document the migration seeds when no grid is active', () => {
+  it('root (Kinshasa) is exactly the seed JSON of migration 20260928100000', () => {
+    // The fallback now also carries corridors.lubumbashi; the Kinshasa root stays
+    // byte-equal to the immutable seed of the original pricing migration.
     const sql = fs.readFileSync(path.resolve(process.cwd(), 'supabase/migrations/20260928100000_pricing_settings_history.sql'), 'utf8');
     const seed = /\$json\$([\s\S]*?)\$json\$/.exec(sql);
     expect(seed).not.toBeNull();
-    expect(JSON.parse(seed![1])).toEqual(FB);
+    const { corridors, ...root } = FB;
+    expect(corridors).toBeDefined();
+    expect(JSON.parse(seed![1])).toEqual(root);
+  });
+
+  it('corridors.lubumbashi is deep-equal to the data of migration 20261005140000', () => {
+    // The in-code Lubumbashi corridor must match what the live DB holds, so an
+    // offline site prices Lubumbashi exactly like normal operation.
+    const sql = fs.readFileSync(path.resolve(process.cwd(), 'supabase/migrations/20261005140000_pricing_lubumbashi_corridor.sql'), 'utf8');
+    const lub = /\$lub\$([\s\S]*?)\$lub\$/.exec(sql);
+    expect(lub).not.toBeNull();
+    expect(FB.corridors?.lubumbashi).toEqual(JSON.parse(lub![1]));
+  });
+
+  it('is a valid grid with the live schema (root + the extra corridor)', () => {
+    expect(validatePricingConfig(FB)).toEqual([]);
+    expect(FB.corridors?.lubumbashi.seaWeightSurchargeCentsPerKg).toBe(300);
+    expect(FB.corridors?.lubumbashi.customsAdminFeeCents).toBeNull();
+  });
+});
+
+describe('offline fallback prices Lubumbashi for real (DB unreachable)', () => {
+  // resolvePricingConfig(null) → the WHOLE fallback grid; Lubumbashi must price
+  // exactly as the live corridor, never "Sur devis".
+  const FBK = resolvePricingConfig(null).config;
+  const lub = (i: ShipmentInput) => computeQuote({ ...i, destination: 'lubumbashi' }, FBK);
+  it('uses the fallback (not the database) and still knows Lubumbashi', () => {
+    expect(resolvePricingConfig(null)).toMatchObject({ source: 'fallback', reason: 'missing' });
+    expect(FBK.corridors?.lubumbashi).toBeDefined();
+  });
+  it('air: express €21/kg (min €21), cargo €17.50/kg, ceilings → quote', () => {
+    expect(priced(lub({ weightKg: 0.1 }).express).totalCents).toBe(2600);   // €21 min + 5
+    expect(priced(lub({ weightKg: 1 }).express).totalCents).toBe(2600);     // 1×21 + 5
+    expect(priced(lub({ weightKg: 200 }).express).totalCents).toBe(420500); // 200×21 + 5
+    expect(quote(lub({ weightKg: 200.001 }).express)).toBe('over_max_weight');
+    expect(priced(lub({ weightKg: 500 }).cargo).totalCents).toBe(875500);   // 500×17.50 + 5
+    expect(quote(lub({ weightKg: 500.001 }).cargo)).toBe('over_max_weight');
+  });
+  it('sea: tiers up to 30 m³ with +€3/kg on the actual weight', () => {
+    expect(priced(lub({ volumeM3: 5, weightKg: 100 }).sea).totalCents).toBe(405500);   // 5×750 + 100×3 + 5
+    expect(priced(lub({ volumeM3: 10, weightKg: 100 }).sea).totalCents).toBe(755500);  // 10×725 + 100×3 + 5
+    expect(priced(lub({ volumeM3: 10.01, weightKg: 100 }).sea).totalCents).toBe(731200); // 10.01×700 + 100×3 + 5
+    expect(priced(lub({ volumeM3: 30, weightKg: 100 }).sea).totalCents).toBe(2130500); // 30×700 + 100×3 + 5
+    expect(quote(lub({ volumeM3: 30.001, weightKg: 100 }).sea)).toBe('over_max_volume');
+  });
+  it('cartons: €75 / €30 base + €3/kg (exact dimensions)', () => {
+    expect(priced(lub({ lengthCm: 60, widthCm: 40, heightCm: 40, weightKg: 6 }).sea).totalCents).toBe(9300); // 70+5 + 6×3
+    expect(priced(lub({ lengthCm: 40, widthCm: 30, heightCm: 30, weightKg: 6 }).sea).totalCents).toBe(4800); // 25+5 + 6×3
+  });
+  it('no sous-douane for Lubumbashi, and an unknown city is still "Sur devis"', () => {
+    expect(FBK.corridors?.lubumbashi.customsAdminFeeCents).toBeNull();
+    const other = computeQuote({ weightKg: 10, destination: 'autre-ville' }, FBK);
+    for (const r of [other.express, other.cargo, other.sea]) {
+      expect(r.kind).toBe('quote');
+      if (r.kind === 'quote') expect(r.reason).toBe('destination');
+    }
   });
 });
 
