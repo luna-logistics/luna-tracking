@@ -66,7 +66,7 @@ export default function ServiceAirFreight() {
 
         <ServiceSection title={k('dest_title')}>
           <p>{k('dest_kinshasa')}</p>
-          <p>{k('dest_lubumbashi')}<ServiceLink to={urlFor('pricing', lang)}>{k('dest_lubumbashi_link')}</ServiceLink>{k('dest_lubumbashi_after')}</p>
+          <p>{k('dest_lubumbashi')}<ServiceLink to={urlFor('rateCalculator', lang)}>{k('dest_lubumbashi_link')}</ServiceLink>{k('dest_lubumbashi_after')}</p>
         </ServiceSection>
 
         <ServiceSection title={t('svc_common.from_drc_title')}>

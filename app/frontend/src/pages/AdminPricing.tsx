@@ -13,7 +13,7 @@ import {
   fetchPricingAdminState, fetchPricingHistory, publishPricingSettings,
   type PricingAdminState, type PricingHistoryRow,
 } from '@/lib/pricing/config';
-import { hasFallbackTariff, isTariffPath, withFallbackTariff } from '@/lib/pricing/fallback';
+import { hasFallbackCorridor, hasFallbackTariff, isTariffPath, withFallbackCorridor, withFallbackTariff } from '@/lib/pricing/fallback';
 import { validatePricingConfig, zeroRateFields, type ConfigError } from '@/lib/pricing/validate';
 import { diffPricingConfigs } from '@/lib/pricing/diff';
 import type { Mode, PricingConfig } from '@/lib/pricing/engine';
@@ -42,6 +42,10 @@ export default function AdminPricing() {
   const lang: 'fr' | 'en' = i18n.language === 'en' ? 'en' : 'fr';
   const [state, setState] = useState<PricingAdminState | null>(null);
   const [draft, setDraft] = useState<PricingConfig | null>(null);
+  // Which corridor the form is editing: the root destination slug (Kinshasa) or
+  // an extra corridor's slug (Lubumbashi). The root is the top-level grid; a
+  // corridor is config.corridors[slug]. Editing one never touches the others.
+  const [editing, setEditing] = useState<string>('');
   const [effectiveDate, setEffectiveDate] = useState('');
   const [history, setHistory] = useState<PricingHistoryRow[] | null>([]);
   const [loading, setLoading] = useState(true);
@@ -54,6 +58,7 @@ export default function AdminPricing() {
     // The form starts from the grid the site prices with right now: the active
     // row when it is valid, the fallback grid otherwise (banner below says so).
     setDraft(structuredClone(s.live.config));
+    setEditing((cur) => cur || s.live.config.corridor.destination);
     setEffectiveDate(s.live.source === 'database' ? (s.effectiveFrom ?? '') : '');
     setHistory(h);
   }, []);
@@ -106,9 +111,11 @@ export default function AdminPricing() {
 
   const onRestore = () => {
     if (!draft) return;
-    if (hasFallbackTariff(draft)) { toast.info(t('admin_pricing.restore_same')); return; }
+    const isRootCorridor = editing === draft.corridor.destination;
+    const already = isRootCorridor ? hasFallbackTariff(draft) : hasFallbackCorridor(draft, editing);
+    if (already) { toast.info(t('admin_pricing.restore_same')); return; }
     if (!confirm(t('admin_pricing.restore_confirm'))) return;
-    setDraft(withFallbackTariff(draft));
+    setDraft(isRootCorridor ? withFallbackTariff(draft) : withFallbackCorridor(draft, editing));
     toast.success(t('admin_pricing.restore_done'));
   };
 
@@ -120,8 +127,20 @@ export default function AdminPricing() {
   const card = 'rounded-2xl border border-slate-200 bg-white p-5';
   const h2 = 'text-lg font-semibold text-luna-navy';
   const hint = 'mt-1 mb-4 text-xs text-slate-500';
-  const ratio = draft.ratioQuote ?? { thresholdKgPerM3: NaN, appliesTo: [] as Mode[] };
-  const fieldProps = (path: string) => ({ id: `pc-${path.replace(/\./g, '-')}`, invalid: invalid.has(path) });
+  // The corridor the form edits: the root destination (Kinshasa) or an extra
+  // corridor (Lubumbashi). `grid` is the slice being edited, `gridOf` the same
+  // slice inside a draft mutation, `gp` the path prefix for validation + ids.
+  const rootDest = draft.corridor.destination;
+  const editKeys = [rootDest, ...Object.keys(draft.corridors ?? {})];
+  const curSlug = editKeys.includes(editing) ? editing : rootDest;
+  const isRoot = curSlug === rootDest;
+  type Grid = Omit<PricingConfig, 'corridor' | 'corridors'>;
+  const grid = (isRoot ? draft : draft.corridors?.[curSlug]) as Grid;
+  const gridOf = (d: PricingConfig): Grid => (isRoot ? d : d.corridors![curSlug]);
+  const gp = isRoot ? '' : `corridors.${curSlug}.`;
+  const cityLabel = (slug: string) => t(`admin_pricing.corridor_${slug}`, { defaultValue: slug.charAt(0).toUpperCase() + slug.slice(1) });
+  const ratio = grid.ratioQuote ?? { thresholdKgPerM3: NaN, appliesTo: [] as Mode[] };
+  const fieldProps = (path: string) => ({ id: `pc-${(gp + path).replace(/\./g, '-')}`, invalid: invalid.has(gp + path) });
   const banner = !state.reachable ? 'source_unreachable' : state.live.source === 'fallback' ? `source_fallback_${state.live.reason}` : null;
 
   return (
@@ -141,6 +160,23 @@ export default function AdminPricing() {
         <span>{t('admin_pricing.documents_note')}</span>
       </p>
 
+      {editKeys.length > 1 && (
+        <div className="mt-6" role="tablist" aria-label={t('admin_pricing.corridor_tabs_label')}>
+          <span className="mb-2 block text-[13px] font-medium text-slate-600">{t('admin_pricing.corridor_tabs_label')}</span>
+          <div className="inline-flex flex-wrap gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
+            {editKeys.map((slug) => (
+              <button key={slug} type="button" role="tab" aria-selected={slug === curSlug}
+                onClick={() => setEditing(slug)}
+                className={cn('rounded-lg px-4 py-1.5 text-sm font-medium transition',
+                  slug === curSlug ? 'bg-white text-luna-navy shadow-sm' : 'text-slate-500 hover:text-luna-navy')}>
+                {cityLabel(slug)}
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-slate-500">{t('admin_pricing.corridor_tabs_hint', { city: cityLabel(curSlug) })}</p>
+        </div>
+      )}
+
       <div className="mt-6 space-y-6">
         {/* Air */}
         <section className={card} aria-labelledby="pc-sec-air">
@@ -150,15 +186,15 @@ export default function AdminPricing() {
             <fieldset className="space-y-3">
               <legend className="mb-2 text-sm font-semibold text-luna-navy">{t('calc.mode_express')}</legend>
               <NumField {...fieldProps('modes.express.perKgCents')} label={t('admin_pricing.f_per_kg')} unit="€/kg" cents
-                value={draft.modes.express.perKgCents} onChange={(v) => edit((d) => { d.modes.express.perKgCents = v; })} />
+                value={grid.modes.express.perKgCents} onChange={(v) => edit((d) => { gridOf(d).modes.express.perKgCents = v; })} />
               <NumField {...fieldProps('modes.express.flatMinCents')} label={t('admin_pricing.f_flat_min')} unit="€" cents
                 hint={t('admin_pricing.flat_min_hint')}
-                value={draft.modes.express.flatMinCents} onChange={(v) => edit((d) => { d.modes.express.flatMinCents = v; })} />
+                value={grid.modes.express.flatMinCents} onChange={(v) => edit((d) => { gridOf(d).modes.express.flatMinCents = v; })} />
             </fieldset>
             <fieldset className="space-y-3">
               <legend className="mb-2 text-sm font-semibold text-luna-navy">{t('calc.mode_cargo')}</legend>
               <NumField {...fieldProps('modes.cargo.perKgCents')} label={t('admin_pricing.f_per_kg')} unit="€/kg" cents
-                value={draft.modes.cargo.perKgCents} onChange={(v) => edit((d) => { d.modes.cargo.perKgCents = v; })} />
+                value={grid.modes.cargo.perKgCents} onChange={(v) => edit((d) => { gridOf(d).modes.cargo.perKgCents = v; })} />
             </fieldset>
           </div>
         </section>
@@ -169,10 +205,10 @@ export default function AdminPricing() {
           <p className={hint}>{t('admin_pricing.volume_hint')}</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <NumField {...fieldProps('volumetricSurchargeRateCentsPerKg')} label={t('admin_pricing.f_surcharge')} unit="€/kg" cents
-              value={draft.volumetricSurchargeRateCentsPerKg} onChange={(v) => edit((d) => { d.volumetricSurchargeRateCentsPerKg = v; })} />
+              value={grid.volumetricSurchargeRateCentsPerKg} onChange={(v) => edit((d) => { gridOf(d).volumetricSurchargeRateCentsPerKg = v; })} />
             <NumField {...fieldProps('volumetricDivisor')} label={t('admin_pricing.f_divisor')} unit="cm³/kg"
               hint={t('admin_pricing.divisor_hint')}
-              value={draft.volumetricDivisor} onChange={(v) => edit((d) => { d.volumetricDivisor = v; })} />
+              value={grid.volumetricDivisor} onChange={(v) => edit((d) => { gridOf(d).volumetricDivisor = v; })} />
           </div>
         </section>
 
@@ -181,39 +217,48 @@ export default function AdminPricing() {
           <h2 id="pc-sec-sea" className={h2}>{t('admin_pricing.sec_sea')}</h2>
           <p className={hint}>{t('admin_pricing.sea_hint')}</p>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {draft.modes.sea.tiers.map((tier, i) => (
+            {grid.modes.sea.tiers.map((tier, i) => (
               <div key={i} className="space-y-2 rounded-xl bg-slate-50 p-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-slate-500">{t('admin_pricing.tier_n', { n: i + 1 })}</span>
-                  <button type="button" aria-label={t('admin_pricing.remove_tier_n', { n: i + 1 })} disabled={draft.modes.sea.tiers.length <= 1}
+                  <button type="button" aria-label={t('admin_pricing.remove_tier_n', { n: i + 1 })} disabled={grid.modes.sea.tiers.length <= 1}
                     className="rounded text-slate-400 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-luna-blue/40"
-                    onClick={() => edit((d) => { d.modes.sea.tiers.splice(i, 1); })}>
+                    onClick={() => edit((d) => { gridOf(d).modes.sea.tiers.splice(i, 1); })}>
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
                 <NumField {...fieldProps(`modes.sea.tiers.${i}.uptoM3`)} label={t('admin_pricing.f_upto_m3')} unit="m³"
-                  value={tier.uptoM3} onChange={(v) => edit((d) => { d.modes.sea.tiers[i].uptoM3 = v; })} />
+                  value={tier.uptoM3} onChange={(v) => edit((d) => { gridOf(d).modes.sea.tiers[i].uptoM3 = v; })} />
                 <NumField {...fieldProps(`modes.sea.tiers.${i}.perM3Cents`)} label={t('admin_pricing.f_per_m3')} unit="€/m³" cents
-                  value={tier.perM3Cents} onChange={(v) => edit((d) => { d.modes.sea.tiers[i].perM3Cents = v; })} />
+                  value={tier.perM3Cents} onChange={(v) => edit((d) => { gridOf(d).modes.sea.tiers[i].perM3Cents = v; })} />
               </div>
             ))}
           </div>
           <Button type="button" variant="outline" size="sm" className="mt-3"
-            onClick={() => edit((d) => { const last = d.modes.sea.tiers[d.modes.sea.tiers.length - 1]; d.modes.sea.tiers.push({ uptoM3: NaN, perM3Cents: last ? last.perM3Cents : NaN }); })}>
+            onClick={() => edit((d) => { const last = gridOf(d).modes.sea.tiers[gridOf(d).modes.sea.tiers.length - 1]; gridOf(d).modes.sea.tiers.push({ uptoM3: NaN, perM3Cents: last ? last.perM3Cents : NaN }); })}>
             <Plus className="h-4 w-4" /> {t('admin_pricing.add_tier')}
           </Button>
 
           <h3 className="mt-6 text-sm font-semibold text-luna-navy">{t('admin_pricing.sec_cartons')}</h3>
           <p className="mt-1 mb-3 text-xs text-slate-500">{t('admin_pricing.cartons_hint')}</p>
           <div className="grid gap-4 sm:grid-cols-2">
-            {(draft.presets ?? []).map((p, i) => (
+            {(grid.presets ?? []).map((p, i) => (
               p.seaFlatTransportCents != null || (p.lengthCm != null && p.key.startsWith('carton')) ? (
                 <NumField key={p.key} {...fieldProps(`presets.${p.key}.seaFlatTransportCents`)}
                   label={t('admin_pricing.f_carton_transport', { name: presetName(p.key, t) })} unit="€" cents
-                  value={p.seaFlatTransportCents} onChange={(v) => edit((d) => { d.presets![i].seaFlatTransportCents = v; })} />
+                  value={p.seaFlatTransportCents} onChange={(v) => edit((d) => { gridOf(d).presets![i].seaFlatTransportCents = v; })} />
               ) : null
             ))}
           </div>
+
+          {!isRoot && (
+            <div className="mt-6 max-w-sm">
+              <NumField {...fieldProps('seaWeightSurchargeCentsPerKg')} label={t('admin_pricing.f_sea_surcharge')} unit="€/kg" cents
+                hint={t('admin_pricing.sea_surcharge_hint')}
+                value={grid.seaWeightSurchargeCentsPerKg ?? 0}
+                onChange={(v) => edit((d) => { gridOf(d).seaWeightSurchargeCentsPerKg = v; })} />
+            </div>
+          )}
         </section>
 
         {/* Fees */}
@@ -222,10 +267,10 @@ export default function AdminPricing() {
           <div className="grid gap-4 sm:grid-cols-2">
             <NumField {...fieldProps('handlingFeeCents')} label={t('admin_pricing.f_handling')} unit="€" cents
               hint={t('admin_pricing.handling_hint')}
-              value={draft.handlingFeeCents} onChange={(v) => edit((d) => { d.handlingFeeCents = v; })} />
+              value={grid.handlingFeeCents} onChange={(v) => edit((d) => { gridOf(d).handlingFeeCents = v; })} />
             <NumField {...fieldProps('customsAdminFeeCents')} label={t('admin_pricing.f_customs')} unit="€" cents
               hint={t('admin_pricing.customs_hint')}
-              value={draft.customsAdminFeeCents} onChange={(v) => edit((d) => { d.customsAdminFeeCents = v; })} />
+              value={grid.customsAdminFeeCents} onChange={(v) => edit((d) => { gridOf(d).customsAdminFeeCents = v; })} />
           </div>
         </section>
 
@@ -237,17 +282,17 @@ export default function AdminPricing() {
             <div className="space-y-3">
               <NumField {...fieldProps('ratioQuote.thresholdKgPerM3')} label={t('admin_pricing.f_ratio_threshold')} unit="kg/m³"
                 value={ratio.thresholdKgPerM3}
-                onChange={(v) => edit((d) => { d.ratioQuote = { thresholdKgPerM3: v, appliesTo: d.ratioQuote?.appliesTo ?? [] }; })} />
+                onChange={(v) => edit((d) => { gridOf(d).ratioQuote = { thresholdKgPerM3: v, appliesTo: gridOf(d).ratioQuote?.appliesTo ?? [] }; })} />
               <div>
                 <p className="text-[13px] font-medium text-luna-navy">{t('admin_pricing.ratio_applies')}</p>
                 <div className="mt-2 flex flex-wrap gap-4">
                   {MODES.map((m) => (
                     <label key={m} className="flex items-center gap-2 text-sm">
                       <Switch checked={ratio.appliesTo.includes(m)} onCheckedChange={(on) => edit((d) => {
-                        const base = d.ratioQuote ?? { thresholdKgPerM3: NaN, appliesTo: [] };
+                        const base = gridOf(d).ratioQuote ?? { thresholdKgPerM3: NaN, appliesTo: [] };
                         const set = new Set(base.appliesTo);
                         if (on) set.add(m); else set.delete(m);
-                        d.ratioQuote = { thresholdKgPerM3: base.thresholdKgPerM3, appliesTo: MODES.filter((x) => set.has(x)) };
+                        gridOf(d).ratioQuote = { thresholdKgPerM3: base.thresholdKgPerM3, appliesTo: MODES.filter((x) => set.has(x)) };
                       })} />
                       {t(`calc.mode_${m}`)}
                     </label>
@@ -258,16 +303,18 @@ export default function AdminPricing() {
             <div className="space-y-3">
               <NumField {...fieldProps('modes.sea.maxM3')} label={t('admin_pricing.f_max_m3')} unit="m³"
                 hint={t('admin_pricing.max_m3_hint')}
-                value={draft.modes.sea.maxM3} onChange={(v) => edit((d) => { d.modes.sea.maxM3 = v; })} />
+                value={grid.modes.sea.maxM3} onChange={(v) => edit((d) => { gridOf(d).modes.sea.maxM3 = v; })} />
               <NumField {...fieldProps('modes.cargo.maxKg')} label={t('admin_pricing.f_max_kg', { mode: t('calc.mode_cargo') })} unit="kg"
-                value={draft.modes.cargo.maxKg} onChange={(v) => edit((d) => { d.modes.cargo.maxKg = v; })} />
+                value={grid.modes.cargo.maxKg} onChange={(v) => edit((d) => { gridOf(d).modes.cargo.maxKg = v; })} />
               <NumField {...fieldProps('modes.express.maxKg')} label={t('admin_pricing.f_max_kg', { mode: t('calc.mode_express') })} unit="kg"
-                value={draft.modes.express.maxKg} onChange={(v) => edit((d) => { d.modes.express.maxKg = v; })} />
+                value={grid.modes.express.maxKg} onChange={(v) => edit((d) => { gridOf(d).modes.express.maxKg = v; })} />
             </div>
           </div>
         </section>
 
-        {/* Optional / currently-empty fields */}
+        {/* Optional / currently-empty fields — root corridor only (these texts
+            and the publish date apply to the whole document). */}
+        {isRoot && (
         <section className={card} aria-labelledby="pc-sec-optional">
           <h2 id="pc-sec-optional" className={h2}>{t('admin_pricing.sec_optional')}</h2>
           <p className={hint}>{t('admin_pricing.optional_hint')}</p>
@@ -299,6 +346,7 @@ export default function AdminPricing() {
             ))}
           </div>
         </section>
+        )}
 
         {/* Validation errors */}
         {errors.length > 0 && (
@@ -313,7 +361,7 @@ export default function AdminPricing() {
         {/* Simulator */}
         <section className={cn(card, 'bg-slate-50')} aria-labelledby="pc-sec-sim">
           <h2 id="pc-sec-sim" className={h2}>{t('admin_pricing.sec_simulator')}</h2>
-          <PricingSimulator draft={errors.length ? null : candidate} live={state.live.config} lang={lang} />
+          <PricingSimulator draft={errors.length ? null : candidate} live={state.live.config} lang={lang} destination={curSlug} />
         </section>
 
         {/* History */}

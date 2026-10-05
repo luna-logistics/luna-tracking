@@ -22,9 +22,27 @@ const PRESET_UNITS: Record<string, Unit> = {
   seaFlatTransportCents: 'eur', sheetPriceCents: 'eur', lengthCm: 'cm', widthCm: 'cm', heightCm: 'cm', weightKg: 'kg', volumeM3: 'm3',
 };
 
+const CORRIDOR = /^corridors\.([^.]+)(?:\.(.+))?$/;
+
+/** Human name for a corridor slug (shared with AdminPricing's tabs). */
+function corridorName(slug: string, t: T): string {
+  return t(`admin_pricing.corridor_${slug}`, { defaultValue: slug.charAt(0).toUpperCase() + slug.slice(1) });
+}
+
 export function describePricingPath(path: string, t: T): PathInfo {
+  // An extra corridor's field (corridors.lubumbashi.modes.express.perKgCents):
+  // describe the inner path and prefix it with the city name.
+  const cm = CORRIDOR.exec(path);
+  if (cm) {
+    const city = corridorName(cm[1], t);
+    if (!cm[2]) return { label: city, unit: 'text', order: 95 };
+    const inner = describePricingPath(cm[2], t);
+    return { label: `${city} — ${inner.label}`, unit: inner.unit, order: 100 + inner.order };
+  }
+
   const simple: Record<string, [string, Unit, number]> = {
     volumetricSurchargeRateCentsPerKg: ['admin_pricing.lbl_surcharge', 'eur_kg', 20],
+    seaWeightSurchargeCentsPerKg: ['admin_pricing.lbl_sea_surcharge', 'eur_kg', 32],
     volumetricDivisor: ['admin_pricing.lbl_divisor', 'number', 21],
     'modes.sea.tiers': ['admin_pricing.lbl_sea_tiers', 'text', 30],
     'modes.sea.maxM3': ['admin_pricing.lbl_sea_max', 'm3', 60],

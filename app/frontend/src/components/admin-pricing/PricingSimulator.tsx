@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { computeQuote, formatEuros, type Mode, type ModeResult, type PricedResult, type PricingConfig } from '@/lib/pricing/engine';
+import { computeQuote, formatEuros, resolveCorridorConfig, type Mode, type ModeResult, type PricedResult, type PricingConfig } from '@/lib/pricing/engine';
 import { calculatorEngineInput } from '@/lib/pricing/surfaces';
 
 /**
@@ -24,12 +24,14 @@ const PRESETS: { key: string; labelKey: string; fields: Fields }[] = [
 
 const fmtKg = (n: number) => `${Number(n.toFixed(3))}`;
 
-export function PricingSimulator({ draft, live, lang }: {
+export function PricingSimulator({ draft, live, lang, destination }: {
   /** The grid being edited, or null while it has validation errors. */
   draft: PricingConfig | null;
   /** The grid the site prices with right now. */
   live: PricingConfig;
   lang: 'fr' | 'en';
+  /** The corridor being simulated (destination city slug). */
+  destination: string;
 }) {
   const { t } = useTranslation();
   const [f, setF] = useState<Fields>(PRESETS[0].fields);
@@ -39,8 +41,8 @@ export function PricingSimulator({ draft, live, lang }: {
   const input = useMemo(() => calculatorEngineInput({
     lines: [{ length: f.length, width: f.width, height: f.height, weight: f.weight }],
     volume: f.volume,
-    destination: 'kinshasa',
-  }), [f]);
+    destination,
+  }), [f, destination]);
   const edited = useMemo(() => (draft ? computeQuote(input, draft) : null), [draft, input]);
   const current = useMemo(() => computeQuote(input, live), [live, input]);
 
@@ -90,9 +92,11 @@ export function PricingSimulator({ draft, live, lang }: {
           <ResultDetail edited={edited[mode]} current={current[mode]} lang={lang} />
         )}
       </div>
-      <p className="mt-2 text-[11px] text-slate-500">
-        {t('admin_pricing.sim_customs_note', { fee: formatEuros((draft ?? live).customsAdminFeeCents ?? 0, lang) })}
-      </p>
+      {(resolveCorridorConfig(draft ?? live, destination)?.customsAdminFeeCents ?? null) != null && (
+        <p className="mt-2 text-[11px] text-slate-500">
+          {t('admin_pricing.sim_customs_note', { fee: formatEuros(resolveCorridorConfig(draft ?? live, destination)?.customsAdminFeeCents ?? 0, lang) })}
+        </p>
+      )}
     </div>
   );
 }
@@ -123,6 +127,7 @@ function ResultDetail({ edited, current, lang }: { edited: ModeResult; current: 
     }
     if (l.key === 'volumetric_diff' && l.rateCentsPerKg != null) return `${fmtKg(l.qtyKg ?? 0)} kg × ${formatEuros(l.rateCentsPerKg, lang)}/kg`;
     if (l.key === 'volume' && l.rateCentsPerM3 != null) return `${fmtKg(l.qtyM3 ?? 0)} m³ × ${formatEuros(l.rateCentsPerM3, lang)}/m³`;
+    if (l.key === 'sea_weight_surcharge' && l.rateCentsPerKg != null) return `${fmtKg(l.qtyKg ?? 0)} kg × ${formatEuros(l.rateCentsPerKg, lang)}/kg`;
     return null;
   };
   const delta = current.kind === 'price' ? edited.totalCents - current.totalCents : null;

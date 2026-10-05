@@ -14,7 +14,7 @@ import { createConversation, sendMessage, guestCreateConversation, writeGuestTok
 import { FormShield, useFormShield } from '@/components/FormShield';
 import { submitErrorKey } from '@/lib/errors';
 import {
-  computeQuote, formatEuros, transitTimeFor,
+  computeQuote, formatEuros, resolveCorridorConfig, transitTimeFor,
   type PricingConfig, type ModeResult, type PricedResult, type Mode, type QuoteReason,
 } from '@/lib/pricing/engine';
 import { FALLBACK_PRICING_CONFIG } from '@/lib/pricing/fallback';
@@ -39,8 +39,15 @@ import { useAutoVolume } from '@/hooks/useAutoVolume';
  */
 
 const P = 'calculator';
-type DestChoice = 'kinshasa' | 'other';
+/** A destination city slug the online grid prices, or 'other' (free text). */
+type DestChoice = string;
+const OTHER_DEST = 'other';
 const MODES: Mode[] = ['express', 'cargo', 'sea'];
+
+/** City slug → the plain name shown in the office message and quote subject
+ *  ('kinshasa' → 'Kinshasa'). The dropdown labels (with the country) live in the
+ *  calc.dest_<slug> translations. */
+const cityName = (slug: string) => slug.charAt(0).toUpperCase() + slug.slice(1);
 
 const ICON_PATHS: Record<string, string> = {
   plane: 'M22 2 11 13M22 2l-7 20-4-9-9-4 20-7',
@@ -80,13 +87,26 @@ export default function RateCalculator() {
   // Active grid (pricing_config), or the fallback grid when the database can't
   // be used — null only while loading.
   const { config } = usePricingConfig();
-  // Every tariff figure shown as text (the rate card, the "how a price is built"
-  // bullets, the FAQ answers + the FAQPage JSON-LD) is formatted from the grid —
-  // never a number written in the translations. The in-code fallback paints the
-  // correct figures on the first frame; the live grid swaps in when it resolves
-  // (identical unless an admin just edited /admin/tarifs). `figures.surcharge`
-  // carries its "/kg" suffix.
-  const figures = calcFigures(config ?? FALLBACK_PRICING_CONFIG, lang);
+  const rootConfig = config ?? FALLBACK_PRICING_CONFIG;
+  // Destination city slug. The default (and the only concrete option when the
+  // grid has no extra corridor) is the corridor's root destination — Kinshasa.
+  const [destination, setDestination] = useState<DestChoice>(() => rootConfig.corridor.destination);
+  // Priced destinations offered in the dropdown: the root corridor + any extra
+  // corridor in the grid (e.g. Lubumbashi), then "other" (free text → on quote).
+  const corridorSlugs = useMemo(() => {
+    const extra = Object.keys(rootConfig.corridors ?? {});
+    return Array.from(new Set([rootConfig.corridor.destination, ...extra]));
+  }, [rootConfig]);
+  // The grid for the SELECTED corridor (root = Kinshasa unchanged, or the extra
+  // corridor's own grid). Used for the rate card, the "how a price is built"
+  // bullets and the customs note — so they reflect the chosen destination.
+  const effConfig = useMemo(() => resolveCorridorConfig(rootConfig, destination) ?? rootConfig, [rootConfig, destination]);
+  // Every tariff figure shown as text is formatted from the grid — never a number
+  // written in the translations. `figures` follows the selected corridor; the FAQ
+  // answers + the FAQPage JSON-LD stay on the root corridor (Kinshasa) so the
+  // prerendered schema is stable. `figures.surcharge` carries its "/kg" suffix.
+  const figures = calcFigures(effConfig, lang);
+  const faqFigures = calcFigures(rootConfig, lang);
 
   // FAQ — freight/transport Q&A. Each answer may carry ONE internal link (split
   // text + <Link>, since the project has no <Trans>). FaqJsonLd is fed the
@@ -101,7 +121,7 @@ export default function RateCalculator() {
     },
   }));
   const faq = FAQ_DEFS.map(({ k, link }) => {
-    const aRaw = t(`calc.a_${k}`, figures);
+    const aRaw = t(`calc.a_${k}`, faqFigures);
     const label = link ? t(`calc.${link.labelKey}`) : null;
     return {
       q: t(`calc.q_${k}`),
@@ -122,7 +142,6 @@ export default function RateCalculator() {
   // FR shows the auto-filled volume with a decimal comma (parseDecimal reads both).
   const loc = (v: string) => (lang === 'fr' ? v.replace('.', ',') : v);
   const volShown = vol.auto ? loc(vol.value) : vol.value;
-  const [destination, setDestination] = useState<DestChoice>('kinshasa');
   const [live, setLive] = useState('');
 
   // Shared builder (lib/pricing/surfaces) — same input rules as /tarifs and the
@@ -148,7 +167,7 @@ export default function RateCalculator() {
   }, [quote, lang, t]);
 
   const summaryLines = useMemo(() => {
-    const out: string[] = [`${t('calc.field_destination')}: ${destination === 'kinshasa' ? 'Kinshasa' : t('calc.dest_other')}`];
+    const out: string[] = [`${t('calc.field_destination')}: ${destination === OTHER_DEST ? t('calc.dest_other') : cityName(destination)}`];
     out.push(`${t('calc.sum_origin')}: ${t('calc.sum_origin_city')}`);
     // Every filled package line, then the totals — the office sees exactly what was priced.
     const q = (v: string) => v.trim() || '?';
@@ -216,9 +235,11 @@ export default function RateCalculator() {
               <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '18px 16px' }}>
                 <div style={{ gridColumn: '1 / -1' }}>
                   <label htmlFor="luna-dest" style={LABEL}>{t('calc.field_destination')}</label>
-                  <select id="luna-dest" value={destination} onChange={(e) => setDestination(e.target.value as DestChoice)} style={INPUT}>
-                    <option value="kinshasa">{t('calc.dest_kinshasa')}</option>
-                    <option value="other">{t('calc.dest_other')}</option>
+                  <select id="luna-dest" value={destination} onChange={(e) => setDestination(e.target.value)} style={INPUT}>
+                    {corridorSlugs.map((slug) => (
+                      <option key={slug} value={slug}>{t(`calc.dest_${slug}`, { defaultValue: cityName(slug) })}</option>
+                    ))}
+                    <option value={OTHER_DEST}>{t('calc.dest_other')}</option>
                   </select>
                   <p style={NOTE}>{t('calc.dest_hint')}</p>
                 </div>
@@ -310,9 +331,11 @@ export default function RateCalculator() {
                   </li>
                 ))}
               </ul>
-              <p style={{ marginTop: 28, padding: '18px 20px', borderLeft: '2px solid #1FA3C9', background: '#F4F7FB', fontSize: 16, lineHeight: 1.55, color: '#0A1650' }}>
-                {t('calc.customs_note', figures)}
-              </p>
+              {effConfig.customsAdminFeeCents != null && (
+                <p style={{ marginTop: 28, padding: '18px 20px', borderLeft: '2px solid #1FA3C9', background: '#F4F7FB', fontSize: 16, lineHeight: 1.55, color: '#0A1650' }}>
+                  {t('calc.customs_note', figures)}
+                </p>
+              )}
             </div>
           </div>
         </section>
@@ -460,6 +483,7 @@ function PriceBody({ result, lang, transit, mode, volumeM3 }: { result: PricedRe
       return `${fmtKg(l.qtyKg ?? 0)} kg × ${formatEuros(l.rateCentsPerKg ?? 0, lang)}/kg`;
     }
     if (l.key === 'volume') return `${fmtM3(l.qtyM3 ?? 0)} m³ × ${formatEuros(l.rateCentsPerM3 ?? 0, lang)}/m³`;
+    if (l.key === 'sea_weight_surcharge') return `${fmtKg(l.qtyKg ?? 0)} kg × ${formatEuros(l.rateCentsPerKg ?? 0, lang)}/kg`;
     return null;
   };
 
@@ -553,7 +577,7 @@ function QuotePanel({ mode, reason, summaryLines, user, request }: {
   const [message, setMessage] = useState('');
   const [destDetail, setDestDetail] = useState('');
   const [busy, setBusy] = useState(false);
-  const otherDest = request.destination === 'other';
+  const otherDest = request.destination === OTHER_DEST;
   const [sent, setSent] = useState(false);
   const shield = useFormShield();
 
@@ -563,7 +587,7 @@ function QuotePanel({ mode, reason, summaryLines, user, request }: {
     // Name the destination the visitor actually chose — the corridor was
     // hardcoded before, so an "other destination" request arrived titled
     // "Bruxelles → Kinshasa" with a "not covered" reason (23/09/2026).
-    const dest = otherDest ? destDetail.trim() : 'Kinshasa';
+    const dest = otherDest ? destDetail.trim() : cityName(request.destination);
     const subject = t('calc.quote_subject', { mode: t(`calc.mode_${mode}`), dest });
     const body = [
       t('calc.quote_intro', { mode: t(`calc.mode_${mode}`), dest }), '',
