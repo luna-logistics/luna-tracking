@@ -38,7 +38,24 @@ const SITE_URL  = 'https://lunatrackinglogistics.com';
 const ogFallback = (lang) => `${SITE_URL}/brand/og-default${lang === 'en' ? '-en' : ''}.jpg`;
 const SITE_NAME = 'Luna Tracking Logistics';
 
-const shellHtml = await fs.readFile(path.join(DIST, 'index.html'), 'utf8');
+let shellHtml = await fs.readFile(path.join(DIST, 'index.html'), 'utf8');
+// Inline the one render-blocking stylesheet into every prerendered page. On slow
+// mobile the external CSS is a render-blocking request on the critical path
+// (HTML → CSS before the first paint, ~300 ms); the built file is hashed and
+// small (~18 KiB raw, ~4 KiB gzipped), so inlining it makes the styles arrive
+// WITH the HTML and the first paint no longer waits for a second round trip. The
+// visible text, metas and JSON-LD are untouched (perf-only head change). The
+// external /assets/*.css stays emitted (harmless, unreferenced) so hashed
+// caching of the JS chunks is unaffected.
+{
+  const m = shellHtml.match(/<link rel="stylesheet"[^>]*href="(\/assets\/[^"]+\.css)"[^>]*>/);
+  if (m) {
+    const css = await fs.readFile(path.join(DIST, m[1].replace(/^\//, '')), 'utf8');
+    shellHtml = shellHtml.replace(m[0], `<style>${css}</style>`);
+  } else {
+    console.warn('[prerender] no render-blocking stylesheet found to inline');
+  }
+}
 const fr = JSON.parse(await fs.readFile(path.resolve(__dirname, '..', 'src/locales/fr.json'), 'utf8'));
 const en = JSON.parse(await fs.readFile(path.resolve(__dirname, '..', 'src/locales/en.json'), 'utf8'));
 const LOCALES = { fr, en };
