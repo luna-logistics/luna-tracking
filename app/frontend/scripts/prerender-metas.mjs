@@ -24,7 +24,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { articleGraph, productSchema, customPageGraph, serviceGraph, brandFromName } from '../src/lib/seo/jsonld.data.mjs';
+import { articleGraph, productSchema, customPageGraph, serviceGraph, aboutGraph, brandFromName } from '../src/lib/seo/jsonld.data.mjs';
 import { calcFigures, FALLBACK_CALC_GRID } from '../src/lib/pricing/figures.data.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -515,6 +515,18 @@ async function emitStaticRoute(key, def) {
             },
           ],
         }
+      : key === 'about'
+      ? aboutGraph({
+          lang, canonical, title, description,
+          homeUrl: urlFor('home', lang),
+          homeLabel: lang === 'en' ? 'Home' : 'Accueil',
+          aboutLabel: overrideOr('about', lang, 'page_title', readI18n(lang, 'about', 'page_title')) || title,
+          founders: [1, 2].map((n) => ({
+            name:        overrideOr('about', lang, `founder${n}_name`, readI18n(lang, 'about', `founder${n}_name`)),
+            role:        overrideOr('about', lang, `founder${n}_role`, readI18n(lang, 'about', `founder${n}_role`)),
+            description: overrideOr('about', lang, `founder${n}_body`, readI18n(lang, 'about', `founder${n}_body`)),
+          })),
+        })
       : SERVICE_SKELETON[i18nPage]
         ? serviceGraph({
             lang, canonical, title, description,

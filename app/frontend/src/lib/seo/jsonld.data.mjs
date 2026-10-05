@@ -137,6 +137,59 @@ export function productSchema({
  * the block validates on a page that carries no Organization node of its own.
  * `serviceName` is the page's H1; `homeUrl` is a registry path (urlFor).
  */
+/**
+ * About page graph: AboutPage + Organization (carrying its two founders as
+ * Person nodes) + BreadcrumbList (Home → About). The Organization reuses the
+ * site-wide `@id` (`${SITE_URL}/#org`, declared in full on the homepage), so
+ * Google folds the `founder` relationship into the same brand entity instead of
+ * creating a second one. Founders come in as plain data — `{ name, role,
+ * description }` — already localized by the caller; an empty `role`/`description`
+ * is dropped by JSON.stringify. Same two-runtime contract as the other builders:
+ * the prerender and the React page emit THIS block, so the crawler's HTML and the
+ * hydrated DOM never diverge.
+ */
+export function aboutGraph({ lang, canonical, title, description, homeUrl, homeLabel, aboutLabel, founders = [] }) {
+  const orgId = `${SITE_URL}/#org`;
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'AboutPage',
+        '@id': `${canonical}#page`,
+        url: canonical,
+        name: title,
+        description: description || undefined,
+        inLanguage: lang,
+        isPartOf: { '@type': 'WebSite', name: SITE_NAME, url: SITE_URL },
+        about: { '@id': orgId },
+        mainEntity: { '@id': orgId },
+      },
+      {
+        '@type': 'Organization',
+        '@id': orgId,
+        name: SITE_NAME,
+        legalName: 'Luna Tracking Logistics SRL',
+        url: SITE_URL,
+        logo: SITE_LOGO,
+        founder: founders.map((f) => ({
+          '@type': 'Person',
+          name: f.name,
+          jobTitle: f.role || undefined,
+          description: f.description || undefined,
+          worksFor: { '@id': orgId },
+        })),
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: homeLabel, item: `${SITE_URL}${homeUrl}` },
+          { '@type': 'ListItem', position: 2, name: aboutLabel, item: canonical },
+        ],
+      },
+    ],
+  };
+}
+
 export function serviceGraph({ lang, canonical, title, description, homeUrl, homeLabel, serviceName, faq }) {
   const graph = [
     {

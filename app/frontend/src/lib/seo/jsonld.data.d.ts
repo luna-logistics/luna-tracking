@@ -61,3 +61,14 @@ export function serviceGraph(args: {
   homeLabel: string;
   serviceName: string;
 }): JsonLd;
+
+export function aboutGraph(args: {
+  lang: string;
+  canonical: string;
+  title: string;
+  description?: string;
+  homeUrl: string;
+  homeLabel: string;
+  aboutLabel: string;
+  founders?: { name: string; role?: string; description?: string }[];
+}): JsonLd;

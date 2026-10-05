@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ShieldCheck, MessagesSquare, MapPin, Award, ArrowRight, Building2, UserRound, PackageSearch } from 'lucide-react';
 import { SEO } from '@/components/SEO';
+import { JsonLd } from '@/components/JsonLd';
+import { aboutGraph, SITE_URL } from '@/lib/seo/jsonld.data.mjs';
 import { Button } from '@/components/ui/button';
 import { IconCircle } from '@/components/IconCircle';
 import { WaveDivider } from '@/components/WaveDivider';
@@ -59,6 +61,16 @@ export default function About() {
   return (
     <>
       <SEO title={metaTitle} description={metaDescription} />
+      <JsonLd data={aboutGraph({
+        lang,
+        canonical: `${SITE_URL}${urlFor('about', lang)}`,
+        title: metaTitle,
+        description: metaDescription,
+        homeUrl: urlFor('home', lang),
+        homeLabel: t('nav.home'),
+        aboutLabel: pageTitle,
+        founders: founders.map((f) => ({ name: f.name, role: f.role, description: f.body })),
+      })} />
 
       <HeroBackground imageKey="about_hero" imageAlt={pageTitle} fallbackClassName="bg-luna-gradient text-white" className="text-white">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-12 sm:py-16">
