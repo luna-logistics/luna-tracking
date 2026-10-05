@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ShieldCheck, BadgeCheck, MapPin, Award, ArrowRight, Building2 } from 'lucide-react';
+import { ShieldCheck, MessagesSquare, MapPin, Award, ArrowRight, Building2, UserRound, PackageSearch } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
 import { IconCircle } from '@/components/IconCircle';
@@ -26,15 +26,25 @@ export default function About() {
   const pageIntro       = useContent('about', 'page_intro',       t('about.page_intro'));
   const storyTitle      = useContent('about', 'story_title',      t('about.story_title'));
   const storyBody       = useContent('about', 'story_body',       t('about.story_body'));
+  const teamTitle       = useContent('about', 'team_title',       t('about.team_title'));
+  const teamIntro       = useContent('about', 'team_intro',       t('about.team_intro'));
   const valuesTitle     = useContent('about', 'values_title',     t('about.values_title'));
+  const edgeTitle       = useContent('about', 'edge_title',       t('about.edge_title'));
+  const edgeBody        = useContent('about', 'edge_body',        t('about.edge_body'));
+  const edgeCta         = useContent('about', 'edge_cta',         t('about.edge_cta'));
   const companyTitle    = useContent('about', 'company_title',    t('about.company_title'));
   const id = useLegalIdentity();
 
   const values = [
-    { key: '1', icon: ShieldCheck, title: useContent('about', 'value1_title', t('about.value1_title')), body: useContent('about', 'value1_body', t('about.value1_body')) },
-    { key: '2', icon: BadgeCheck,  title: useContent('about', 'value2_title', t('about.value2_title')), body: useContent('about', 'value2_body', t('about.value2_body')) },
-    { key: '3', icon: MapPin,      title: useContent('about', 'value3_title', t('about.value3_title')), body: useContent('about', 'value3_body', t('about.value3_body')) },
-    { key: '4', icon: Award,       title: useContent('about', 'value4_title', t('about.value4_title')), body: useContent('about', 'value4_body', t('about.value4_body')) },
+    { key: '1', icon: ShieldCheck,    title: useContent('about', 'value1_title', t('about.value1_title')), body: useContent('about', 'value1_body', t('about.value1_body')) },
+    { key: '2', icon: MessagesSquare, title: useContent('about', 'value2_title', t('about.value2_title')), body: useContent('about', 'value2_body', t('about.value2_body')) },
+    { key: '3', icon: MapPin,         title: useContent('about', 'value3_title', t('about.value3_title')), body: useContent('about', 'value3_body', t('about.value3_body')) },
+    { key: '4', icon: Award,          title: useContent('about', 'value4_title', t('about.value4_title')), body: useContent('about', 'value4_body', t('about.value4_body')) },
+  ];
+
+  const founders = [
+    { key: '1', name: useContent('about', 'founder1_name', t('about.founder1_name')), role: useContent('about', 'founder1_role', t('about.founder1_role')), body: useContent('about', 'founder1_body', t('about.founder1_body')) },
+    { key: '2', name: useContent('about', 'founder2_name', t('about.founder2_name')), role: useContent('about', 'founder2_role', t('about.founder2_role')), body: useContent('about', 'founder2_body', t('about.founder2_body')) },
   ];
 
   const companyRows = [
@@ -75,6 +85,39 @@ export default function About() {
         </section>
       </Block>
 
+      <Block name="about-team">
+        <section className="pb-14">
+          <div className="mx-auto max-w-5xl px-4 sm:px-6">
+            <Ed page="about" field="team_title" as="h2" className="text-2xl font-bold text-luna-navy text-center block">
+              {teamTitle}
+            </Ed>
+            <Ed page="about" field="team_intro" as="p" multiline className="mx-auto mt-3 max-w-3xl text-center text-[17px] text-slate-700 leading-relaxed block">
+              {teamIntro}
+            </Ed>
+            <div className="mt-8 grid gap-6 sm:grid-cols-2">
+              {founders.map((f) => (
+                <div key={f.key} className="rounded-2xl border-2 border-luna-blue/30 bg-white p-6 shadow-sm">
+                  <div className="flex items-center gap-4">
+                    <IconCircle icon={UserRound} variant="onLight" label={f.name} />
+                    <div>
+                      <Ed page="about" field={`founder${f.key}_name`} as="h3" className="text-lg font-semibold text-luna-navy block">
+                        {f.name}
+                      </Ed>
+                      <Ed page="about" field={`founder${f.key}_role`} as="p" className="text-sm font-medium text-luna-blue block">
+                        {f.role}
+                      </Ed>
+                    </div>
+                  </div>
+                  <Ed page="about" field={`founder${f.key}_body`} as="p" multiline className="mt-4 text-[15px] text-slate-700 leading-relaxed block">
+                    {f.body}
+                  </Ed>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </Block>
+
       <Block name="about-values">
         <section className="pb-14">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
@@ -95,6 +138,32 @@ export default function About() {
                   </Ed>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+      </Block>
+
+      <Block name="about-edge">
+        <section className="pb-14">
+          <div className="mx-auto max-w-3xl px-4 sm:px-6">
+            <div className="rounded-2xl border-2 border-luna-blue/30 bg-luna-navy/5 p-8 text-center shadow-sm">
+              <div className="flex justify-center">
+                <IconCircle icon={PackageSearch} variant="onLight" label={edgeTitle} />
+              </div>
+              <Ed page="about" field="edge_title" as="h2" className="mt-4 text-2xl font-bold text-luna-navy block">
+                {edgeTitle}
+              </Ed>
+              <Ed page="about" field="edge_body" as="p" multiline className="mt-3 text-[17px] text-slate-700 leading-relaxed block">
+                {edgeBody}
+              </Ed>
+              <div className="mt-6 flex justify-center">
+                <Button asChild variant="brand" size="lg">
+                  <Link to={urlFor('tracking', lang)}>
+                    {edgeCta}
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
             </div>
           </div>
         </section>
