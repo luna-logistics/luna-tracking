@@ -180,6 +180,31 @@ function injectBodySkeleton(html, { h1, h2s = [] }) {
   return html.replace(/<div id="root"><\/div>/i, skeleton);
 }
 
+/**
+ * Home hero skeleton — makes the LCP element STATIC. The live LCP is the React
+ * hero <section> (navy panel + H1), which paints only after React mounts
+ * (~4 s render delay on slow 4G). This renders the same section (same classes,
+ * same preloaded hero-map background, same H1 classes) in the prerendered HTML,
+ * so the hero is the first contentful paint and React's identical hero does not
+ * repaint a larger element. The H2 headings stay in the DOM (visually hidden)
+ * so the prerendered body TEXT is byte-identical to the previous H1+H2 skeleton.
+ * Only the H1 is visible — the subtitle, buttons and service strip are added by
+ * React; #root is replaced wholesale on mount (no layout shift, CLS stays 0).
+ */
+function homeHeroSkeleton(lang) {
+  const title = escapeHtml(overrideOr('home', lang, 'hero_title', readI18n(lang, 'home', 'hero_title')) || '');
+  const h2s = ['pillars_title', 'how_title']
+    .map((f) => escapeHtml(overrideOr('home', lang, f, readI18n(lang, 'home', f)) || ''))
+    .filter(Boolean).map((t) => `<h2>${t}</h2>`).join('');
+  const bg = "background-image:linear-gradient(100deg,rgba(10,22,80,.97) 0%,rgba(10,22,80,.9) 38%,rgba(13,46,107,.5) 66%,rgba(13,46,107,.1) 92%), url('/brand/hero-map.webp');background-size:cover, cover;background-position:center, right center;background-repeat:no-repeat, no-repeat;min-height:320px";
+  return `<section class="relative bg-luna-ink" style="${bg}">`
+    + `<div class="relative mx-auto max-w-[1220px] px-4 pt-5 pb-[18px] md:px-[26px] md:py-10 lg:px-10 lg:pt-[84px] lg:pb-[100px]">`
+    + `<div class="min-w-0 max-w-full lg:max-w-[min(560px,58%)]">`
+    + `<h1 class="mb-[7px] block text-[25px] font-semibold leading-[1.18] tracking-[-.01em] text-white md:mb-3.5 md:text-[30px] lg:mb-5 lg:text-[32px] lg:leading-[1.2]">${title}</h1>`
+    + `</div></div></section>`
+    + `<div style="${SR_ONLY}">${h2s}</div>`;
+}
+
 // ─── Service pages: a static body for non-JS crawlers ─────────────────────
 // The four service pages render their body with React once the pricing grid is
 // in hand. Non-JS fetchers (Bing, GPTBot, ClaudeBot, …) only ever see the
@@ -581,11 +606,16 @@ async function emitStaticRoute(key, def) {
     if (key === 'home') {
       html = injectHead(html, '<link rel="preload" as="image" href="/brand/hero-map.webp" type="image/webp" fetchpriority="high" />');
     }
-    const serviceHtml = serviceSkeletonHtml(i18nPage, lang);
-    if (serviceHtml) {
-      html = html.replace(/<div id="root"><\/div>/i, `<div id="root">\n${serviceHtml}\n</div>`);
-    } else if (skel) {
-      html = injectBodySkeleton(html, skel);
+    if (key === 'home') {
+      // Static hero so the LCP element paints with the HTML, not after React mounts.
+      html = html.replace(/<div id="root"><\/div>/i, `<div id="root">\n${homeHeroSkeleton(lang)}\n</div>`);
+    } else {
+      const serviceHtml = serviceSkeletonHtml(i18nPage, lang);
+      if (serviceHtml) {
+        html = html.replace(/<div id="root"><\/div>/i, `<div id="root">\n${serviceHtml}\n</div>`);
+      } else if (skel) {
+        html = injectBodySkeleton(html, skel);
+      }
     }
     await writeHtml(urlPath, html);
   }
