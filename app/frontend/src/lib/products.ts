@@ -6,6 +6,8 @@ export type ProductCategory = {
   name_fr: string;
   name_en: string;
   display_order: number;
+  /** Parent family id (e.g. "Boissons") for a two-level menu. null/absent = top level. */
+  parent_id?: string | null;
 };
 
 export type Product = {

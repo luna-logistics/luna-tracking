@@ -2085,6 +2085,7 @@
     "how_step2": "Our team physically buys the products in Belgium.",
     "how_step3": "We consolidate your parcel and ship it to the DRC — you track it online.",
     "filter_all": "All categories",
+    "filter_all_in": "All {{name}}",
     "add_to_cart": "Add",
     "added_to_cart": "Added to cart",
     "cart_title": "Your cart",

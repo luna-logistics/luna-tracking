@@ -115,7 +115,7 @@ export default function ShopAndShipProduct() {
                   width={800}
                   height={800}
                   decoding="async"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain p-4"
                 />
               </div>
             ) : (

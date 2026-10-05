@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/components/ui/sonner';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -61,10 +61,15 @@ export default function ShopAndShip() {
   }, []);
 
   const categoryOf = (id: string) => categories.find((c) => c.id === id);
-  const filtered = useMemo(
-    () => filter === 'all' ? products : products.filter((p) => p.category_id === filter),
-    [products, filter]
-  );
+  // Two-level categories: top-level families (no parent) and their children.
+  const topLevelCategories = useMemo(() => categories.filter((c) => !c.parent_id), [categories]);
+  const childrenOf = (parentId: string) => categories.filter((c) => c.parent_id === parentId);
+  const filtered = useMemo(() => {
+    if (filter === 'all') return products;
+    // A family (parent) filter also matches every product in its sub-categories.
+    const ids = new Set<string>([filter, ...categories.filter((c) => c.parent_id === filter).map((c) => c.id)]);
+    return products.filter((p) => ids.has(p.category_id));
+  }, [products, filter, categories]);
 
   // Cart revalidation against the freshly-loaded active products: a line whose
   // product is no longer active/readable is "unavailable" (excluded from
@@ -225,9 +230,21 @@ export default function ShopAndShip() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">{t('shop.filter_all')}</SelectItem>
-                      {categories.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>{categoryName(c, lang)}</SelectItem>
-                      ))}
+                      {topLevelCategories.map((parent) => {
+                        const children = childrenOf(parent.id);
+                        if (children.length === 0) {
+                          return <SelectItem key={parent.id} value={parent.id}>{categoryName(parent, lang)}</SelectItem>;
+                        }
+                        return (
+                          <SelectGroup key={parent.id}>
+                            <SelectLabel>{categoryName(parent, lang)}</SelectLabel>
+                            <SelectItem value={parent.id}>{t('shop.filter_all_in', { name: categoryName(parent, lang) })}</SelectItem>
+                            {children.map((ch) => (
+                              <SelectItem key={ch.id} value={ch.id} className="pl-8">{categoryName(ch, lang)}</SelectItem>
+                            ))}
+                          </SelectGroup>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
@@ -243,13 +260,13 @@ export default function ShopAndShip() {
                       {t('shop.products_empty')}
                     </div>
                   ) : (
-                    <div className="grid gap-5" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(212px,1fr))' }}>
+                    <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                       {filtered.map((p) => (
                         <article key={p.id} className="flex flex-col overflow-hidden rounded-xl border border-[#DCE5F0] bg-white shadow-sm transition-all hover:-translate-y-1 hover:border-luna-aqua hover:shadow-[0_14px_30px_rgba(10,22,80,.13)]">
                           <Link to={productUrl(productSlug(p, lang), lang)} className="block">
                             {p.image_url ? (
                               <div className="aspect-[4/3] overflow-hidden border-b border-[#E6EDF7] bg-white">
-                                <img src={p.image_url} alt={productName(p, lang)} width={600} height={450} loading="lazy" decoding="async" className="h-full w-full object-cover" />
+                                <img src={p.image_url} alt={productName(p, lang)} width={600} height={450} loading="lazy" decoding="async" className="h-full w-full object-contain p-3" />
                               </div>
                             ) : (
                               <div className="flex aspect-[4/3] flex-col items-center justify-center gap-3 border-b border-[#E6EDF7]" style={{ background: 'linear-gradient(160deg,#F7FAFE 0%,#EAF1FA 100%)' }}>

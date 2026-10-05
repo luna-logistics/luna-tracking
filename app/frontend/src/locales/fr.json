@@ -2085,6 +2085,7 @@
     "how_step2": "Notre équipe achète physiquement les produits en Belgique.",
     "how_step3": "Nous consolidons votre colis et l'expédions vers le Congo — vous suivez en ligne.",
     "filter_all": "Toutes catégories",
+    "filter_all_in": "Tout : {{name}}",
     "add_to_cart": "Ajouter",
     "added_to_cart": "Ajouté au panier",
     "cart_title": "Votre panier",
