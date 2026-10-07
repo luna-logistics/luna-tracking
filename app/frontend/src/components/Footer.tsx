@@ -44,7 +44,7 @@ export function Footer() {
           <div className="md:hidden">
             <div className="flex items-center gap-3 mb-5">
               <img src="/brand/luna-icon-64.webp" srcSet="/brand/luna-icon-44.webp 44w, /brand/luna-icon-64.webp 64w, /brand/luna-icon.webp 88w" sizes="36px" alt="" aria-hidden="true" className="h-9 w-auto" loading="lazy" width={36} height={36} />
-              <span className="text-[15px] font-semibold text-white">{t('brand.name')}</span>
+              <span className="text-[15px] font-semibold text-white" translate="no">{t('brand.name')}</span>
             </div>
             <nav aria-label={t('footer.services_title')} className="grid grid-cols-2 gap-x-6 gap-y-2 mb-5 text-sm">
               <Link to={urlFor('transitaire', lang)} className="text-white/80 hover:text-white">{t('nav.service_transitaire')}</Link>
