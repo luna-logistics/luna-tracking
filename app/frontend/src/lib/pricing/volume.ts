@@ -8,10 +8,13 @@
 
 const isPos = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n) && n > 0;
 
-/** "0,096" / "0.096" / 0.096 → 0.096; blank, zero, negative or garbage → null. */
+/** "0,096" / "0.096" / 0.096 → 0.096; blank, zero, negative or garbage → null.
+ *  All whitespace is stripped first — incl. non-breaking / thin spaces — so a
+ *  number a browser translator or a locale re-rendered with a separator (e.g.
+ *  "1 0" or "1 000") still parses, instead of a 10 kg parcel being read as 1. */
 export function parseDecimal(v: string | number | null | undefined): number | null {
   if (v == null || v === '') return null;
-  const n = typeof v === 'number' ? v : Number(String(v).trim().replace(',', '.'));
+  const n = typeof v === 'number' ? v : Number(String(v).replace(/\s/g, '').replace(',', '.'));
   return isPos(n) ? n : null;
 }
 

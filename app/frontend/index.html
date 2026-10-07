@@ -1,7 +1,17 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" translate="no">
 <head>
   <meta charset="UTF-8" />
+
+  <!-- Disable browser auto-translation (Chrome/Edge/Safari). The site ships its
+       own FR + EN versions (the language switcher / /en routes) — it is not meant
+       to be machine-translated on top. Google Translate rewrites text nodes,
+       which (a) mistranslates the brand ("Luna"→"Lune") and UI labels
+       ("Calculateur"→"Calculatrice"), and (b) corrupts the DOM React controls,
+       breaking the calculator: a translated "10" was read back as "1", so a
+       10 kg parcel was priced as 1 kg. `translate="no"` on <html> is the
+       cross-browser signal; the Google meta is the explicit Chrome opt-out. -->
+  <meta name="google" content="notranslate" />
 
   <!-- Favicons — generated from public/brand/logo-luna-250.png by
        scripts/generate-favicons.py. Two independent declaration groups:
