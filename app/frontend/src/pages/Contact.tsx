@@ -264,6 +264,7 @@ export default function Contact() {
 
   const mapsQuery = encodeURIComponent(t('contact.office_address'));
   const kinMapsQuery = encodeURIComponent(t('contact.office_kin_address'));
+  const lubMapsQuery = encodeURIComponent(t('contact.office_lub_address'));
 
   // Shared class fragments.
   const ringLight = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-luna-royal';
@@ -574,9 +575,28 @@ export default function Contact() {
                   className={`mt-2 inline-flex items-center gap-1 text-[14px] font-medium text-luna-azure hover:underline ${ringLight}`}>
                   {t('contact.map_open')}<ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
                 </a>
+            <a href="tel:+243817488283" className={`mt-2 block text-[14px] font-medium text-luna-azure hover:underline ${ringLight}`}>
+                {t('contact.office_kin_phone')}
+                </a>
               </div>
             </div>
           </div>
+
+           {/* Lubumbashi office */}
+           <h2 className={`${H2} mt-8`}>{t('contact.office_lub_title')}</h2>
+           <div className="mt-4 flex items-start gap-2.5">
+             <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-luna-azure" aria-hidden="true" />
+             <div>
+               <p className="text-[15px] font-medium text-luna-ink">{t('contact.office_lub_address')}</p>
+               <a href={`https://www.google.com/maps?q=${lubMapsQuery}`} target="_blank" rel="noopener noreferrer" 
+                 className={`mt-2 inline-flex items-center gap-1 text-[14px] font-medium text-luna-azure hover:underline ${ringLight}`}>
+                  {t('contact.map_open')}<ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                </a>
+              <a href="tel:+243850215001" className={`mt-2 block text-[14px] font-medium text-luna-azure hover:underline ${ringLight}`}>
+                  {t('contact.office_lub_phone')}
+                </a>
+              </div>
+            </div>
 
           <div>
             <h2 className={H2}>{t('contact.hours_when_title')}</h2>
