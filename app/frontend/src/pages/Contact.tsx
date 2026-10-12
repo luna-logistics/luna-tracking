@@ -580,8 +580,6 @@ export default function Contact() {
                 </a>
               </div>
             </div>
-          </div>
-
            {/* Lubumbashi office */}
            <h2 className={`${H2} mt-8`}>{t('contact.office_lub_title')}</h2>
            <div className="mt-4 flex items-start gap-2.5">
@@ -597,6 +595,7 @@ export default function Contact() {
                 </a>
               </div>
             </div>
+          </div>
 
           <div>
             <h2 className={H2}>{t('contact.hours_when_title')}</h2>
