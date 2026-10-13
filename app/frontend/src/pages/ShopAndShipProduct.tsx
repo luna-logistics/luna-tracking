@@ -8,7 +8,7 @@ import { productSchema, brandFromName } from '@/lib/seo/jsonld.data.mjs';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/sonner';
 import { useCart } from '@/contexts/CartContext';
-import { fetchProductBySlug, fetchProductCategories, productName, productDescription, productMetaTitle, productMetaDescription, productSlug, categoryName, type Product, type ProductCategory } from '@/lib/products';
+import { fetchProductBySlug, fetchProductCategories, fetchBrands, productName, productDescription, productMetaTitle, productMetaDescription, productSlug, categoryName, brandName, type Product, type ProductCategory, type Brand } from '@/lib/products';
 import { urlFor } from '@/lib/url/routes';
 import { useLangUrls } from '@/contexts/LangUrlContext';
 
@@ -21,14 +21,15 @@ export default function ShopAndShipProduct() {
   const { add } = useCart();
   const [product, setProduct] = useState<Product | null>(null);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
   const { setLangUrls } = useLangUrls();
 
   useEffect(() => {
     if (!slug) return;
     setLoading(true);
-    Promise.all([fetchProductBySlug(lang, slug), fetchProductCategories()])
-      .then(([p, cats]) => { setProduct(p); setCategories(cats); setLoading(false); });
+    Promise.all([fetchProductBySlug(lang, slug), fetchProductCategories(), fetchBrands()])
+      .then(([p, cats, b]) => { setProduct(p); setCategories(cats); setBrands(b); setLoading(false); });
   }, [slug, lang]);
 
   useEffect(() => {
@@ -67,9 +68,11 @@ export default function ShopAndShipProduct() {
   }
 
   const cat = categories.find((c) => c.id === product.category_id);
+  const brand = product.brand_id ? brands.find((b) => b.id === product.brand_id) : undefined;
   const displayName = productName(product, lang);
   const displayDescription = productDescription(product, lang);
   const displayCategory = cat ? categoryName(cat, lang) : '';
+  const displayBrand = brand ? brandName(brand, lang) : '';
 
   // Product JSON-LD (schema.org), from the SHARED builder so this matches the
   // prerendered block exactly. Uses the ACTUAL page language, so a crawler
@@ -81,7 +84,7 @@ export default function ShopAndShipProduct() {
     description: displayDescription ?? undefined,
     sku: productSlug(product, lang),
     gtin: product.barcode ?? undefined,
-    brand: brandFromName(displayName),
+    brand: displayBrand || brandFromName(displayName),
     category: displayCategory || undefined,
     weightKg: product.weight_kg ?? undefined,
     price: product.price,
@@ -128,7 +131,10 @@ export default function ShopAndShipProduct() {
             )}
             <div>
               {displayCategory && (
-                <div className="text-xs uppercase tracking-wide text-luna-blue font-semibold">{displayCategory}</div>
+                <div className="text-xs uppercase tracking-wide text-luna-blue font-semibold">
+                  {displayCategory}
+                  {displayBrand && ` · ${displayBrand}`}
+                </div>
               )}
               <h1 className="mt-1 text-3xl font-bold text-luna-navy">{displayName}</h1>
               <div className="mt-4 text-3xl font-bold text-luna-navy">{product.price.toFixed(2)} €</div>

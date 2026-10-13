@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { toast } from '@/components/ui/sonner';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { fetchActiveProducts, fetchProductCategories, productName, productSlug, categoryName, type Product, type ProductCategory } from '@/lib/products';
+import { fetchActiveProducts, fetchProductCategories, fetchBrands, productName, productSlug, categoryName, brandName, type Product, type ProductCategory, type Brand } from '@/lib/products';
 import { fetchDestinationCities, type DestinationCity } from '@/lib/cities';
 import { createOrder, OrderRejectedError } from '@/lib/orders';
 import { initiatePayment } from '@/lib/payment';
@@ -48,28 +48,36 @@ export default function ShopAndShip() {
   const { lines, add, setQty, remove, clear, count } = useCart();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
   const [cities, setCities] = useState<DestinationCity[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
+  const [brandFilter, setBrandFilter] = useState<string>('all');
   const [view, setView] = useState<'catalog' | 'checkout' | 'success'>('catalog');
   const [submitting, setSubmitting] = useState(false);
   const [afterSubmitMessage, setAfterSubmitMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([fetchActiveProducts(), fetchProductCategories(), fetchDestinationCities()])
-      .then(([p, c, ci]) => { setProducts(p); setCategories(c); setCities(ci); setLoading(false); });
+    Promise.all([fetchActiveProducts(), fetchProductCategories(), fetchBrands(), fetchDestinationCities()])
+      .then(([p, c, b, ci]) => { setProducts(p); setCategories(c); setBrands(b); setCities(ci); setLoading(false); });
   }, []);
 
   const categoryOf = (id: string) => categories.find((c) => c.id === id);
+  const brandOf = (id?: string | null) => (id ? brands.find((b) => b.id === id) : undefined);
   // Two-level categories: top-level families (no parent) and their children.
   const topLevelCategories = useMemo(() => categories.filter((c) => !c.parent_id), [categories]);
   const childrenOf = (parentId: string) => categories.filter((c) => c.parent_id === parentId);
   const filtered = useMemo(() => {
-    if (filter === 'all') return products;
-    // A family (parent) filter also matches every product in its sub-categories.
-    const ids = new Set<string>([filter, ...categories.filter((c) => c.parent_id === filter).map((c) => c.id)]);
-    return products.filter((p) => ids.has(p.category_id));
-  }, [products, filter, categories]);
+    let list = products;
+    if (filter !== 'all') {
+      // A family (parent) filter also matches every product in its sub-categories.
+      const ids = new Set<string>([filter, ...categories.filter((c) => c.parent_id === filter).map((c) => c.id)]);
+      list = list.filter((p) => ids.has(p.category_id));
+    }
+    // Brand is an independent facet — it can combine with any category filter.
+    if (brandFilter !== 'all') list = list.filter((p) => p.brand_id === brandFilter);
+    return list;
+  }, [products, filter, brandFilter, categories]);
 
   // Cart revalidation against the freshly-loaded active products: a line whose
   // product is no longer active/readable is "unavailable" (excluded from
@@ -248,6 +256,22 @@ export default function ShopAndShip() {
                     </SelectContent>
                   </Select>
                 </div>
+                {brands.length > 0 && (
+                  <div className="min-w-0 basis-[220px]">
+                    <Label htmlFor="brand-filter" className="mb-2 block text-[11px] font-semibold tracking-[.14em] text-luna-muted-ink">
+                      {t('shop.brand_label').toUpperCase()}
+                    </Label>
+                    <Select value={brandFilter} onValueChange={setBrandFilter}>
+                      <SelectTrigger id="brand-filter" className="w-full border-[#C6D4E6] bg-white text-luna-royal">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">{t('shop.filter_brand_all')}</SelectItem>
+                        {brands.map((b) => <SelectItem key={b.id} value={b.id}>{brandName(b, lang)}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-wrap items-start gap-[clamp(20px,2.5vw,32px)]">
@@ -286,6 +310,7 @@ export default function ShopAndShip() {
                               <span className="text-[20px] font-semibold text-luna-ink">{p.price.toFixed(2)} €</span>
                               <span className="truncate text-[11px] font-medium text-luna-body">
                                 {categoryName(categoryOf(p.category_id) ?? categories[0], lang)}
+                                {brandOf(p.brand_id) && ` · ${brandName(brandOf(p.brand_id)!, lang)}`}
                               </span>
                             </div>
                             <button

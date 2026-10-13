@@ -2086,7 +2086,36 @@
     "imp_result_created": "créé",
     "imp_result_updated": "déjà connu : prix et photo mis à jour",
     "imp_err_slug_taken": "slug déjà utilisé par un autre produit — modifiez le slug dans le CSV",
-    "imp_summary": "{{created}} créés, {{updated}} mis à jour, {{failed}} en échec (détail par ligne dans l'aperçu)."
+    "imp_summary": "{{created}} créés, {{updated}} mis à jour, {{failed}} en échec (détail par ligne dans l'aperçu).",
+    "products_tab_brands": "Marques",
+    "brands_intro": "Gère les marques (Jack Daniel's, Johnnie Walker...) que tu peux associer à un produit, indépendamment de sa catégorie.",
+    "brands_field_slug": "Slug",
+    "brands_field_name_fr": "Nom (FR)",
+    "brands_field_name_en": "Nom (EN)",
+    "brands_field_order": "Ordre",
+    "brands_add": "Ajouter",
+    "brands_delete_confirm": "Supprimer cette marque ?",
+    "categories_field_parent": "Catégorie parente",
+    "categories_parent_none": "— Aucune (catégorie principale) —",
+    "product_field_brand": "Marque",
+    "product_field_brand_none": "— Aucune marque —",
+    "products_col_brand": "Marque",
+    "products_filter_brand_any": "Toutes les marques",
+    "products_bulk_select_all": "Tout sélectionner",
+    "products_bulk_selected_count_one": "{{count}} produit sélectionné",
+    "products_bulk_selected_count_other": "{{count}} produits sélectionnés",
+    "products_bulk_no_change": "— Ne pas changer —",
+    "products_bulk_apply": "Appliquer",
+    "products_bulk_activate": "Activer",
+    "products_bulk_deactivate": "Désactiver",
+    "products_bulk_delete": "Supprimer",
+    "products_bulk_clear": "Désélectionner",
+    "products_bulk_applied_one": "{{count}} produit mis à jour",
+    "products_bulk_applied_other": "{{count}} produits mis à jour",
+    "products_bulk_delete_confirm_one": "Supprimer {{count}} produit ?",
+    "products_bulk_delete_confirm_other": "Supprimer {{count}} produits ?",
+    "products_bulk_nothing_selected": "Choisis une catégorie ou une marque à appliquer."
+  
   },
   "shop": {
     "meta_title": "Achat & Envoi Belgique → Congo — Luna Tracking Logistics",
@@ -2158,7 +2187,10 @@
     "step2_title": "Nous achetons et emballons",
     "step2_body": "Nous réalisons l'achat en Belgique, regroupons votre commande et préparons l'expédition.",
     "step3_title": "Livraison en RDC",
-    "step3_body": "Suivi en ligne jusqu'à la remise du colis à l'adresse du destinataire au Congo."
+    "step3_body": "Suivi en ligne jusqu'à la remise du colis à l'adresse du destinataire au Congo.",
+    "brand_label": "Marque",
+    "filter_brand_all": "Toutes les marques"
+  
   },
   "forwarding": {
     "meta_title": "Réexpédition vers le Congo — Luna Tracking Logistics",

@@ -10,6 +10,17 @@ export type ProductCategory = {
   parent_id?: string | null;
 };
 
+/** A brand/manufacturer (e.g. "Jack Daniel's", "Johnnie Walker") — a flat
+ *  list, independent of product_categories, that a product can optionally
+ *  carry so the catalogue can filter by brand across any category. */
+export type Brand = {
+  id: string;
+  slug: string;
+  name_fr: string;
+  name_en: string;
+  display_order: number;
+};
+
 export type Product = {
   id: string;
   /** Bilingual slugs — /achat-envoi/{slug_fr} + /en/shop-and-ship/{slug_en}. */
@@ -23,6 +34,8 @@ export type Product = {
   description_en: string | null;
   price: number;
   category_id: string;
+  /** Optional brand (e.g. Jack Daniel's) — independent of category. */
+  brand_id?: string | null;
   barcode: string | null;
   hs_code: string | null;
   weight_kg: number | null;
@@ -69,6 +82,9 @@ export function productMetaDescription(p: Product, lang: 'fr' | 'en'): string | 
 }
 export function categoryName(c: ProductCategory, lang: 'fr' | 'en'): string {
   return lang === 'en' ? c.name_en : c.name_fr;
+}
+export function brandName(b: Brand, lang: 'fr' | 'en'): string {
+  return lang === 'en' ? b.name_en : b.name_fr;
 }
 
 export async function fetchProductCategories(): Promise<ProductCategory[]> {
@@ -164,6 +180,25 @@ export async function deleteProduct(id: string) {
   if (error) throw error;
 }
 
+/** Apply the same patch (category, brand and/or active status) to several
+ *  products at once — used by the admin's bulk-select toolbar. A direct
+ *  `.update()` rather than `.upsert()` per row, so it never needs the rest
+ *  of each product's fields. */
+export async function bulkUpdateProducts(
+  ids: string[],
+  patch: Partial<Pick<Product, 'category_id' | 'brand_id' | 'is_active'>>,
+) {
+  if (ids.length === 0) return;
+  const { error } = await supabase.from('products').update(patch).in('id', ids);
+  if (error) throw error;
+}
+
+export async function bulkDeleteProducts(ids: string[]) {
+  if (ids.length === 0) return;
+  const { error } = await supabase.from('products').delete().in('id', ids);
+  if (error) throw error;
+}
+
 export async function upsertCategory(c: Omit<ProductCategory, 'id'> & { id?: string }) {
   const { data, error } = await supabase.from('product_categories').upsert(c).select().single();
   if (error) throw error;
@@ -172,6 +207,23 @@ export async function upsertCategory(c: Omit<ProductCategory, 'id'> & { id?: str
 
 export async function deleteCategory(id: string) {
   const { error } = await supabase.from('product_categories').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function fetchBrands(): Promise<Brand[]> {
+  const { data, error } = await supabase.from('brands').select('*').order('display_order');
+  if (error) { console.warn('[products] brands fetch failed:', error.message); return []; }
+  return (data ?? []) as Brand[];
+}
+
+export async function upsertBrand(b: Omit<Brand, 'id'> & { id?: string }) {
+  const { data, error } = await supabase.from('brands').upsert(b).select().single();
+  if (error) throw error;
+  return data as Brand;
+}
+
+export async function deleteBrand(id: string) {
+  const { error } = await supabase.from('brands').delete().eq('id', id);
   if (error) throw error;
 }
 

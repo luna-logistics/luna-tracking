@@ -29,23 +29,26 @@ import { optimizeImage } from '@/lib/optimize-image';
 import {
   fetchAllProducts, fetchProductCategories, upsertProduct, toggleProductActive, deleteProduct,
   upsertCategory, deleteCategory, uploadProductImage, fetchStores, upsertProductSource, type Store,
+  fetchBrands, upsertBrand, deleteBrand, type Brand,
+  bulkUpdateProducts, bulkDeleteProducts,
   type Product, type ProductCategory,
 } from '@/lib/products';
 import { cn } from '@/lib/utils';
 import { errorMessage } from '@/lib/errors';
 
-type Tab = 'list' | 'add' | 'import' | 'categories';
+type Tab = 'list' | 'add' | 'import' | 'categories' | 'brands';
 
 export default function AdminProducts() {
   const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>('list');
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
   const [editing, setEditing] = useState<Product | null>(null);
 
   const reload = async () => {
-    const [p, c] = await Promise.all([fetchAllProducts(), fetchProductCategories()]);
-    setProducts(p); setCategories(c);
+    const [p, c, b] = await Promise.all([fetchAllProducts(), fetchProductCategories(), fetchBrands()]);
+    setProducts(p); setCategories(c); setBrands(b);
   };
   useEffect(() => { void reload(); }, []);
 
@@ -56,7 +59,7 @@ export default function AdminProducts() {
       <p className="mt-2 text-slate-600 max-w-3xl">{t('admin.products_intro')}</p>
 
       <div className="mt-6 border-b border-slate-200 flex flex-wrap gap-1">
-        {(['list', 'add', 'import', 'categories'] as Tab[]).map((k) => (
+        {(['list', 'add', 'import', 'categories', 'brands'] as Tab[]).map((k) => (
           <button
             key={k}
             type="button"
@@ -78,6 +81,7 @@ export default function AdminProducts() {
           <ProductList
             products={products}
             categories={categories}
+            brands={brands}
             onEdit={(p) => { setEditing(p); setTab('add'); }}
             onChanged={reload}
           />
@@ -86,12 +90,16 @@ export default function AdminProducts() {
           <ProductForm
             product={editing}
             categories={categories}
+            brands={brands}
             onSaved={async () => { await reload(); setEditing(null); }}
           />
         )}
         {tab === 'import' && <CsvImport categories={categories} onDone={reload} />}
         {tab === 'categories' && (
           <CategoriesEditor categories={categories} products={products} onChanged={reload} />
+        )}
+        {tab === 'brands' && (
+          <BrandsEditor brands={brands} products={products} onChanged={reload} />
         )}
       </div>
     </>
@@ -101,20 +109,90 @@ export default function AdminProducts() {
 // ─── List tab ──────────────────────────────────────────────────────────────
 
 function ProductList({
-  products, categories, onEdit, onChanged,
-}: { products: Product[]; categories: ProductCategory[]; onEdit: (p: Product) => void; onChanged: () => void }) {
+  products, categories, brands, onEdit, onChanged,
+}: { products: Product[]; categories: ProductCategory[]; brands: Brand[]; onEdit: (p: Product) => void; onChanged: () => void }) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [catFilter, setCatFilter] = useState<string>('all');
+  const [brandFilter, setBrandFilter] = useState<string>('all');
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkCategory, setBulkCategory] = useState<string>('nochange');
+  const [bulkBrand, setBulkBrand] = useState<string>('nochange');
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return products.filter((p) => {
       if (catFilter !== 'all' && p.category_id !== catFilter) return false;
+      if (brandFilter !== 'all' && (p.brand_id ?? '') !== brandFilter) return false;
       if (!q) return true;
       return [p.name_fr, p.name_en, p.slug_fr, p.slug_en, p.barcode ?? ''].some((f) => f.toLowerCase().includes(q));
     });
-  }, [products, query, catFilter]);
+  }, [products, query, catFilter, brandFilter]);
+
+  // Selection is kept by id, independent of which page/filter is showing —
+  // but the "select all" checkbox only ever acts on what's currently visible.
+  const allVisibleSelected = filtered.length > 0 && filtered.every((p) => selected.has(p.id));
+  const toggleOne = (id: string, v: boolean) => setSelected((prev) => {
+    const next = new Set(prev);
+    if (v) next.add(id); else next.delete(id);
+    return next;
+  });
+  const toggleAllVisible = (v: boolean) => setSelected((prev) => {
+    const next = new Set(prev);
+    filtered.forEach((p) => { if (v) next.add(p.id); else next.delete(p.id); });
+    return next;
+  });
+
+  const resetBulkForm = () => { setBulkCategory('nochange'); setBulkBrand('nochange'); };
+
+  const applyBulk = async () => {
+    const patch: Parameters<typeof bulkUpdateProducts>[1] = {};
+    if (bulkCategory !== 'nochange') patch.category_id = bulkCategory;
+    if (bulkBrand !== 'nochange') patch.brand_id = bulkBrand === 'none' ? null : bulkBrand;
+    if (Object.keys(patch).length === 0) { toast.error(t('admin.products_bulk_nothing_selected')); return; }
+    setBulkBusy(true);
+    try {
+      await bulkUpdateProducts([...selected], patch);
+      toast.success(t('admin.products_bulk_applied', { count: selected.size }));
+      setSelected(new Set());
+      resetBulkForm();
+      await onChanged();
+    } catch (err) {
+      toast.error(errorMessage(err, t('common.error_generic')));
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const applyBulkActive = async (next: boolean) => {
+    setBulkBusy(true);
+    try {
+      await bulkUpdateProducts([...selected], { is_active: next });
+      toast.success(t('admin.products_bulk_applied', { count: selected.size }));
+      setSelected(new Set());
+      await onChanged();
+    } catch (err) {
+      toast.error(errorMessage(err, t('common.error_generic')));
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const bulkDelete = async () => {
+    if (!confirm(t('admin.products_bulk_delete_confirm', { count: selected.size }))) return;
+    setBulkBusy(true);
+    try {
+      await bulkDeleteProducts([...selected]);
+      toast.success(t('admin.products_bulk_applied', { count: selected.size }));
+      setSelected(new Set());
+      await onChanged();
+    } catch (err) {
+      toast.error(errorMessage(err, t('common.error_generic')));
+    } finally {
+      setBulkBusy(false);
+    }
+  };
 
   return (
     <>
@@ -129,18 +207,87 @@ function ProductList({
           <SelectTrigger className="w-64"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t('admin.products_filter_category_any')}</SelectItem>
-            {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name_fr}</SelectItem>)}
+            {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.parent_id ? `— ${c.name_fr}` : c.name_fr}</SelectItem>)}
           </SelectContent>
         </Select>
+        {brands.length > 0 && (
+          <Select value={brandFilter} onValueChange={setBrandFilter}>
+            <SelectTrigger className="w-64"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('admin.products_filter_brand_any')}</SelectItem>
+              {brands.map((b) => <SelectItem key={b.id} value={b.id}>{b.name_fr}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
       </div>
+
+      {selected.size > 0 && (
+        <div className="mb-4 rounded-xl border border-luna-navy/20 bg-luna-navy/5 p-4 flex flex-wrap items-end gap-3">
+          <div className="text-sm font-semibold text-luna-navy basis-full sm:basis-auto sm:self-center">
+            {t('admin.products_bulk_selected_count', { count: selected.size })}
+          </div>
+
+          <div>
+            <Label className="text-xs">{t('admin.product_field_category')}</Label>
+            <Select value={bulkCategory} onValueChange={setBulkCategory}>
+              <SelectTrigger className="w-56 h-9 mt-1 bg-white"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="nochange">{t('admin.products_bulk_no_change')}</SelectItem>
+                {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.parent_id ? `— ${c.name_fr}` : c.name_fr}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label className="text-xs">{t('admin.product_field_brand')}</Label>
+            <Select value={bulkBrand} onValueChange={setBulkBrand}>
+              <SelectTrigger className="w-56 h-9 mt-1 bg-white"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="nochange">{t('admin.products_bulk_no_change')}</SelectItem>
+                <SelectItem value="none">{t('admin.product_field_brand_none')}</SelectItem>
+                {brands.map((b) => <SelectItem key={b.id} value={b.id}>{b.name_fr}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Button size="sm" variant="navy" disabled={bulkBusy} onClick={applyBulk}>
+            {t('admin.products_bulk_apply')}
+          </Button>
+
+          <div className="h-9 w-px bg-luna-navy/15 hidden sm:block" />
+
+          <Button size="sm" variant="outline" disabled={bulkBusy} onClick={() => applyBulkActive(true)}>
+            {t('admin.products_bulk_activate')}
+          </Button>
+          <Button size="sm" variant="outline" disabled={bulkBusy} onClick={() => applyBulkActive(false)}>
+            {t('admin.products_bulk_deactivate')}
+          </Button>
+          <Button size="sm" variant="ghost" className="text-red-600 hover:bg-red-50" disabled={bulkBusy} onClick={bulkDelete}>
+            {t('admin.products_bulk_delete')}
+          </Button>
+          <Button size="sm" variant="ghost" disabled={bulkBusy} onClick={() => setSelected(new Set())}>
+            {t('admin.products_bulk_clear')}
+          </Button>
+        </div>
+      )}
 
       <div className="rounded-2xl border border-slate-200 bg-white overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-luna-navy">
             <tr>
+              <th className="px-4 py-3 w-10">
+                <input
+                  type="checkbox"
+                  checked={allVisibleSelected}
+                  onChange={(e) => toggleAllVisible(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 text-luna-navy focus:ring-luna-navy"
+                  aria-label={t('admin.products_bulk_select_all')}
+                />
+              </th>
               <th className="text-left px-4 py-3 font-semibold">{t('admin.products_col_name')}</th>
               <th className="text-left px-4 py-3 font-semibold">{t('admin.products_col_slug')}</th>
               <th className="text-left px-4 py-3 font-semibold">{t('admin.products_col_category')}</th>
+              <th className="text-left px-4 py-3 font-semibold">{t('admin.products_col_brand')}</th>
               <th className="text-right px-4 py-3 font-semibold">{t('admin.products_col_price')}</th>
               <th className="text-left px-4 py-3 font-semibold">{t('admin.products_col_barcode')}</th>
               <th className="text-center px-4 py-3 font-semibold">{t('admin.products_col_active')}</th>
@@ -149,18 +296,30 @@ function ProductList({
           </thead>
           <tbody className="divide-y divide-slate-100">
             {filtered.length === 0 && (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-500">—</td></tr>
+              <tr><td colSpan={9} className="px-4 py-8 text-center text-slate-500">—</td></tr>
             )}
             {filtered.map((p) => {
               const cat = categories.find((c) => c.id === p.category_id);
+              const brand = brands.find((b) => b.id === p.brand_id);
+              const isSelected = selected.has(p.id);
               return (
-                <tr key={p.id} className="hover:bg-slate-50">
+                <tr key={p.id} className={cn('hover:bg-slate-50', isSelected && 'bg-luna-navy/5')}>
+                  <td className="px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={(e) => toggleOne(p.id, e.target.checked)}
+                      className="h-4 w-4 rounded border-slate-300 text-luna-navy focus:ring-luna-navy"
+                      aria-label={p.name_fr}
+                    />
+                  </td>
                   <td className="px-4 py-3 font-medium text-luna-navy">{p.name_fr}</td>
                   <td className="px-4 py-3 font-mono text-xs text-slate-600">
                     <div>{p.slug_fr}</div>
                     <div className="text-slate-400">{p.slug_en}</div>
                   </td>
                   <td className="px-4 py-3 text-slate-600">{cat?.name_fr ?? '—'}</td>
+                  <td className="px-4 py-3 text-slate-600">{brand?.name_fr ?? '—'}</td>
                   <td className="px-4 py-3 text-right font-semibold text-luna-navy">{Number(p.price).toFixed(2)} €</td>
                   <td className="px-4 py-3 font-mono text-xs text-slate-600">{p.barcode ?? '—'}</td>
                   <td className="px-4 py-3 text-center">
@@ -202,8 +361,8 @@ function ProductList({
 // ─── Add / edit form ───────────────────────────────────────────────────────
 
 function ProductForm({
-  product, categories, onSaved,
-}: { product: Product | null; categories: ProductCategory[]; onSaved: () => Promise<void> }) {
+  product, categories, brands, onSaved,
+}: { product: Product | null; categories: ProductCategory[]; brands: Brand[]; onSaved: () => Promise<void> }) {
   const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
@@ -235,6 +394,7 @@ function ProductForm({
         description_en: values.description_en ?? null,
         price: Number(values.price ?? 0),
         category_id: values.category_id!,
+        brand_id: values.brand_id || null,
         barcode: values.barcode || null,
         hs_code: values.hs_code || null,
         weight_kg: values.weight_kg == null || values.weight_kg === '' as any ? null : Number(values.weight_kg),
@@ -250,7 +410,7 @@ function ProductForm({
       if (payload.barcode) setFlash(t('admin.product_scanned_flash', { barcode: payload.barcode }));
       // Reset to a fresh form + refocus the barcode input so the next scan can
       // start immediately.
-      setValues({ is_active: true, price: 0, weight_kg: null, barcode: null, hs_code: null, image_url: null, category_id: payload.category_id, slug_fr: '', slug_en: '' });
+      setValues({ is_active: true, price: 0, weight_kg: null, barcode: null, hs_code: null, image_url: null, category_id: payload.category_id, brand_id: payload.brand_id, slug_fr: '', slug_en: '' });
       await onSaved();
       setTimeout(() => setFlash(null), 2500);
       barcodeRef.current?.focus();
@@ -294,14 +454,26 @@ function ProductForm({
         titleFr={values.name_fr ?? ''} titleEn={values.name_en ?? ''}
         onFr={(v) => set('slug_fr', v)} onEn={(v) => set('slug_en', v)}
       />
-      <div>
-        <Label htmlFor="category_id">{t('admin.product_field_category')}</Label>
-        <Select value={values.category_id ?? ''} onValueChange={(v) => set('category_id', v)}>
-          <SelectTrigger id="category_id" className="mt-1.5"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name_fr}</SelectItem>)}
-          </SelectContent>
-        </Select>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <Label htmlFor="category_id">{t('admin.product_field_category')}</Label>
+          <Select value={values.category_id ?? ''} onValueChange={(v) => set('category_id', v)}>
+            <SelectTrigger id="category_id" className="mt-1.5"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.parent_id ? `— ${c.name_fr}` : c.name_fr}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label htmlFor="brand_id">{t('admin.product_field_brand')}</Label>
+          <Select value={values.brand_id ?? 'none'} onValueChange={(v) => set('brand_id', (v === 'none' ? null : v) as any)}>
+            <SelectTrigger id="brand_id" className="mt-1.5"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">{t('admin.product_field_brand_none')}</SelectItem>
+              {brands.map((b) => <SelectItem key={b.id} value={b.id}>{b.name_fr}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <BilingualPair
@@ -1219,6 +1391,7 @@ function CategoriesEditor({
 }: { categories: ProductCategory[]; products: Product[]; onChanged: () => void }) {
   const { t } = useTranslation();
   const [slug, setSlug] = useState(''); const [nameFr, setNameFr] = useState(''); const [nameEn, setNameEn] = useState(''); const [order, setOrder] = useState(100);
+  const [parentId, setParentId] = useState<string>('none');
 
   const productCountByCategory = useMemo(() => {
     const m = new Map<string, number>();
@@ -1226,10 +1399,124 @@ function CategoriesEditor({
     return m;
   }, [products]);
 
+  // Top-level families only — a sub-category can't itself have children, so
+  // the "parent" picker only offers categories without a parent.
+  const topLevel = useMemo(() => categories.filter((c) => !c.parent_id), [categories]);
+  const hasChildren = (id: string) => categories.some((c) => c.parent_id === id);
+
+  // Render parents followed immediately by their own children, so the
+  // family/sub-category relationship reads naturally top to bottom.
+  const ordered = useMemo(() => {
+    const top = [...topLevel].sort((a, b) => a.display_order - b.display_order);
+    const rows: ProductCategory[] = [];
+    for (const p of top) {
+      rows.push(p);
+      categories.filter((c) => c.parent_id === p.id).sort((a, b) => a.display_order - b.display_order).forEach((c) => rows.push(c));
+    }
+    const seen = new Set(rows.map((r) => r.id));
+    categories.forEach((c) => { if (!seen.has(c.id)) rows.push(c); }); // orphans, just in case
+    return rows;
+  }, [categories, topLevel]);
+
   const add = async () => {
     if (!slug || !nameFr || !nameEn) { toast.error(t('common.required')); return; }
     try {
-      await upsertCategory({ slug, name_fr: nameFr, name_en: nameEn, display_order: Number(order) || 100 });
+      await upsertCategory({ slug, name_fr: nameFr, name_en: nameEn, display_order: Number(order) || 100, parent_id: parentId === 'none' ? null : parentId });
+      setSlug(''); setNameFr(''); setNameEn(''); setOrder(100); setParentId('none');
+      onChanged();
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error(err); toast.error(t('common.error_generic'));
+    }
+  };
+
+  return (
+    <div className="max-w-4xl">
+      <p className="text-sm text-slate-600 mb-4">{t('admin.categories_intro')}</p>
+
+      <div className="rounded-2xl border border-slate-200 bg-white overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 text-luna-navy">
+            <tr>
+              <th className="text-left px-4 py-3 font-semibold">{t('admin.categories_field_slug')}</th>
+              <th className="text-left px-4 py-3 font-semibold">{t('admin.categories_field_name_fr')}</th>
+              <th className="text-left px-4 py-3 font-semibold">{t('admin.categories_field_name_en')}</th>
+              <th className="text-left px-4 py-3 font-semibold">{t('admin.categories_field_parent')}</th>
+              <th className="text-right px-4 py-3 font-semibold">{t('admin.categories_field_order')}</th>
+              <th className="text-right px-4 py-3 font-semibold">{t('admin.products_col_actions')}</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {ordered.map((c) => {
+              const parent = c.parent_id ? categories.find((p) => p.id === c.parent_id) : null;
+              return (
+                <tr key={c.id}>
+                  <td className="px-4 py-3 font-mono text-xs text-slate-600">
+                    {c.parent_id && <span className="text-slate-300 mr-1">↳</span>}
+                    {c.slug}
+                  </td>
+                  <td className={cn('px-4 py-3', c.parent_id && 'pl-6 text-slate-600')}>{c.name_fr}</td>
+                  <td className="px-4 py-3">{c.name_en}</td>
+                  <td className="px-4 py-3 text-slate-500">{parent ? parent.name_fr : '—'}</td>
+                  <td className="px-4 py-3 text-right">{c.display_order}</td>
+                  <td className="px-4 py-3 text-right">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-red-600 hover:bg-red-50"
+                      disabled={(productCountByCategory.get(c.id) ?? 0) > 0 || hasChildren(c.id)}
+                      onClick={async () => {
+                        if (!confirm(t('admin.categories_delete_confirm'))) return;
+                        try { await deleteCategory(c.id); onChanged(); } catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
+                      }}
+                    >
+                      {t('admin.products_action_delete')}
+                    </Button>
+                  </td>
+                </tr>
+              );
+            })}
+            <tr className="bg-luna-navy/5">
+              <td className="px-4 py-3"><Input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="whisky" className="h-8 font-mono text-xs" /></td>
+              <td className="px-4 py-3"><Input value={nameFr} onChange={(e) => setNameFr(e.target.value)} className="h-8" /></td>
+              <td className="px-4 py-3"><Input value={nameEn} onChange={(e) => setNameEn(e.target.value)} className="h-8" /></td>
+              <td className="px-4 py-3">
+                <Select value={parentId} onValueChange={setParentId}>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t('admin.categories_parent_none')}</SelectItem>
+                    {topLevel.map((p) => <SelectItem key={p.id} value={p.id}>{p.name_fr}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </td>
+              <td className="px-4 py-3 text-right"><Input value={order} onChange={(e) => setOrder(Number(e.target.value) || 100)} type="number" className="h-8 w-20 ml-auto" /></td>
+              <td className="px-4 py-3 text-right"><Button size="sm" variant="navy" onClick={add}>{t('admin.categories_add')}</Button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── Brands editor ─────────────────────────────────────────────────────────
+
+function BrandsEditor({
+  brands, products, onChanged,
+}: { brands: Brand[]; products: Product[]; onChanged: () => void }) {
+  const { t } = useTranslation();
+  const [slug, setSlug] = useState(''); const [nameFr, setNameFr] = useState(''); const [nameEn, setNameEn] = useState(''); const [order, setOrder] = useState(100);
+
+  const productCountByBrand = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const p of products) if (p.brand_id) m.set(p.brand_id, (m.get(p.brand_id) ?? 0) + 1);
+    return m;
+  }, [products]);
+
+  const add = async () => {
+    if (!slug || !nameFr || !nameEn) { toast.error(t('common.required')); return; }
+    try {
+      await upsertBrand({ slug, name_fr: nameFr, name_en: nameEn, display_order: Number(order) || 100 });
       setSlug(''); setNameFr(''); setNameEn(''); setOrder(100);
       onChanged();
     } catch (err) {
@@ -1240,35 +1527,35 @@ function CategoriesEditor({
 
   return (
     <div className="max-w-3xl">
-      <p className="text-sm text-slate-600 mb-4">{t('admin.categories_intro')}</p>
+      <p className="text-sm text-slate-600 mb-4">{t('admin.brands_intro')}</p>
 
       <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-luna-navy">
             <tr>
-              <th className="text-left px-4 py-3 font-semibold">{t('admin.categories_field_slug')}</th>
-              <th className="text-left px-4 py-3 font-semibold">{t('admin.categories_field_name_fr')}</th>
-              <th className="text-left px-4 py-3 font-semibold">{t('admin.categories_field_name_en')}</th>
-              <th className="text-right px-4 py-3 font-semibold">{t('admin.categories_field_order')}</th>
+              <th className="text-left px-4 py-3 font-semibold">{t('admin.brands_field_slug')}</th>
+              <th className="text-left px-4 py-3 font-semibold">{t('admin.brands_field_name_fr')}</th>
+              <th className="text-left px-4 py-3 font-semibold">{t('admin.brands_field_name_en')}</th>
+              <th className="text-right px-4 py-3 font-semibold">{t('admin.brands_field_order')}</th>
               <th className="text-right px-4 py-3 font-semibold">{t('admin.products_col_actions')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {categories.map((c) => (
-              <tr key={c.id}>
-                <td className="px-4 py-3 font-mono text-xs text-slate-600">{c.slug}</td>
-                <td className="px-4 py-3">{c.name_fr}</td>
-                <td className="px-4 py-3">{c.name_en}</td>
-                <td className="px-4 py-3 text-right">{c.display_order}</td>
+            {brands.map((b) => (
+              <tr key={b.id}>
+                <td className="px-4 py-3 font-mono text-xs text-slate-600">{b.slug}</td>
+                <td className="px-4 py-3">{b.name_fr}</td>
+                <td className="px-4 py-3">{b.name_en}</td>
+                <td className="px-4 py-3 text-right">{b.display_order}</td>
                 <td className="px-4 py-3 text-right">
                   <Button
                     size="sm"
                     variant="ghost"
                     className="text-red-600 hover:bg-red-50"
-                    disabled={(productCountByCategory.get(c.id) ?? 0) > 0}
+                    disabled={(productCountByBrand.get(b.id) ?? 0) > 0}
                     onClick={async () => {
-                      if (!confirm(t('admin.categories_delete_confirm'))) return;
-                      try { await deleteCategory(c.id); onChanged(); } catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
+                      if (!confirm(t('admin.brands_delete_confirm'))) return;
+                      try { await deleteBrand(b.id); onChanged(); } catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
                     }}
                   >
                     {t('admin.products_action_delete')}
@@ -1277,11 +1564,11 @@ function CategoriesEditor({
               </tr>
             ))}
             <tr className="bg-luna-navy/5">
-              <td className="px-4 py-3"><Input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="my-cat" className="h-8 font-mono text-xs" /></td>
+              <td className="px-4 py-3"><Input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="jack-daniels" className="h-8 font-mono text-xs" /></td>
               <td className="px-4 py-3"><Input value={nameFr} onChange={(e) => setNameFr(e.target.value)} className="h-8" /></td>
               <td className="px-4 py-3"><Input value={nameEn} onChange={(e) => setNameEn(e.target.value)} className="h-8" /></td>
               <td className="px-4 py-3 text-right"><Input value={order} onChange={(e) => setOrder(Number(e.target.value) || 100)} type="number" className="h-8 w-20 ml-auto" /></td>
-              <td className="px-4 py-3 text-right"><Button size="sm" variant="navy" onClick={add}>{t('admin.categories_add')}</Button></td>
+              <td className="px-4 py-3 text-right"><Button size="sm" variant="navy" onClick={add}>{t('admin.brands_add')}</Button></td>
             </tr>
           </tbody>
         </table>
