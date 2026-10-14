@@ -850,6 +850,7 @@ function CsvImport({ categories, onDone }: { categories: ProductCategory[]; onDo
   const [drafts, setDrafts] = useState<Record<string, MappingDraft>>({});
   const [overrides, setOverrides] = useState<Record<number, EnOverride>>({});
   const [forced, setForced] = useState<Set<number>>(new Set());
+  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [translating, setTranslating] = useState(false);
   const [results, setResults] = useState<Record<number, RowResult>>({});
   const [busy, setBusy] = useState(false);
@@ -893,7 +894,7 @@ function CsvImport({ categories, onDone }: { categories: ProductCategory[]; onDo
         const hdrs = res.meta.fields ?? [];
         setHeaders(hdrs);
         setRawRows(res.data);
-        setOverrides({}); setForced(new Set()); setResults({}); setDrafts({});
+        setOverrides({}); setForced(new Set()); setResults({}); setDrafts({}); setSelectedRows(new Set());
         // Recognise the source by its column set.
         const sig = headerSignature(hdrs);
         const match = profiles.find((p) => p.header_signature === sig);
@@ -913,6 +914,27 @@ function CsvImport({ categories, onDone }: { categories: ProductCategory[]; onDo
     && (r.eligibility.status === 'accepted' || (r.eligibility.status === 'to_verify' && forced.has(r.index))));
   const importableSet = new Set(importable.map((r) => r.index));
   const rejected = rows.filter((r) => r.errors.length === 0 && !isSkipped(r) && !importableSet.has(r.index));
+
+  // Row selection (independent of eligibility/forcing) — used for the bulk
+  // "force" action below. Keyed by r.index, like `forced`.
+  const allSelected = rows.length > 0 && rows.every((r) => selectedRows.has(r.index));
+  const toggleRowSelected = (index: number, v: boolean) => setSelectedRows((prev) => {
+    const next = new Set(prev);
+    if (v) next.add(index); else next.delete(index);
+    return next;
+  });
+  const toggleAllSelected = (v: boolean) => setSelectedRows(v ? new Set(rows.map((r) => r.index)) : new Set());
+  // Among the selected rows, only those `canForce` actually gets added to
+  // `forced` — never bypasses eligibility/validation/store checks.
+  const forceableSelected = rows.filter((r) => selectedRows.has(r.index) && canForce(r));
+  const forceSelected = () => {
+    if (forceableSelected.length === 0) return;
+    setForced((prev) => {
+      const next = new Set(prev);
+      forceableSelected.forEach((r) => next.add(r.index));
+      return next;
+    });
+  };
 
   const rowReason = (r: ImportRow): string =>
     r.profiled?.skip ?? (r.storeUnknown ? `magasin inconnu « ${r.raw.store_slug?.trim()} »` : r.eligibility.reason);
@@ -1220,12 +1242,36 @@ function CsvImport({ categories, onDone }: { categories: ProductCategory[]; onDo
                 {translating ? t('admin.imp_translating') : t('admin.imp_translate', { count: untranslated.length })}
               </Button>
             )}
+            {rows.length > 0 && (
+              <Button type="button" size="sm" variant="outline" onClick={() => toggleAllSelected(!allSelected)}>
+                {allSelected ? t('admin.imp_deselect_all') : t('admin.imp_select_all_btn')}
+              </Button>
+            )}
+            {selectedRows.size > 0 && (
+              <>
+                <span className="text-xs text-slate-500">{t('admin.imp_selected_count', { count: selectedRows.size })}</span>
+                <Button type="button" size="sm" variant="outline" onClick={forceSelected} disabled={forceableSelected.length === 0}>
+                  <Check className="h-3.5 w-3.5" />
+                  {forceableSelected.length === selectedRows.size
+                    ? t('admin.imp_force_selected', { count: forceableSelected.length })
+                    : t('admin.imp_force_selected_partial', { forceable: forceableSelected.length, selected: selectedRows.size })}
+                </Button>
+              </>
+            )}
           </div>
           <p className="mt-1 text-xs text-slate-500 max-w-3xl">{t('admin.products_import_filter_note')}</p>
           <div className="mt-3 rounded-2xl border border-slate-200 bg-white overflow-x-auto">
             <table className="w-full text-xs">
               <thead className="bg-slate-50 text-luna-navy">
                 <tr>
+                  <th className="px-3 py-2">
+                    <input
+                      type="checkbox"
+                      aria-label={t('admin.imp_select_all')}
+                      checked={allSelected}
+                      onChange={(e) => toggleAllSelected(e.target.checked)}
+                    />
+                  </th>
                   <th className="text-left px-3 py-2 font-semibold">{t('admin.products_import_row_col')}</th>
                   <th className="text-left px-3 py-2 font-semibold">{t('admin.products_import_status_col')}</th>
                   <th className="text-left px-3 py-2 font-semibold">{t('admin.products_import_reason_col')}</th>
@@ -1248,6 +1294,14 @@ function CsvImport({ categories, onDone }: { categories: ProductCategory[]; onDo
                   const nameEn = overrides[r.index]?.name_en ?? r.profiled?.raw.name_en ?? r.raw.name_en ?? '';
                   return (
                     <tr key={r.row} className={rowBg}>
+                      <td className="px-3 py-2">
+                        <input
+                          type="checkbox"
+                          aria-label={`${t('admin.imp_select_row')} — ${r.raw.name_fr ?? ''}`}
+                          checked={selectedRows.has(r.index)}
+                          onChange={(e) => toggleRowSelected(r.index, e.target.checked)}
+                        />
+                      </td>
                       <td className="px-3 py-2 font-mono text-slate-500">{r.row}</td>
                       <td className="px-3 py-2">
                         {skipped ? (
