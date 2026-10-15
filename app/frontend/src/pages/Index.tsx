@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  Plane, Ship, Search, Home, PackagePlus,
+  Plane, Ship, Search, Home, PackagePlus, ShoppingCart,
   ArrowRight, Package, ClipboardList, HandCoins, MapPinned,
   ChevronRight, Phone,
 } from 'lucide-react';
@@ -61,13 +61,14 @@ export default function Index() {
     { icon: PackagePlus, label: t('home.cap_pickup'),   shortLabel: t('home.cap_pickup_short'),   href: urlFor('servicePickup', lang) },
   ];
 
-  // Five "expertises" cards with short body for mobile
+  // Six "expertises" cards with short body for mobile
   const cards = [
     { key: 'air',      icon: Plane,       image: '/images/services/service-air-freight.webp',      alt: t('home.pillar_air_alt'),      title: useContent('home', 'pillar_air_title',      t('home.pillar_air_title')),      body: useContent('home', 'pillar_air_body',      t('home.pillar_air_body')),      shortBody: t('home.pillar_air_short'),      href: urlFor('serviceAir', lang) },
     { key: 'sea',      icon: Ship,        image: '/images/services/service-sea-freight.webp',      alt: t('home.pillar_sea_alt'),      title: useContent('home', 'pillar_sea_title',      t('home.pillar_sea_title')),      body: useContent('home', 'pillar_sea_body',      t('home.pillar_sea_body')),      shortBody: t('home.pillar_sea_short'),      href: urlFor('serviceSea', lang) },
     { key: 'tracking', icon: Search,      image: lang === 'en' ? '/images/services/online-parcel-tracking-luna-tracking.webp?v=3' : '/images/services/suivi-colis-en-ligne-luna-tracking.webp?v=3', alt: t('home.pillar_tracking_alt'), title: useContent('home', 'pillar_tracking_title', t('home.pillar_tracking_title')), body: useContent('home', 'pillar_tracking_body', t('home.pillar_tracking_body')), shortBody: t('home.pillar_tracking_short'), href: urlFor('tracking', lang) },
     { key: 'home',     icon: Home,        image: '/images/services/livraison-domicile-luna-tracking.webp', alt: t('home.pillar_home_alt'),     title: useContent('home', 'pillar_home_title',     t('home.pillar_home_title')),     body: useContent('home', 'pillar_home_body',     t('home.pillar_home_body')),     shortBody: t('home.pillar_home_short'),     href: urlFor('serviceHome', lang) },
     { key: 'pickup',   icon: PackagePlus, image: '/images/services/enlevement-colis-camionnette-luna-tracking.webp', alt: t('home.pillar_pickup_alt'),   title: useContent('home', 'pillar_pickup_title',   t('home.pillar_pickup_title')),   body: useContent('home', 'pillar_pickup_body',   t('home.pillar_pickup_body')),   shortBody: t('home.pillar_pickup_short'),   href: urlFor('servicePickup', lang) },
+    { key: 'shop',     icon: ShoppingCart, image: '/images/services/courses-supermarche-congo-rdc.webp', alt: t('home.pillar_shop_alt'),   title: useContent('home', 'pillar_shop_title',   t('home.pillar_shop_title')),   body: useContent('home', 'pillar_shop_body',   t('home.pillar_shop_body')),   shortBody: t('home.pillar_shop_short'),   href: urlFor('shopAndShip', lang) },
   ];
 
   const steps = [
@@ -272,13 +273,13 @@ export default function Index() {
 
             {/* md: 2-col grid with smaller images */}
             <div className="hidden md:grid md:grid-cols-2 md:gap-[14px] lg:hidden">
-              {cards.map((c, i) => (
+              {cards.map((c) => (
                 <Link
                   key={c.key}
                   to={c.href}
-                  className={`group flex flex-col overflow-hidden rounded-[10px] border border-[#DCE5F0] bg-white transition-shadow hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-luna-royal ${i === cards.length - 1 ? 'md:col-span-2' : ''}`}
+                  className="group flex flex-col overflow-hidden rounded-[10px] border border-[#DCE5F0] bg-white transition-shadow hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-luna-royal"
                 >
-                  <div className={`overflow-hidden ${i === cards.length - 1 ? 'h-[140px] md:h-[250px]' : 'h-[140px]'}`}>
+                  <div className="overflow-hidden h-[140px]">
                     <img src={c.image} alt={c.alt} width={800} height={320} loading="lazy" decoding="async" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
                   </div>
                   <div className="flex flex-1 flex-col px-[18px] pb-5 pt-4">
@@ -298,14 +299,14 @@ export default function Index() {
 
             {/* lg: 3 cards, then 2 wider ones (5 cards on a 6-column grid) */}
             <div className="hidden lg:grid lg:gap-5 nav:grid-cols-6">
-              {cards.map((c, i) => (
+              {cards.map((c) => (
                 <Link
                   key={c.key}
                   to={c.href}
                   aria-label={c.title}
-                  className={`group flex flex-col overflow-hidden rounded-[10px] border border-[#DCE5F0] bg-white transition-shadow hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-luna-royal ${i < 3 ? 'nav:col-span-2' : 'nav:col-span-3'}`}
+                  className="group flex flex-col overflow-hidden rounded-[10px] border border-[#DCE5F0] bg-white transition-shadow hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-luna-royal nav:col-span-2"
                 >
-                  <div className={`overflow-hidden ${i < 3 ? 'h-40' : 'h-40 nav:h-[290px]'}`}>
+                  <div className="overflow-hidden h-40">
                     {c.image ? (
                       <img src={c.image} alt={c.alt} width={800} height={320} loading="lazy" decoding="async" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
                     ) : (
