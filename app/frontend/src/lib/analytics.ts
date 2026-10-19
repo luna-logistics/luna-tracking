@@ -14,11 +14,13 @@
  *   HMR or a re-mounted tracker can never inject the tag twice.
  * - Production builds only (dev/preview-on-localhost traffic is not sent).
  *
- * Meta Pixel rides on the same rails: the standard `fbq` stub is installed
- * synchronously (events queue), `fbevents.js` is fetched only after
- * `window.load` + idle, and the SPA sends `PageView` itself on every route
- * change via trackPageView() — so the init snippet's own auto PageView is
- * deliberately not duplicated.
+ * Meta Pixel: nothing is installed or downloaded until the visitor accepts
+ * the cookie banner. Then the standard `fbq` stub + `init` are set up and
+ * `fbevents.js` is fetched on idle; the SPA sends `PageView` itself on every
+ * route change via trackPageView() — so the init snippet's own auto PageView
+ * is deliberately not duplicated. (Do NOT queue fbq('consent','revoke')
+ * before 'init': a later 'grant' then sits behind the blocked init and the
+ * pixel never fires.)
  */
 
 import { CONSENT_EVENT, getConsent, type ConsentChoice } from '@/lib/consent';
@@ -41,8 +43,18 @@ export const analyticsEnabled = import.meta.env.PROD && typeof window !== 'undef
 
 const META_PIXEL_ID = '1421507450172123';
 
-/** Standard Meta Pixel stub (queues calls until fbevents.js loads). */
-function installMetaPixelStub(): void {
+function whenIdle(fn: () => void): void {
+  const schedule = () => {
+    const ric = (window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => void }).requestIdleCallback;
+    if (ric) ric(fn, { timeout: 3000 });
+    else window.setTimeout(fn, 1);
+  };
+  if (document.readyState === 'complete') schedule();
+  else window.addEventListener('load', schedule, { once: true });
+}
+
+/** Install the Meta Pixel — called only once the visitor has accepted. Idempotent. */
+function enableMetaPixel(): void {
   if (window.fbq) return;
   const n = function fbq(...args: unknown[]) {
     if (n.callMethod) n.callMethod(...args);
@@ -54,36 +66,32 @@ function installMetaPixelStub(): void {
   n.loaded = true;
   n.version = '2.0';
   n.queue = [];
-  // Revoked until the visitor accepts: no cookies, no events sent.
-  window.fbq('consent', 'revoke');
   window.fbq('init', META_PIXEL_ID);
+  whenIdle(() => {
+    const f = document.createElement('script');
+    f.async = true;
+    f.src = 'https://connect.facebook.net/en_US/fbevents.js';
+    document.head.appendChild(f);
+  });
 }
 
 /** Apply the visitor's choice to GA4 (Consent Mode) and the Meta Pixel. */
 function applyConsent(choice: ConsentChoice): void {
   const granted = choice === 'granted';
   window.gtag?.('consent', 'update', { analytics_storage: granted ? 'granted' : 'denied' });
-  try { window.fbq?.('consent', granted ? 'grant' : 'revoke'); } catch { /* ignore */ }
+  try {
+    if (granted) enableMetaPixel();
+    else window.fbq?.('consent', 'revoke'); // only matters if accepted earlier on this page
+  } catch { /* ignore */ }
 }
 
 function loadScriptWhenIdle(): void {
-  const inject = () => {
+  whenIdle(() => {
     const s = document.createElement('script');
     s.async = true;
     s.src = `https://www.googletagmanager.com/gtag/js?id=${MEASUREMENT_ID}`;
     document.head.appendChild(s);
-    const f = document.createElement('script');
-    f.async = true;
-    f.src = 'https://connect.facebook.net/en_US/fbevents.js';
-    document.head.appendChild(f);
-  };
-  const schedule = () => {
-    const ric = (window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => void }).requestIdleCallback;
-    if (ric) ric(inject, { timeout: 3000 });
-    else window.setTimeout(inject, 1);
-  };
-  if (document.readyState === 'complete') schedule();
-  else window.addEventListener('load', schedule, { once: true });
+  });
 }
 
 export function initAnalytics(): void {
@@ -107,7 +115,6 @@ export function initAnalytics(): void {
   window.gtag('js', new Date());
   window.gtag('config', MEASUREMENT_ID, { send_page_view: false });
 
-  installMetaPixelStub();
   const stored = getConsent();
   if (stored) applyConsent(stored);
   window.addEventListener(CONSENT_EVENT, (e) => {
