@@ -26,6 +26,8 @@ import {
 } from '@/lib/import-profiles-db';
 import type { ProductType } from '@/lib/normalized-product';
 import { optimizeImage } from '@/lib/optimize-image';
+import { BrandAutoDetect } from '@/components/BrandAutoDetect';
+import { detectBrandInText, matchBrandName } from '@/lib/brand-detect';
 import {
   fetchAllProducts, fetchProductCategories, upsertProduct, toggleProductActive, deleteProduct,
   upsertCategory, deleteCategory, uploadProductImage, fetchStores, upsertProductSource, type Store,
@@ -94,7 +96,7 @@ export default function AdminProducts() {
             onSaved={async () => { await reload(); setEditing(null); }}
           />
         )}
-        {tab === 'import' && <CsvImport categories={categories} onDone={reload} />}
+        {tab === 'import' && <CsvImport categories={categories} brands={brands} onDone={reload} />}
         {tab === 'categories' && (
           <CategoriesEditor categories={categories} products={products} onChanged={reload} />
         )}
@@ -124,7 +126,7 @@ function ProductList({
     const q = query.trim().toLowerCase();
     return products.filter((p) => {
       if (catFilter !== 'all' && p.category_id !== catFilter) return false;
-      if (brandFilter !== 'all' && (p.brand_id ?? '') !== brandFilter) return false;
+      if (brandFilter === 'none' ? !!p.brand_id : brandFilter !== 'all' && (p.brand_id ?? '') !== brandFilter) return false;
       if (!q) return true;
       return [p.name_fr, p.name_en, p.slug_fr, p.slug_en, p.barcode ?? ''].some((f) => f.toLowerCase().includes(q));
     });
@@ -196,6 +198,7 @@ function ProductList({
 
   return (
     <>
+      <BrandAutoDetect products={products} brands={brands} onChanged={onChanged} />
       <div className="flex flex-wrap gap-3 mb-4">
         <Input
           placeholder={t('admin.products_search_placeholder')}
@@ -215,6 +218,7 @@ function ProductList({
             <SelectTrigger className="w-64"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t('admin.products_filter_brand_any')}</SelectItem>
+              <SelectItem value="none">{t('admin.products_filter_brand_none')}</SelectItem>
               {brands.map((b) => <SelectItem key={b.id} value={b.id}>{b.name_fr}</SelectItem>)}
             </SelectContent>
           </Select>
@@ -820,6 +824,8 @@ type ImportRow = {
     name_fr: string; name_en: string;
     description_fr: string | null; description_en: string | null;
     price: number; category_id: string;
+    /** Only set when a brand was recognised (scraper `brand` column, else the product name) — never overwrites a manual brand. */
+    brand_id?: string;
     barcode: string | null; hs_code: string | null; weight_kg: number | null; image_url: string | null;
     is_active: boolean;
     meta_title_fr: string | null; meta_title_en: string | null;
@@ -833,7 +839,7 @@ type RowResult = { ok: boolean; detail: string };
 
 const TYPE_KEYS: ProductType[] = ['food', 'hygiene', 'household', 'clothing', 'other'];
 
-function CsvImport({ categories, onDone }: { categories: ProductCategory[]; onDone: () => void }) {
+function CsvImport({ categories, brands, onDone }: { categories: ProductCategory[]; brands: Brand[]; onDone: () => void }) {
   const { t } = useTranslation();
   const [rawRows, setRawRows] = useState<Record<string, string>[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
@@ -880,11 +886,15 @@ function CsvImport({ categories, onDone }: { categories: ProductCategory[]; onDo
     }
     if (o.description_en !== undefined) merged.description_en = o.description_en;
     const base = validateRow(merged, i + 2, categories, storeBySlug);
+    if (base.data) {
+      const brand = matchBrandName(merged.brand, brands) ?? detectBrandInText(base.data.name_fr, brands);
+      if (brand) base.data = { ...base.data, brand_id: brand.id };
+    }
     const errors = [...base.errors];
     if (profiled.priceProblem) errors.push(profiled.priceProblem);
     if (profiled.unmapped && !profiled.skip) errors.push(t('admin.imp_err_unmapped'));
     return { ...base, index: i, errors, profiled, data: errors.length ? undefined : base.data } as ImportRow;
-  }), [rawRows, profile, mappings, profileStoreSlug, categorySlugById, overrides, categories, storeBySlug, t]);
+  }), [rawRows, profile, mappings, profileStoreSlug, categorySlugById, overrides, categories, brands, storeBySlug, t]);
 
   const onFile = (file: File) => {
     Papa.parse<Record<string, string>>(file, {
