@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   ShoppingCart, Plus, Minus, X, CheckCircle2, ArrowRight, ArrowDown,
-  HelpCircle, Package, MapPinned, ShieldCheck, Info,
+  HelpCircle, Package, MapPinned, ShieldCheck, Info, Search,
 } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,9 @@ import { useContent, useSiteImage } from '@/contexts/SiteContentContext';
 import { Ed } from '@/components/Ed';
 import { Block } from '@/components/Block';
 import { cn } from '@/lib/utils';
+import { SORT_MODES, matchesQuery, sortProducts, type SortMode } from '@/lib/shop-sort';
+
+const PAGE_SIZE = 24;
 
 /**
  * Achat & Envoi (Shop & Ship) — "Achat Envoi Luna" redesign from Claude
@@ -53,6 +56,9 @@ export default function ShopAndShip() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
   const [brandFilter, setBrandFilter] = useState<string>('all');
+  const [query, setQuery] = useState('');
+  const [sort, setSort] = useState<SortMode>('featured');
+  const [visible, setVisible] = useState(PAGE_SIZE);
   const [view, setView] = useState<'catalog' | 'checkout' | 'success'>('catalog');
   const [submitting, setSubmitting] = useState(false);
   const [afterSubmitMessage, setAfterSubmitMessage] = useState<string | null>(null);
@@ -67,17 +73,52 @@ export default function ShopAndShip() {
   // Two-level categories: top-level families (no parent) and their children.
   const topLevelCategories = useMemo(() => categories.filter((c) => !c.parent_id), [categories]);
   const childrenOf = (parentId: string) => categories.filter((c) => c.parent_id === parentId);
+  const ctx = useMemo(() => ({ categories, brands, lang: lang as 'fr' | 'en' }), [categories, brands, lang]);
+  // Search + brand narrow the catalogue first; category chips then show how
+  // many of THOSE products each family holds.
+  const searched = useMemo(
+    () => products.filter((p) => matchesQuery(p, query, ctx) && (brandFilter === 'all' || p.brand_id === brandFilter)),
+    [products, query, brandFilter, ctx],
+  );
+  const categoryCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const p of searched) {
+      m.set(p.category_id, (m.get(p.category_id) ?? 0) + 1);
+      const parent = categories.find((c) => c.id === p.category_id)?.parent_id;
+      if (parent) m.set(parent, (m.get(parent) ?? 0) + 1);
+    }
+    return m;
+  }, [searched, categories]);
   const filtered = useMemo(() => {
-    let list = products;
+    let list = searched;
     if (filter !== 'all') {
       // A family (parent) filter also matches every product in its sub-categories.
       const ids = new Set<string>([filter, ...categories.filter((c) => c.parent_id === filter).map((c) => c.id)]);
       list = list.filter((p) => ids.has(p.category_id));
     }
-    // Brand is an independent facet — it can combine with any category filter.
-    if (brandFilter !== 'all') list = list.filter((p) => p.brand_id === brandFilter);
-    return list;
-  }, [products, filter, brandFilter, categories]);
+    return sortProducts(list, sort, ctx);
+  }, [searched, filter, sort, categories, ctx]);
+  // Only brands that actually have products, with their counts.
+  const brandOptions = useMemo(() => {
+    const n = new Map<string, number>();
+    for (const p of products) if (p.brand_id) n.set(p.brand_id, (n.get(p.brand_id) ?? 0) + 1);
+    return brands.filter((b) => n.has(b.id))
+      .map((b) => ({ b, n: n.get(b.id)! }))
+      .sort((x, y) => brandName(x.b, lang).localeCompare(brandName(y.b, lang), lang, { sensitivity: 'base' }));
+  }, [products, brands, lang]);
+  // Chips: families first; when a family (or one of its children) is active,
+  // its sub-categories get their own row.
+  const activeCat = categories.find((c) => c.id === filter);
+  const activeFamilyId = activeCat ? (activeCat.parent_id ?? activeCat.id) : null;
+  const subChips = activeFamilyId ? childrenOf(activeFamilyId).filter((c) => (categoryCounts.get(c.id) ?? 0) > 0 || c.id === filter) : [];
+  const shown = filtered.slice(0, visible);
+  const filtersActive = filter !== 'all' || brandFilter !== 'all' || query.trim() !== '' || sort !== 'featured';
+  useEffect(() => { setVisible(PAGE_SIZE); }, [filter, brandFilter, query, sort]);
+  const resetFilters = () => { setFilter('all'); setBrandFilter('all'); setQuery(''); setSort('featured'); };
+  const chip = (active: boolean) => cn(
+    'shrink-0 whitespace-nowrap rounded-full border px-3.5 py-2 text-[13px] font-medium transition-colors',
+    active ? 'border-luna-royal bg-luna-royal text-white' : 'border-[#C6D4E6] bg-white text-luna-royal hover:border-luna-aqua hover:bg-luna-aqua/10',
+  );
 
   // Cart revalidation against the freshly-loaded active products: a line whose
   // product is no longer active/readable is "unavailable" (excluded from
@@ -235,36 +276,28 @@ export default function ShopAndShip() {
                     {productsSubtitle}
                   </Ed>
                 </div>
-                <div className="min-w-0 basis-[300px]">
-                  <Label htmlFor="cat-filter" className="mb-2 block text-[11px] font-semibold tracking-[.14em] text-luna-muted-ink">
-                    {t('shop.category_label').toUpperCase()}
+              </div>
+
+              {/* Search + brand + sort */}
+              <div className="mb-4 flex flex-wrap items-end gap-4">
+                <div className="min-w-0 flex-1 basis-[240px]">
+                  <Label htmlFor="shop-search" className="mb-2 block text-[11px] font-semibold tracking-[.14em] text-luna-muted-ink">
+                    {t('shop.search_label').toUpperCase()}
                   </Label>
-                  <Select value={filter} onValueChange={setFilter}>
-                    <SelectTrigger id="cat-filter" className="w-full border-[#C6D4E6] bg-white text-luna-royal">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">{t('shop.filter_all')}</SelectItem>
-                      {topLevelCategories.map((parent) => {
-                        const children = childrenOf(parent.id);
-                        if (children.length === 0) {
-                          return <SelectItem key={parent.id} value={parent.id}>{categoryName(parent, lang)}</SelectItem>;
-                        }
-                        return (
-                          <SelectGroup key={parent.id}>
-                            <SelectLabel>{categoryName(parent, lang)}</SelectLabel>
-                            <SelectItem value={parent.id}>{t('shop.filter_all_in', { name: categoryName(parent, lang) })}</SelectItem>
-                            {children.map((ch) => (
-                              <SelectItem key={ch.id} value={ch.id} className="pl-8">{categoryName(ch, lang)}</SelectItem>
-                            ))}
-                          </SelectGroup>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-luna-muted-ink" aria-hidden="true" />
+                    <Input
+                      id="shop-search"
+                      type="search"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder={t('shop.search_placeholder')}
+                      className="border-[#C6D4E6] bg-white pl-9 text-luna-royal"
+                    />
+                  </div>
                 </div>
-                {brands.length > 0 && (
-                  <div className="min-w-0 basis-[220px]">
+                {brandOptions.length > 0 && (
+                  <div className="min-w-0 basis-[200px]">
                     <Label htmlFor="brand-filter" className="mb-2 block text-[11px] font-semibold tracking-[.14em] text-luna-muted-ink">
                       {t('shop.brand_label').toUpperCase()}
                     </Label>
@@ -274,10 +307,55 @@ export default function ShopAndShip() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">{t('shop.filter_brand_all')}</SelectItem>
-                        {brands.map((b) => <SelectItem key={b.id} value={b.id}>{brandName(b, lang)}</SelectItem>)}
+                        {brandOptions.map(({ b, n }) => <SelectItem key={b.id} value={b.id}>{brandName(b, lang)} ({n})</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
+                )}
+                <div className="min-w-0 basis-[200px]">
+                  <Label htmlFor="sort-select" className="mb-2 block text-[11px] font-semibold tracking-[.14em] text-luna-muted-ink">
+                    {t('shop.sort_label').toUpperCase()}
+                  </Label>
+                  <Select value={sort} onValueChange={(v) => setSort(v as SortMode)}>
+                    <SelectTrigger id="sort-select" className="w-full border-[#C6D4E6] bg-white text-luna-royal">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SORT_MODES.map((m) => <SelectItem key={m} value={m}>{t(`shop.sort_${m}`)}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Category chips — one tap, always visible (no dropdown to open) */}
+              <nav aria-label={t('shop.category_label')} className="-mx-5 mb-2 flex gap-2 overflow-x-auto px-5 pb-2 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
+                <button type="button" onClick={() => setFilter('all')} aria-pressed={filter === 'all'} className={chip(filter === 'all')}>
+                  {t('shop.chip_all')} ({searched.length})
+                </button>
+                {topLevelCategories.filter((c) => (categoryCounts.get(c.id) ?? 0) > 0 || c.id === filter).map((c) => (
+                  <button key={c.id} type="button" onClick={() => setFilter(c.id)} aria-pressed={activeFamilyId === c.id} className={chip(activeFamilyId === c.id)}>
+                    {categoryName(c, lang)} ({categoryCounts.get(c.id) ?? 0})
+                  </button>
+                ))}
+              </nav>
+              {subChips.length > 0 && activeFamilyId && (
+                <nav aria-label={categoryName(categories.find((c) => c.id === activeFamilyId)!, lang)} className="-mx-5 mb-2 flex gap-2 overflow-x-auto px-5 pb-2 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
+                  <button type="button" onClick={() => setFilter(activeFamilyId)} aria-pressed={filter === activeFamilyId} className={chip(filter === activeFamilyId)}>
+                    {t('shop.chip_all')} ({categoryCounts.get(activeFamilyId) ?? 0})
+                  </button>
+                  {subChips.map((c) => (
+                    <button key={c.id} type="button" onClick={() => setFilter(c.id)} aria-pressed={filter === c.id} className={chip(filter === c.id)}>
+                      {categoryName(c, lang)} ({categoryCounts.get(c.id) ?? 0})
+                    </button>
+                  ))}
+                </nav>
+              )}
+              <div className="mb-5 mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-luna-muted-ink" aria-live="polite">
+                <span>{t('shop.results_count', { count: filtered.length })}</span>
+                {filtersActive && (
+                  <button type="button" onClick={resetFilters} className="font-medium text-luna-azure underline-offset-2 hover:underline">
+                    {t('shop.reset_filters')}
+                  </button>
                 )}
               </div>
 
@@ -292,7 +370,7 @@ export default function ShopAndShip() {
                     </div>
                   ) : (
                     <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                      {filtered.map((p) => (
+                      {shown.map((p) => (
                         <article key={p.id} className="flex flex-col overflow-hidden rounded-xl border border-[#DCE5F0] bg-white shadow-sm transition-all hover:-translate-y-1 hover:border-luna-aqua hover:shadow-[0_14px_30px_rgba(10,22,80,.13)]">
                           <Link to={productUrl(productSlug(p, lang), lang)} className="block">
                             {p.image_url ? (
@@ -333,6 +411,17 @@ export default function ShopAndShip() {
                           </div>
                         </article>
                       ))}
+                    </div>
+                  )}
+                  {!loading && filtered.length > shown.length && (
+                    <div className="mt-8 text-center">
+                      <button
+                        type="button"
+                        onClick={() => setVisible((v) => v + PAGE_SIZE)}
+                        className="rounded-lg border border-luna-royal px-6 py-3 text-[13px] font-semibold text-luna-royal transition-colors hover:bg-luna-royal hover:text-white"
+                      >
+                        {t('shop.show_more', { count: filtered.length - shown.length })}
+                      </button>
                     </div>
                   )}
                 </div>
