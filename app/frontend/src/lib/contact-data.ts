@@ -219,7 +219,7 @@ export type DayHours = { open: number; close: number };
  * Office opening hours, Brussels time — THE single source for the live
  * open/closed status, the hours block and the JSON-LD on /contact.
  * Index = weekday, 0 = Sunday … 6 = Saturday; null = closed.
- * Since 2026-09-25: Mon–Fri 10h–18h, Sat 12h–18h, Sun closed.
+ * Since 2026-09-25: Mon–Fri 10h–18h, Sat 10h–16h, Sun closed (Sat changed to 10h–16h on 2026-10-19).
  */
 export const OFFICE_HOURS: ReadonlyArray<DayHours | null> = [
   null,                    // Sunday
@@ -228,7 +228,7 @@ export const OFFICE_HOURS: ReadonlyArray<DayHours | null> = [
   { open: 10, close: 18 }, // Wednesday
   { open: 10, close: 18 }, // Thursday
   { open: 10, close: 18 }, // Friday
-  { open: 12, close: 18 }, // Saturday
+  { open: 10, close: 16 }, // Saturday
 ];
 
 /** Consecutive days (Mon→Sun order) sharing the same hours, e.g.

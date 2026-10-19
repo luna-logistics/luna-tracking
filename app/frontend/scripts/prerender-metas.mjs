@@ -503,7 +503,7 @@ async function emitStaticRoute(key, def) {
               // coordinates exist in the code to copy, so none are invented.
               openingHoursSpecification: [
                 { '@type': 'OpeningHoursSpecification', dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'], opens: '10:00', closes: '18:00' },
-                { '@type': 'OpeningHoursSpecification', dayOfWeek: ['Saturday'], opens: '12:00', closes: '18:00' },
+                { '@type': 'OpeningHoursSpecification', dayOfWeek: ['Saturday'], opens: '10:00', closes: '16:00' },
               ],
               contactPoint: [{
                 '@type': 'ContactPoint',
