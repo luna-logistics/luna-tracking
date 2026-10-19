@@ -146,5 +146,37 @@ export function trackEvent(name: string, params: Record<string, string | number 
   try {
     if (!analyticsEnabled || !window.gtag) return;
     window.gtag('event', name, params);
+    trackMetaEvent(name, params);
   } catch { /* analytics must never break a user flow */ }
+}
+
+/** GA4 event name → Meta standard event. Every trackEvent() call site is
+ *  mirrored to the pixel through this table, so adding a business event in
+ *  one place feeds both tools. Only fires once the visitor accepted the
+ *  banner (window.fbq does not exist before that). */
+const META_EVENTS: Record<string, string> = {
+  add_to_cart: 'AddToCart',
+  generate_lead: 'Lead',
+  contact_form_submitted: 'Lead',
+  reexpedition_requested: 'Lead',
+  courses_order_submitted: 'InitiateCheckout',
+  sign_up: 'CompleteRegistration',
+  contact_click: 'Contact',
+  tracking_search: 'Search',
+};
+
+function trackMetaEvent(name: string, params: Record<string, unknown>): void {
+  const metaName = META_EVENTS[name];
+  if (!metaName || !window.fbq) return;
+  // Only value/currency/product ids/counts — never free text, names, e-mails,
+  // phones or tracking numbers.
+  const data: Record<string, unknown> = {};
+  if (typeof params.value === 'number') data.value = params.value;
+  if (typeof params.currency === 'string') data.currency = params.currency;
+  if (Array.isArray(params.items)) {
+    const ids = (params.items as Array<{ item_id?: unknown }>).map((i) => i.item_id).filter((v): v is string => typeof v === 'string');
+    if (ids.length) { data.content_ids = ids; data.content_type = 'product'; }
+  }
+  if (typeof params.item_count === 'number') data.num_items = params.item_count;
+  window.fbq('track', metaName, data);
 }

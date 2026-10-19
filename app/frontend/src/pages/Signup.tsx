@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/PasswordInput';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase';
+import { trackEvent } from '@/lib/analytics';
 import { urlFor } from '@/lib/url/routes';
 import { toast } from '@/components/ui/sonner';
 import { SocialAuthButtons } from '@/components/SocialAuthButtons';
@@ -49,6 +50,7 @@ export default function Signup() {
     });
     setSubmitting(false);
     if (error) { toast.error(errorMessage(error, t('common.error_generic'))); return; }
+    trackEvent('sign_up', { method: 'email' });
     if (data.session) {
       // Auto-confirmed → straight to onboarding.
       navigate(urlFor('onboarding', lang), { replace: true });

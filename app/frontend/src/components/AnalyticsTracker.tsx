@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { initAnalytics, trackPageView, analyticsEnabled } from '@/lib/analytics';
+import { initAnalytics, trackPageView, trackEvent, analyticsEnabled } from '@/lib/analytics';
 
 // Staff back-office traffic would skew visitor stats.
 // Admin + the og:image render pages (visited by the screenshot browser).
@@ -21,6 +21,21 @@ export function AnalyticsTracker() {
   const lastTitle = useRef<string | null>(null);
 
   useEffect(() => { initAnalytics(); }, []);
+
+  // One delegated listener for "contact intent" clicks (phone, WhatsApp, e-mail
+  // links anywhere on the site) -> GA `contact_click` + Meta `Contact`.
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      const a = (e.target as Element | null)?.closest?.('a[href]');
+      const href = a?.getAttribute('href') ?? '';
+      const method = href.startsWith('tel:') ? 'phone'
+        : /^https?:\/\/(wa\.me|api\.whatsapp\.com)\//.test(href) ? 'whatsapp'
+        : href.startsWith('mailto:') ? 'email' : null;
+      if (method) trackEvent('contact_click', { method });
+    };
+    document.addEventListener('click', onClick);
+    return () => document.removeEventListener('click', onClick);
+  }, []);
 
   useEffect(() => {
     if (!analyticsEnabled) return;
