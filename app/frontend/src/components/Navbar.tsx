@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
  *
  * Single-row layout at every desktop width: logo left, nav links centered,
  * language + account actions right — all vertically aligned on ONE line,
- * never a wrapped second tier. Below `navfull` (1100px) the centered links
+ * never a wrapped second tier. Below `navfull` (1180px) the centered links
  * collapse into a hamburger dropdown; the logo + right cluster stay on the
  * same single row.
  *
@@ -52,6 +52,7 @@ export function Navbar() {
   const linksBefore = [
     { to: urlFor('home', lang), label: t('nav.home') },
     { to: urlFor('tracking', lang), label: t('nav.tracking') },
+    { to: urlFor('shopAndShip', lang), label: t('nav.shop_and_ship') },
   ];
   const linksAfter = [
     { to: urlFor('blogIndex', lang), label: t('nav.blog') },
@@ -65,7 +66,6 @@ export function Navbar() {
     { to: urlFor('serviceSea', lang), label: t('nav.service_sea') },
     { to: urlFor('serviceHome', lang), label: t('nav.service_home') },
     { to: urlFor('servicePickup', lang), label: t('nav.service_pickup') },
-    { to: urlFor('shopAndShip', lang), label: t('nav.shop_and_ship') },
     { to: urlFor('forwarding', lang), label: t('nav.forwarding') },
   ];
   const servicesActive = serviceLinks.some((l) => isActive(l.to));

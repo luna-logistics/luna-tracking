@@ -272,7 +272,7 @@ export default function Contact() {
   const wrap = 'mx-auto max-w-[1120px] px-5 sm:px-8';
   const H2 = 'text-[clamp(24px,3vw,32px)] font-semibold leading-[1.2] tracking-[-.01em] text-luna-ink';
   const inputCls = `w-full rounded-lg border border-luna-hair/40 bg-white px-3.5 py-3 text-[15px] text-luna-ink outline-none transition-colors hover:border-luna-azure focus:border-luna-azure ${ringLight}`;
-  const iconFor: Record<string, typeof Phone> = { phone: Phone, email: Mail, chat: MessageCircle, instagram: Instagram };
+  const iconFor: Record<string, typeof Phone> = { phone: Phone, email: Mail, whatsapp: MessageCircle, chat: MessageCircle, instagram: Instagram };
 
   return (
     <>

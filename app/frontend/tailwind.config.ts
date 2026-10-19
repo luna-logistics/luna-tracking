@@ -19,10 +19,10 @@ export default {
       // full inline nav >=1240, wrapped second-row nav 700-1239, hamburger <700.
       screens: {
         // `nav` (1240) drives the homepage card/capability grids.
-        // `navfull` (1100) switches the navbar between its single inline
+        // `navfull` (1180) switches the navbar between its single inline
         // row and the hamburger — never a wrapped second row.
         nav: '1240px',
-        navfull: '1100px',
+        navfull: '1180px',
       },
       colors: {
         border: 'hsl(var(--border))',

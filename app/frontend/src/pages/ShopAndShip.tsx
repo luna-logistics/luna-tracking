@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   ShoppingCart, Plus, Minus, X, CheckCircle2, ArrowRight, ArrowDown,
-  HelpCircle, Package, MapPinned, ShieldCheck,
+  HelpCircle, Package, MapPinned, ShieldCheck, Info,
 } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
@@ -175,6 +175,13 @@ export default function ShopAndShip() {
             <Ed page="shop-and-ship" field="page_title" as="h1" className="mb-5 block text-[32px] font-semibold leading-[1.2] tracking-[-.01em] text-white">
               {pageTitle}
             </Ed>
+            <div role="note" className="mb-5 flex max-w-[640px] items-start gap-3 rounded-xl border-2 border-luna-aqua bg-luna-aqua/10 px-4 py-3.5">
+              <Info className="mt-0.5 h-5 w-5 shrink-0 text-luna-aqua" aria-hidden="true" />
+              <div>
+                <p className="text-[15px] font-semibold text-white">{t('shop.drc_only_title')}</p>
+                <p className="mt-1 text-[14px] leading-[1.55] text-[#DCE7F7]">{t('shop.drc_only_body')}</p>
+              </div>
+            </div>
             <Ed page="shop-and-ship" field="page_intro" as="div" multiline markdown className="mb-4 block text-[20px] font-normal leading-[1.55] text-[#DCE7F7]">
               {pageIntro}
             </Ed>

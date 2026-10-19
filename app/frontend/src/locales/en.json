@@ -2128,6 +2128,8 @@
     "products_bulk_nothing_selected": "Pick a category or a brand to apply."
   },
   "shop": {
+    "drc_only_title": "For customers in the DRC only",
+    "drc_only_body": "This shopping service is intended only for customers in the DRC: we buy in Belgium and deliver in the Democratic Republic of the Congo. We do not deliver in Belgium.",
     "meta_title": "Shop & Ship — We buy in Belgium and deliver to the DRC",
     "meta_description": "Order Belgian products (groceries, hygiene, canned goods): Luna buys them in Belgium and delivers to you in the DRC. Pay upfront, tracked delivery.",
     "page_title": "Buy your products in Belgium and have them delivered in DR Congo",
@@ -2760,9 +2762,7 @@
     "cta_title": "Let's talk about your shipment",
     "cta_body": "A quote within one business day, no commitment.",
     "cta_quote": "Request a quote",
-    "cta_contact": "Contact us",
-    "credit_before": "The Luna website and tracking platform were designed and built by the web agency ",
-    "credit_after": "."
+    "cta_contact": "Contact us"
   },
   "feature_gate": {
     "disabled_title": "Feature disabled",

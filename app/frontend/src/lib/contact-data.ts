@@ -125,7 +125,7 @@ const QUICK_ANSWERS: QuickAnswer[] = [
 ];
 
 // ─── Channels ───────────────────────────────────────────────────────────
-// WhatsApp is intentionally absent until a professional number is confirmed.
+// WhatsApp: professional number confirmed (+32 467 70 00 89).
 export type Channel = {
   id: string;
   name: L;
@@ -147,6 +147,12 @@ const CHANNELS: Channel[] = [
     value: { fr: 'info@lunatrackinglogistics.com', en: 'info@lunatrackinglogistics.com' },
     href: 'mailto:info@lunatrackinglogistics.com',
     use: { fr: 'Tout ce qui demande une pièce jointe ou une trace écrite', en: 'Anything needing an attachment or a written record' },
+    delay: { fr: '', en: '' },
+  },
+  {
+    id: 'whatsapp', name: { fr: 'WhatsApp', en: 'WhatsApp' },
+    value: { fr: '+32 467 70 00 89', en: '+32 467 70 00 89' }, href: 'https://wa.me/32467700089', external: true,
+    use: { fr: 'Une question rapide ou un suivi par message', en: 'A quick question or a follow-up by message' },
     delay: { fr: '', en: '' },
   },
   {

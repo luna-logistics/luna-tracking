@@ -2129,6 +2129,8 @@
   
   },
   "shop": {
+    "drc_only_title": "Réservé aux clients en RDC",
+    "drc_only_body": "Ce service d'achats est uniquement destiné aux clients en RDC : nous achetons en Belgique et livrons en République démocratique du Congo. Aucune livraison n'est possible en Belgique.",
     "meta_title": "Achat & Envoi Belgique → Congo — Luna Tracking Logistics",
     "meta_description": "Commandez vos produits belges : Luna les achète en Belgique et les livre chez vous au Congo. Paiement à l'avance, livraison suivie.",
     "page_title": "Achetez vos produits en Belgique et faites-les livrer en RDC",
@@ -2762,9 +2764,7 @@
     "cta_title": "Parlons de votre envoi",
     "cta_body": "Un devis sous un jour ouvré, sans engagement.",
     "cta_quote": "Demander un devis",
-    "cta_contact": "Nous contacter",
-    "credit_before": "Le site et la plateforme de suivi Luna ont été conçus et développés par l'agence web ",
-    "credit_after": "."
+    "cta_contact": "Nous contacter"
   },
   "feature_gate": {
     "disabled_title": "Fonctionnalité désactivée",

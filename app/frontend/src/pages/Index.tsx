@@ -162,7 +162,7 @@ export default function Index() {
               {/* Calculate rate link — mobile/tablet */}
               <Link
                 to={urlFor('rateCalculator', lang)}
-                className="text-[12.5px] font-medium text-[#9BF0FA] hover:text-white lg:hidden"
+                className="inline-flex items-center gap-2 rounded-lg border border-[#9BF0FA] px-4 py-[11px] text-[13px] font-semibold text-[#9BF0FA] transition-colors hover:bg-white/10 hover:text-white lg:hidden"
               >
                 {t('home.calc_tarif')}
               </Link>
