@@ -21,11 +21,17 @@ import { discoverProducts } from './discover.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ELIGIBILITY_TS = path.resolve(__dirname, '..', '..', 'src/lib/product-eligibility.ts');
+// Packaged builds (e.g. the desktop .exe) ship a transpiled sibling so we don't
+// rely on Node's runtime type-stripping. Same module, same logic — just JS.
+const ELIGIBILITY_MJS = ELIGIBILITY_TS.replace(/\.ts$/, '.mjs');
 
 async function loadEligibility() {
-  // product-eligibility.ts is erasable-only TypeScript → Node type-strips it.
-  const mod = await import(pathToFileURL(ELIGIBILITY_TS).href);
-  return mod.isLunaEligibleProduct;
+  // Prefer the transpiled .mjs when present; else the .ts (Node type-strips it).
+  for (const p of [ELIGIBILITY_MJS, ELIGIBILITY_TS]) {
+    try { const mod = await import(pathToFileURL(p).href); if (mod.isLunaEligibleProduct) return mod.isLunaEligibleProduct; }
+    catch { /* try next */ }
+  }
+  throw new Error('could not load product-eligibility (checked .mjs and .ts)');
 }
 
 /** Concurrency pool with a cooperative stop flag (for clean early-stop on block). */
