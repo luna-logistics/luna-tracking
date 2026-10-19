@@ -27,6 +27,7 @@ import {
 import type { ProductType } from '@/lib/normalized-product';
 import { optimizeImage } from '@/lib/optimize-image';
 import { BrandAutoDetect } from '@/components/BrandAutoDetect';
+import { CategoryAutoSort } from '@/components/CategoryAutoSort';
 import { detectBrandInText, matchBrandName } from '@/lib/brand-detect';
 import {
   fetchAllProducts, fetchProductCategories, upsertProduct, toggleProductActive, deleteProduct,
@@ -198,6 +199,7 @@ function ProductList({
 
   return (
     <>
+      <CategoryAutoSort products={products} categories={categories} onChanged={onChanged} />
       <BrandAutoDetect products={products} brands={brands} onChanged={onChanged} />
       <div className="flex flex-wrap gap-3 mb-4">
         <Input

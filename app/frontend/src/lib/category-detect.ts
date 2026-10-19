@@ -1,0 +1,56 @@
+/**
+ * Category detection from a product name (store receipts abbreviate heavily:
+ * "NIVEA MEN gel raser pr.care/cool 200ml", "SANEX dch dermo ..."). Ordered
+ * rules, first match wins; they run on the accent-free lowercase name. Used by
+ * the admin "sort automatically" tool for products that sit directly in a
+ * family (Hygiene, Drinks) instead of a sub-category. Slugs are the
+ * product_categories slugs.
+ */
+const RULES: Array<[string, RegExp]> = [
+  ['shower-gel', /dch\/shamp/],
+  ['intimate', /durex|preserv|lubrifiant|intimy|lactacyd/],
+  ['body-care', /creme mains|creme des mains|trayon|huile de corps|beard|vaseline|eviline|hydration boost/],
+  ['body-lotion', /nivea soft|nivea creme(?! (de douche|nuit))|nivea care|dove nourishing/],
+  ['fragrance', /parfum|cologne|body mist|eau precieuse|frag\./],
+  ['makeup', /essence|maybelline|eyeshadow|blush|highlighter|mascara|fit me|superst/],
+  ['alcohol', /%\s?vol|whisk|vodka|\bgin\b|rhum|pastis|porto|amaretto|aperitif|campari|ricard|jack daniel|johnnie walker|marie galante|\bj&b\b|smirnoff|disaronno|eristoff|captain morgan|amuro/],
+  ['shower-gel', /petit mars/],
+  ['toothbrush', /oral-b.*brossett/],
+  ['accessories', /zenner|lunettes|lentilles|swirl|zeiss|infocus|raclean|scholl (lime|pedi)|ciseaux|coupe-?ongle|couple-?ongle|stylingcomb|pince/],
+  ['incontinence', /inco|\btena\b|discreet|langes|alese|\bpants\b|culotte/],
+  ['tampons', /tampon|tampax|\bob\b/],
+  ['sanitary-napkin', /serviet|serv\.|\bser\.hyg|protege-?slip|prot-?slip|\bpsl\b|liners|carefree|\balways\b|\bvania\b|\bsh plat|ultra long|platinum|extra secure/],
+  ['intimate', /durex|preserv|lubrifiant|intimy|lactacyd/],
+  ['dental-care', /bain de bouche|bain bouche|b\.bou|listerine|fil dent|floss|soft-?picks|cure-?dents|interdent|between|dentier|fixodent|corega|steradent|soin buc|s\.buccal|tablettes eff/],
+  ['toilet-paper', /papier toilet|pap\.?toilet|p\. toilette|\bnalys\b|scottex|cosynel|\b\d{2,3}f\b|humi/],
+  ['tissues', /mouchoir|kleenex|^tempo\b/],
+  ['cotton', /coton|disque|disq\.|demak|baton|cotons tiges/],
+  ['hair-removal', /veet|epil|depil|\bcire\b/],
+  ['razors', /nivea men sensitive 75|rasoir|\bras\.|lames|raser|rasage|mach3|wilkinson|venus|apres-?ras|aftershave|denim|philips|\bbic\b|intuition|gillette (blue|fusion|labs|series|sensor|jet|simply|ras|lames|rasoir)/],
+  ['hair-color', /belle color|\bolia\b|casting|excellence (blond|chatain)|magic retouch|syoss (noir|chatain|oleo intense rouge|spray racines)|coloration/],
+  ['hair-styling', /elnett|\btaft\b|studio line|hairspr|spray cheveux|spr\.cheveux|got2b|\bwella\b|gel v12|mousse curl|nivea mousse|glue ?spray|fixation|laque/],
+  ['face-care', /visage|\bvis\b|masq\.vis|masque (collag|tissu|yeux)|masque.*peau|patch|serum|retinol|anti-?rides|anti-?age|age perfect|wrinkle|revitalift|filler|micell|demaq|miccel|dissolvant|\btonic\b|nettoyant|gel nettoyant|clear-up|clean deeper|pimple|pure activ|hydro boost|hydra nutrition|\bbb\b|cr\.jour|creme (jour|nuit|yeux|hydratante)|cr\.apais|soin (jour|contour)|hydratant soin|lingettes hydratantes|xpres|face|celenes(?!.*bodyl)|derma v10|moist\.|upcircle|neutrogena|nivea cr\.nuit|nivea visage|nivea soin|niv.*q10|vitamine/],
+  ['conditioner', /apres-?\s?sh|apres-?shamp|conditioner|\bcond\b|\bcond\.|condit\.|\bcd\b|\bap\.sh|masque|masq\.|gliss kur|oil nut|petrole hahn|lotion chev|spray anti|anti-noeud|\bmask\b/],
+  ['shampoo', /shamp|(^|[ .\\/])sh([ .]|$)|barre shamp|alpecin|head&shoulders|ultra doux|schauma|fructis|pantene|elseve|syoss|monday|gliss|happysoaps/],
+  ['shower-gel', /\bdch\b|\bdcg\b|douche|\bgel d\b|gel d\.|\bgel dch|cr\.dch|creme de douche|\bbain\b|bain creme|body wash|2en1 sir|petit mars|petit marseil|tahiti|sunlight(?!.*savon)|sanex(?!.*(deo|alun))|melkmeisje|dettol green|\bcorine de farme\b|palmolive (gel|dch|douche)|\bfa 2en1|sh\.?c?h?\b(?=.*men)/],
+  ['soap', /savon|sav\.|barsoap|cream bar|soap|sanytol|ecover|seepje|marcel's green|dettol|palmolive|everyday savon|diaderm.*savon|ref\.hon/],
+  ['deodorant', /\bdeo|deospray|roll[- ]?on|\brol\b|\bstick\b|pierre.*alun|mennen|borotalco|rexona|fresh step|invisible dry|extra fresh|\bdeod|\bd.o\b/],
+  ['body-lotion', /bodymilk|body milk|lait corp|body cream|body int|body r|bodyl|nivea soft|nivea creme(?! (de douche|nuit))|nivea care|dove nourishing|creme hydratante/],
+  ['body-care', /vaseline|trayon|huile de corps|hydration boost|creme mains|creme des mains|beard|baume|eviline/],
+  ['makeup', /essence|maybelline|eyeshadow|blush|highlighter|mascara|fit me|superst/],
+  ['fragrance', /parfum|cologne|body mist|eau precieuse|frag\./],
+  ['toothbrush', /brosse.*dent|br. ?a? ?dents|\bbd\b|brosset|toothbrush|bross\.|jordan clean smile/],
+  ['toothpaste', /dentif|\bdf\b|\bdt\b|\btp\b|\btp\.|meridol|parodontax|theramed|elmex|colgate|sensodyne|signal|oral-b/],
+];
+
+/** Accent/punctuation-light normalisation that keeps the characters the rules rely on (. / % & -). */
+function normalizeName(s: string): string {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\u2019/g, "'");
+}
+
+/** The sub-category slug for a product name, or null when no rule matches. */
+export function detectCategorySlug(name: string): string | null {
+  const n = normalizeName(name);
+  for (const [slug, rx] of RULES) if (rx.test(n)) return slug;
+  return null;
+}
