@@ -6,8 +6,8 @@
  *   (then on idle), so it never competes with the critical path (fonts,
  *   CSS, entry chunks, hero image).
  * - Consent Mode default = denied for every storage type BEFORE `config`:
- *   GA sends cookieless pings only. STOPGAP — there is no consent banner
- *   yet; when one exists it calls grantAnalyticsConsent().
+ *   GA sends cookieless pings only until the visitor accepts in the cookie
+ *   banner (lib/consent.ts), which flips GA + Meta Pixel via applyConsent().
  * - `send_page_view: false`: the SPA sends page_view itself on every
  *   route change (AnalyticsTracker), including the first one.
  * - Idempotent: a window flag guards init, so StrictMode double effects,
@@ -20,6 +20,8 @@
  * change via trackPageView() — so the init snippet's own auto PageView is
  * deliberately not duplicated.
  */
+
+import { CONSENT_EVENT, getConsent, type ConsentChoice } from '@/lib/consent';
 
 const MEASUREMENT_ID = (import.meta.env.VITE_GA_MEASUREMENT_ID as string | undefined) || 'G-0722R1H7HV';
 
@@ -52,7 +54,16 @@ function installMetaPixelStub(): void {
   n.loaded = true;
   n.version = '2.0';
   n.queue = [];
+  // Revoked until the visitor accepts: no cookies, no events sent.
+  window.fbq('consent', 'revoke');
   window.fbq('init', META_PIXEL_ID);
+}
+
+/** Apply the visitor's choice to GA4 (Consent Mode) and the Meta Pixel. */
+function applyConsent(choice: ConsentChoice): void {
+  const granted = choice === 'granted';
+  window.gtag?.('consent', 'update', { analytics_storage: granted ? 'granted' : 'denied' });
+  try { window.fbq?.('consent', granted ? 'grant' : 'revoke'); } catch { /* ignore */ }
 }
 
 function loadScriptWhenIdle(): void {
@@ -97,12 +108,17 @@ export function initAnalytics(): void {
   window.gtag('config', MEASUREMENT_ID, { send_page_view: false });
 
   installMetaPixelStub();
+  const stored = getConsent();
+  if (stored) applyConsent(stored);
+  window.addEventListener(CONSENT_EVENT, (e) => {
+    const choice = (e as CustomEvent<ConsentChoice>).detail;
+    applyConsent(choice);
+    // The page the visitor is on was viewed while consent was off; count it now.
+    if (choice === 'granted') {
+      try { window.fbq?.('track', 'PageView'); } catch { /* ignore */ }
+    }
+  });
   loadScriptWhenIdle();
-}
-
-/** For the future consent banner — not called anywhere yet. */
-export function grantAnalyticsConsent(): void {
-  window.gtag?.('consent', 'update', { analytics_storage: 'granted' });
 }
 
 export function trackPageView(path: string, title: string): void {

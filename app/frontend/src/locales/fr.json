@@ -563,7 +563,7 @@
     "address_title": "Notre bureau",
     "instagram_title": "Instagram",
     "hours_title": "Nos horaires",
-    "hours_body": "Du lundi au vendredi de 10 h à 18 h, le samedi de 12 h à 16 h. Réponse par e-mail sous un jour ouvré.",
+    "hours_body": "Du lundi au vendredi de 10 h à 18 h, le samedi de 10 h à 16 h. Réponse par e-mail sous un jour ouvré.",
     "phone_title": "Téléphone",
     "phone": "+32 2 241 96 72",
     "phone_call_cta": "Appeler",
@@ -2765,6 +2765,14 @@
     "cta_body": "Un devis sous un jour ouvré, sans engagement.",
     "cta_quote": "Demander un devis",
     "cta_contact": "Nous contacter"
+  },
+  "consent": {
+    "title": "Votre vie privée",
+    "body": "Nous utilisons des cookies de mesure d'audience (Google Analytics) et de publicité (Meta Pixel) uniquement avec votre accord. Les cookies strictement nécessaires au fonctionnement du site ne demandent pas de consentement.",
+    "learn_more": "En savoir plus",
+    "refuse": "Refuser",
+    "accept": "Accepter",
+    "manage": "Cookies"
   },
   "feature_gate": {
     "disabled_title": "Fonctionnalité désactivée",

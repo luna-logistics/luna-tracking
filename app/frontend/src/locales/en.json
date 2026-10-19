@@ -563,7 +563,7 @@
     "address_title": "Our office",
     "instagram_title": "Instagram",
     "hours_title": "Opening hours",
-    "hours_body": "Monday to Friday 10am to 6pm, Saturday 12pm to 4pm. Email reply within one business day.",
+    "hours_body": "Monday to Friday 10am to 6pm, Saturday 10am to 4pm. Email reply within one business day.",
     "phone_title": "Phone",
     "phone": "+32 2 241 96 72",
     "phone_call_cta": "Call",
@@ -2763,6 +2763,14 @@
     "cta_body": "A quote within one business day, no commitment.",
     "cta_quote": "Request a quote",
     "cta_contact": "Contact us"
+  },
+  "consent": {
+    "title": "Your privacy",
+    "body": "We use audience-measurement cookies (Google Analytics) and advertising cookies (Meta Pixel) only with your consent. Cookies strictly necessary for the site to work do not require consent.",
+    "learn_more": "Learn more",
+    "refuse": "Refuse",
+    "accept": "Accept",
+    "manage": "Cookies"
   },
   "feature_gate": {
     "disabled_title": "Feature disabled",

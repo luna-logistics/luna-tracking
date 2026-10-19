@@ -108,10 +108,9 @@
 
 <body>
   <div id="root"></div>
-  <!-- Meta Pixel (noscript fallback). The script itself is loaded deferred from
-       src/lib/analytics.ts together with GA4, with SPA PageViews. -->
-  <noscript><img height="1" width="1" style="display:none" alt=""
-    src="https://www.facebook.com/tr?id=1421507450172123&ev=PageView&noscript=1" /></noscript>
+  <!-- Meta Pixel + GA4 are loaded by src/lib/analytics.ts, only after the
+       visitor accepts the cookie banner (no <noscript> pixel: it would track
+       without consent). -->
   <script type="module" src="/src/main.tsx"></script>
 </body>
 </html>

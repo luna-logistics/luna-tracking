@@ -1,3 +1,4 @@
+import { openConsentBanner } from '@/lib/consent';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Mail, MapPin, Instagram, Phone, Building2 } from 'lucide-react';
@@ -172,6 +173,9 @@ export function Footer() {
                     {l.label}
                   </Link>
                 ))}
+                <button type="button" onClick={openConsentBanner} className="inline-block py-1 hover:text-white underline-offset-2 hover:underline">
+                  {t('consent.manage')}
+                </button>
               </nav>
             </div>
           </div>
