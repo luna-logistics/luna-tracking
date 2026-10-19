@@ -13,6 +13,12 @@
  * - Idempotent: a window flag guards init, so StrictMode double effects,
  *   HMR or a re-mounted tracker can never inject the tag twice.
  * - Production builds only (dev/preview-on-localhost traffic is not sent).
+ *
+ * Meta Pixel rides on the same rails: the standard `fbq` stub is installed
+ * synchronously (events queue), `fbevents.js` is fetched only after
+ * `window.load` + idle, and the SPA sends `PageView` itself on every route
+ * change via trackPageView() — so the init snippet's own auto PageView is
+ * deliberately not duplicated.
  */
 
 const MEASUREMENT_ID = (import.meta.env.VITE_GA_MEASUREMENT_ID as string | undefined) || 'G-0722R1H7HV';
@@ -23,11 +29,31 @@ declare global {
     dataLayer?: unknown[];
     gtag?: Gtag;
     __lunaGaInit?: boolean;
+    fbq?: ((...args: unknown[]) => void) & { callMethod?: (...a: unknown[]) => void; queue?: unknown[]; loaded?: boolean; version?: string; push?: unknown };
+    _fbq?: unknown;
   }
 }
 
 export const analyticsEnabled = import.meta.env.PROD && typeof window !== 'undefined'
   && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+
+const META_PIXEL_ID = '1421507450172123';
+
+/** Standard Meta Pixel stub (queues calls until fbevents.js loads). */
+function installMetaPixelStub(): void {
+  if (window.fbq) return;
+  const n = function fbq(...args: unknown[]) {
+    if (n.callMethod) n.callMethod(...args);
+    else n.queue!.push(args);
+  } as NonNullable<Window['fbq']>;
+  window.fbq = n;
+  if (!window._fbq) window._fbq = n;
+  n.push = n;
+  n.loaded = true;
+  n.version = '2.0';
+  n.queue = [];
+  window.fbq('init', META_PIXEL_ID);
+}
 
 function loadScriptWhenIdle(): void {
   const inject = () => {
@@ -35,6 +61,10 @@ function loadScriptWhenIdle(): void {
     s.async = true;
     s.src = `https://www.googletagmanager.com/gtag/js?id=${MEASUREMENT_ID}`;
     document.head.appendChild(s);
+    const f = document.createElement('script');
+    f.async = true;
+    f.src = 'https://connect.facebook.net/en_US/fbevents.js';
+    document.head.appendChild(f);
   };
   const schedule = () => {
     const ric = (window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => void }).requestIdleCallback;
@@ -66,6 +96,7 @@ export function initAnalytics(): void {
   window.gtag('js', new Date());
   window.gtag('config', MEASUREMENT_ID, { send_page_view: false });
 
+  installMetaPixelStub();
   loadScriptWhenIdle();
 }
 
@@ -76,6 +107,7 @@ export function grantAnalyticsConsent(): void {
 
 export function trackPageView(path: string, title: string): void {
   if (!analyticsEnabled || !window.gtag) return;
+  try { window.fbq?.('track', 'PageView'); } catch { /* pixel must never break navigation */ }
   window.gtag('event', 'page_view', {
     page_path: path,
     // Never the hash: it can carry a guest support token.
