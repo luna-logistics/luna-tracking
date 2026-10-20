@@ -30,6 +30,7 @@ import { optimizeImage } from '@/lib/optimize-image';
 import { BrandAutoDetect } from '@/components/BrandAutoDetect';
 import { CategoryAutoSort } from '@/components/CategoryAutoSort';
 import { ProductEnrichPanel } from '@/components/ProductEnrichPanel';
+import { BrandPicker } from '@/components/BrandPicker';
 import { detectBrandInText, matchBrandName } from '@/lib/brand-detect';
 import {
   fetchAllProducts, fetchProductCategories, upsertProduct, toggleProductActive, deleteProduct,
@@ -56,6 +57,7 @@ export default function AdminProducts() {
     setProducts(p); setCategories(c); setBrands(b);
   };
   useEffect(() => { void reload(); }, []);
+  const addBrand = (b: Brand) => setBrands((prev) => (prev.some((x) => x.id === b.id) ? prev : [...prev, b]));
 
   return (
     <>
@@ -87,6 +89,7 @@ export default function AdminProducts() {
             products={products}
             categories={categories}
             brands={brands}
+            onBrandCreated={addBrand}
             onEdit={(p) => { setEditing(p); setTab('add'); }}
             onChanged={reload}
           />
@@ -96,6 +99,7 @@ export default function AdminProducts() {
             product={editing}
             categories={categories}
             brands={brands}
+            onBrandCreated={addBrand}
             onSaved={async () => { await reload(); setEditing(null); }}
           />
         )}
@@ -114,8 +118,8 @@ export default function AdminProducts() {
 // ─── List tab ──────────────────────────────────────────────────────────────
 
 function ProductList({
-  products, categories, brands, onEdit, onChanged,
-}: { products: Product[]; categories: ProductCategory[]; brands: Brand[]; onEdit: (p: Product) => void; onChanged: () => void }) {
+  products, categories, brands, onEdit, onChanged, onBrandCreated,
+}: { products: Product[]; categories: ProductCategory[]; brands: Brand[]; onEdit: (p: Product) => void; onChanged: () => void; onBrandCreated: (b: Brand) => void }) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [catFilter, setCatFilter] = useState<string>('all');
@@ -262,14 +266,14 @@ function ProductList({
 
           <div>
             <Label className="text-xs">{t('admin.product_field_brand')}</Label>
-            <Select value={bulkBrand} onValueChange={setBulkBrand}>
-              <SelectTrigger className="w-56 h-9 mt-1 bg-white"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="nochange">{t('admin.products_bulk_no_change')}</SelectItem>
-                <SelectItem value="none">{t('admin.product_field_brand_none')}</SelectItem>
-                {brands.map((b) => <SelectItem key={b.id} value={b.id}>{b.name_fr}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <BrandPicker
+              value={bulkBrand}
+              onChange={setBulkBrand}
+              brands={brands}
+              onBrandCreated={onBrandCreated}
+              leading={[{ value: 'nochange', label: t('admin.products_bulk_no_change') }, { value: 'none', label: t('admin.product_field_brand_none') }]}
+              className="w-64 h-9 mt-1 bg-white"
+            />
           </div>
 
           <Button size="sm" variant="navy" disabled={bulkBusy} onClick={applyBulk}>
@@ -383,8 +387,8 @@ function ProductList({
 // ─── Add / edit form ───────────────────────────────────────────────────────
 
 function ProductForm({
-  product, categories, brands, onSaved,
-}: { product: Product | null; categories: ProductCategory[]; brands: Brand[]; onSaved: () => Promise<void> }) {
+  product, categories, brands, onSaved, onBrandCreated,
+}: { product: Product | null; categories: ProductCategory[]; brands: Brand[]; onSaved: () => Promise<void>; onBrandCreated: (b: Brand) => void }) {
   const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
@@ -488,13 +492,15 @@ function ProductForm({
         </div>
         <div>
           <Label htmlFor="brand_id">{t('admin.product_field_brand')}</Label>
-          <Select value={values.brand_id ?? 'none'} onValueChange={(v) => set('brand_id', (v === 'none' ? null : v) as any)}>
-            <SelectTrigger id="brand_id" className="mt-1.5"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">{t('admin.product_field_brand_none')}</SelectItem>
-              {brands.map((b) => <SelectItem key={b.id} value={b.id}>{b.name_fr}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <BrandPicker
+            id="brand_id"
+            value={values.brand_id ?? 'none'}
+            onChange={(v) => set('brand_id', (v === 'none' ? null : v) as any)}
+            brands={brands}
+            onBrandCreated={onBrandCreated}
+            leading={[{ value: 'none', label: t('admin.product_field_brand_none') }]}
+            className="mt-1.5"
+          />
         </div>
       </div>
 

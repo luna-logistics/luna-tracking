@@ -127,11 +127,18 @@ const SB_KEY = process.env.VITE_SUPABASE_ANON_KEY;
 async function sbFetch(table, query) {
   if (!SB_URL || !SB_KEY) return [];
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/${table}?${query}`, {
-      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` },
-    });
-    if (!res.ok) { console.warn(`[prerender] ${table} → ${res.status}`); return []; }
-    return await res.json();
+    // The API caps a response at 1000 rows — page through so a catalogue
+    // above 1000 products is fully prerendered.
+    const out = [];
+    for (let from = 0; ; from += 1000) {
+      const res = await fetch(`${SB_URL}/rest/v1/${table}?${query}`, {
+        headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'range-unit': 'items', range: `${from}-${from + 999}` },
+      });
+      if (!res.ok) { console.warn(`[prerender] ${table} → ${res.status}`); return out; }
+      const rows = await res.json();
+      out.push(...rows);
+      if (!Array.isArray(rows) || rows.length < 1000) return out;
+    }
   } catch (err) {
     console.warn(`[prerender] ${table} fetch failed:`, err?.message ?? err);
     return [];

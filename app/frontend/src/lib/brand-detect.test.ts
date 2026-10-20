@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Brand, Product } from './products';
-import { brandSlug, detectBrandInText, detectExistingBrands, matchBrandName, normalizeBrandText, suggestNewBrands } from './brand-detect';
+import { brandSlug, detectBrandInText, detectExistingBrands, leadingCapsWords, matchBrandName, normalizeBrandText, suggestNewBrands } from './brand-detect';
 
 const b = (id: string, name: string): Brand => ({ id, slug: brandSlug(name), name_fr: name, name_en: name, display_order: 1 });
 const BRANDS = [b('jd', "Jack Daniel's"), b('ob', 'OB'), b('hs', 'HEAD&SHOULDERS'), b('lo', "L'OREAL"), b('ox', 'ORAL-B'), b('ax', 'AXE')];
@@ -49,5 +49,25 @@ describe('brand detection', () => {
     expect(res.map((r) => r.token)).toEqual(['vichy']);
     expect(res[0].label).toBe('Vichy');
     expect(res[0].productIds).toEqual(['1', '2', '3']);
+  });
+
+  it('reads the leading capital words as the brand', () => {
+    expect(leadingCapsWords("BERT & BERT Men's Beard Hair Oil 50ml")).toEqual(['BERT', '&', 'BERT']);
+    expect(leadingCapsWords('SUSHI FRESH Donburi spicy 350g')).toEqual(['SUSHI', 'FRESH']);
+    expect(leadingCapsWords('Crème trayon 500ml')).toEqual([]);
+  });
+
+  it('suggests capital brands even for one product, trimmed to what products share', () => {
+    const res = suggestNewBrands([
+      p('1', 'SUSHI FRESH Donburi 350g'), p('2', 'SUSHI FRESH Nigiri 128g'),
+      p('3', 'ZWAN plat italien 425g'),
+      p('4', 'WILKINSON SWORD Extra 2'), p('5', 'WILKINSON SWORD Sensitive 8+4pc'),
+      p('6', 'TENA Discreet Maxi 12pc'), p('7', 'TENA Men level 1'),
+    ], BRANDS);
+    const byLabel = Object.fromEntries(res.map((r) => [r.label, r.productIds]));
+    expect(byLabel['Sushi Fresh']).toEqual(['1', '2']);
+    expect(byLabel['Zwan']).toEqual(['3']);
+    expect(byLabel['Wilkinson Sword']).toEqual(['4', '5']);
+    expect(byLabel['Tena']).toEqual(['6', '7']);
   });
 });

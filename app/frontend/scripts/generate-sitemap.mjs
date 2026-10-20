@@ -35,10 +35,16 @@ async function fetchRows(table, query) {
     return [];
   }
   try {
-    const res = await fetch(`${url}/rest/v1/${table}?${query}`,
-      { headers: { apikey: key, Authorization: `Bearer ${key}` } });
-    if (!res.ok) { console.warn(`[sitemap] ${table} → ${res.status} — skipping.`); return []; }
-    return await res.json();
+    // The API caps a response at 1000 rows — page through (sitemap must list every product).
+    const out = [];
+    for (let from = 0; ; from += 1000) {
+      const res = await fetch(`${url}/rest/v1/${table}?${query}`,
+        { headers: { apikey: key, Authorization: `Bearer ${key}`, 'range-unit': 'items', range: `${from}-${from + 999}` } });
+      if (!res.ok) { console.warn(`[sitemap] ${table} → ${res.status} — skipping.`); return out; }
+      const rows = await res.json();
+      out.push(...rows);
+      if (!Array.isArray(rows) || rows.length < 1000) return out;
+    }
   } catch (err) {
     console.warn(`[sitemap] ${table} fetch failed:`, err?.message ?? err);
     return [];

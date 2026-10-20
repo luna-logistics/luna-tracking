@@ -93,16 +93,27 @@ export async function fetchProductCategories(): Promise<ProductCategory[]> {
   return (data ?? []) as ProductCategory[];
 }
 
+/** The API returns at most 1000 rows per request — read page by page so a
+ *  catalogue above 1000 products is never silently cut. */
+const PAGE = 1000;
+async function fetchProductPages(activeOnly: boolean): Promise<Product[]> {
+  const out: Product[] = [];
+  for (let from = 0; ; from += PAGE) {
+    let q = supabase.from('products').select('*').order('name_fr').order('id').range(from, from + PAGE - 1);
+    if (activeOnly) q = q.eq('is_active', true);
+    const { data, error } = await q;
+    if (error) { console.warn('[products] fetch failed:', error.message); return out; }
+    out.push(...((data ?? []) as Product[]));
+    if (!data || data.length < PAGE) return out;
+  }
+}
+
 export async function fetchActiveProducts(): Promise<Product[]> {
-  const { data, error } = await supabase.from('products').select('*').eq('is_active', true).order('name_fr');
-  if (error) { console.warn('[products] fetch failed:', error.message); return []; }
-  return (data ?? []) as Product[];
+  return fetchProductPages(true);
 }
 
 export async function fetchAllProducts(): Promise<Product[]> {
-  const { data, error } = await supabase.from('products').select('*').order('name_fr');
-  if (error) { console.warn('[products] fetchAll failed:', error.message); return []; }
-  return (data ?? []) as Product[];
+  return fetchProductPages(false);
 }
 
 /** Look up a product by (lang, slug). Falls back to the other language's
