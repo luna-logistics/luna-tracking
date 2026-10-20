@@ -30,3 +30,26 @@ describe('detectCategorySlug', () => {
     expect(detectCategorySlug('Produit mystère 12pc')).toBeNull();
   });
 });
+
+describe('detectCategorySlug — cheese & dairy (family-restricted)', () => {
+  const DAIRY = new Set(['eggs', 'cream', 'butter-margarine', 'plant-drinks', 'drinkable-yogurt', 'dairy-desserts', 'skyr-greek', 'grated-cheese', 'goat-cheese', 'italian-greek-cheese', 'soft-cheese', 'spread-cheese', 'fresh-cheese-desserts', 'yogurts', 'milk-drinks', 'sliced-cheese']);
+  it.each([
+    ['FLANDRIEN jeune réposé tranch 200g', 'sliced-cheese'],
+    ['BONI Flan Caramel 4x100g', 'dairy-desserts'],
+    ['EVERYDAY yaourt crème entier fruits 150g', 'yogurts'],
+    ['PRÉSIDENT camembert crème 125g', 'soft-cheese'],
+    ['MAREDSOUS from.tart. double crème 250g', 'spread-cheese'],
+    ['BONI crème culinaire 20%mg brique 25cl', 'cream'],
+    ['ALPRO soja tartiner 500g', 'butter-margarine'],
+    ['ALPRO boisson soja 1L', 'plant-drinks'],
+    ['VACHE BLEUE Fun Cheese Strings 80g', 'spread-cheese'],
+    ['EVERYDAY emmental râpé 500g', 'grated-cheese'],
+    ['CAMPINA Demi-écrémé Brique 1L', 'milk-drinks'],
+    ['BONI oeufs Belges sol L 6pc', 'eggs'],
+  ])('%s → %s', (name, slug) => {
+    expect(detectCategorySlug(name, DAIRY)).toBe(slug);
+  });
+  it('without a family, food rules stay off', () => {
+    expect(detectCategorySlug('BONI Flan Caramel 4x100g')).toBeNull();
+  });
+});

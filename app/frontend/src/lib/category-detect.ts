@@ -43,14 +43,45 @@ const RULES: Array<[string, RegExp]> = [
   ['toothpaste', /dentif|\bdf\b|\bdt\b|\btp\b|\btp\.|meridol|parodontax|theramed|elmex|colgate|sensodyne|signal|oral-b/],
 ];
 
+/** Cheese & dairy ("Fromages", "Crèmerie & œufs") plus the few bakery-dough
+ *  items stores file under dairy. Checked only when the caller allows these
+ *  slugs (see `allowed`), so they never compete with the hygiene rules. */
+const FOOD_RULES: Array<[string, RegExp]> = [
+  ['dough-crepes', /pate (brisee|feuilletee|a pizza)|pinsami|crepes|feuilles de lasagne/],
+  ['fresh-pasta', /gnocchi|nouilles/],
+  ['eggs', /\boeufs?\b/],
+  ['cream', /cuisine (veget|soja)/],
+  ['butter-margarine', /beurr|margarine|marg\.|becel|\bsolo\b|planta|fama|vitelma|bertolli|cuire ?(&|et) ?rotir|soja tartiner|beur\./],
+  ['plant-drinks', /alpro|oatly|plan't|\bsoja\b|\bsoya\b|amandes|avoine/],
+  ['drinkable-yogurt', /actimel|yakult|kefir|a boire|benecol|protein drink|hipro drink/],
+  ['dairy-desserts', /pudding|mousse|\bflan\b|riz au lait|riz lait|creme dessert|danette|tiramisu|liegeois|viennois|cheesy choc|zott|semoule|homemade desserts|kinder|paula/],
+  ['skyr-greek', /skyr|grec|greek|oikos|kri kri/],
+  ['grated-cheese', /rape|grattug|gratin|spaghetti mix|special mix|pasta mix|pamesello/],
+  ['goat-cheese', /chevr|chavroux|soignon/],
+  ['italian-greek-cheese', /mozzarella|burrata|ricotta|mascarpone|parm|grana|pecorino|feta|halloumi|apetina|gorgonzola/],
+  ['soft-cheese', /brie|camembert|chaumes|caprice|reblochon|vieux pane|cambozola|roquefort|\bbleu\b|tartiflette|isigny/],
+  ['spread-cheese', /boursin|philadelphia|st moret|kiri|vache qui rit|tartiner|from\.tart|babybel|heks|strings|double creme 16p|cremeux ail|madame loik/],
+  ['fresh-cheese-desserts', /fromage frais|danio|petit suisse|danonino|maquee|cottage|petit boni|pouch/],
+  ['yogurts', /yaourt|activia|vitalinea|yoplait panier|inex/],
+  ['cream', /\bcreme\b|\bcre\.|double creme/],
+  ['milk-drinks', /\blait\b|ecreme brique|chocomel|fristi|lait battu|boisson a fraise|macchiato|cafe glace|nutroma/],
+  ['sliced-cheese', /gouda|emmental|cheddar|abbaye|maasdammer|leerdammer|raclette|comte|gruyere|cubes|tranches|bloc|brugge|flandrien|beemster|hollander|amsterdam|passendale|maredsous|grimbergen|chimay|joseph|jambon 48|fromage/],
+];
+
 /** Accent/punctuation-light normalisation that keeps the characters the rules rely on (. / % & -). */
 function normalizeName(s: string): string {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\u2019/g, "'");
 }
 
-/** The sub-category slug for a product name, or null when no rule matches. */
-export function detectCategorySlug(name: string): string | null {
+/** The sub-category slug for a product name, or null when no rule matches.
+ *  `allowed` limits the answer to those slugs (e.g. the sub-categories of the
+ *  product's family); without it only the historical hygiene/drinks rules run. */
+export function detectCategorySlug(name: string, allowed?: Set<string>): string | null {
   const n = normalizeName(name);
-  for (const [slug, rx] of RULES) if (rx.test(n)) return slug;
+  const rules = allowed ? [...RULES, ...FOOD_RULES] : RULES;
+  for (const [slug, rx] of rules) {
+    if (allowed && !allowed.has(slug)) continue;
+    if (rx.test(n)) return slug;
+  }
   return null;
 }

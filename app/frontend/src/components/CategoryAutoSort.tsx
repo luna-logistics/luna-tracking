@@ -26,14 +26,22 @@ export function CategoryAutoSort({ products, categories, onChanged }: { products
     const byId = new Map(categories.map((c) => [c.id, c]));
     const parents = new Set(categories.filter((c) => c.parent_id).map((c) => c.parent_id as string));
     const acc = new Map<string, Group>();
+    const rootOf = (c?: ProductCategory) => (c ? c.parent_id ?? c.id : null);
+    // Sub-category slugs per family: detection only answers within the
+    // product's own family ("bâton aux noix" is never moved to cotton).
+    const slugsByRoot = new Map<string, Set<string>>();
+    for (const c of categories) {
+      if (!c.parent_id) continue;
+      const set = slugsByRoot.get(c.parent_id) ?? new Set<string>();
+      set.add(c.slug);
+      slugsByRoot.set(c.parent_id, set);
+    }
     for (const p of products) {
-      const slug = detectCategorySlug(p.name_fr);
+      const current = byId.get(p.category_id);
+      const root = rootOf(current);
+      const slug = detectCategorySlug(p.name_fr, root ? slugsByRoot.get(root) ?? new Set() : undefined);
       const target = slug ? bySlug.get(slug) : undefined;
       if (!target || target.id === p.category_id) continue;
-      const current = byId.get(p.category_id);
-      // Rules are written per family (hygiene, drinks…): never move a product
-      // to another family on a name match ("bâton aux noix" is not cotton).
-      const rootOf = (c?: ProductCategory) => (c ? c.parent_id ?? c.id : null);
       if (current && rootOf(current) !== rootOf(target)) continue;
       const kind: Group['kind'] = !current || parents.has(current.id) ? 'place' : 'move';
       const key = `${kind}:${target.id}`;
