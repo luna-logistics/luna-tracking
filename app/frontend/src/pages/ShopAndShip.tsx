@@ -25,6 +25,7 @@ import { Ed } from '@/components/Ed';
 import { Block } from '@/components/Block';
 import { cn } from '@/lib/utils';
 import { SORT_MODES, matchesQuery, sortProducts, type SortMode } from '@/lib/shop-sort';
+import { CategoryDropdown, CategorySidebar } from '@/components/CategoryFacet';
 
 const PAGE_SIZE = 24;
 
@@ -71,8 +72,6 @@ export default function ShopAndShip() {
   const categoryOf = (id: string) => categories.find((c) => c.id === id);
   const brandOf = (id?: string | null) => (id ? brands.find((b) => b.id === id) : undefined);
   // Two-level categories: top-level families (no parent) and their children.
-  const topLevelCategories = useMemo(() => categories.filter((c) => !c.parent_id), [categories]);
-  const childrenOf = (parentId: string) => categories.filter((c) => c.parent_id === parentId);
   const ctx = useMemo(() => ({ categories, brands, lang: lang as 'fr' | 'en' }), [categories, brands, lang]);
   // Search + brand narrow the catalogue first; category chips then show how
   // many of THOSE products each family holds.
@@ -106,19 +105,10 @@ export default function ShopAndShip() {
       .map((b) => ({ b, n: n.get(b.id)! }))
       .sort((x, y) => brandName(x.b, lang).localeCompare(brandName(y.b, lang), lang, { sensitivity: 'base' }));
   }, [products, brands, lang]);
-  // Chips: families first; when a family (or one of its children) is active,
-  // its sub-categories get their own row.
-  const activeCat = categories.find((c) => c.id === filter);
-  const activeFamilyId = activeCat ? (activeCat.parent_id ?? activeCat.id) : null;
-  const subChips = activeFamilyId ? childrenOf(activeFamilyId).filter((c) => (categoryCounts.get(c.id) ?? 0) > 0 || c.id === filter) : [];
   const shown = filtered.slice(0, visible);
   const filtersActive = filter !== 'all' || brandFilter !== 'all' || query.trim() !== '' || sort !== 'featured';
   useEffect(() => { setVisible(PAGE_SIZE); }, [filter, brandFilter, query, sort]);
   const resetFilters = () => { setFilter('all'); setBrandFilter('all'); setQuery(''); setSort('featured'); };
-  const chip = (active: boolean) => cn(
-    'shrink-0 whitespace-nowrap rounded-full border px-3.5 py-2 text-[13px] font-medium transition-colors',
-    active ? 'border-luna-royal bg-luna-royal text-white' : 'border-[#C6D4E6] bg-white text-luna-royal hover:border-luna-aqua hover:bg-luna-aqua/10',
-  );
 
   // Cart revalidation against the freshly-loaded active products: a line whose
   // product is no longer active/readable is "unavailable" (excluded from
@@ -327,29 +317,11 @@ export default function ShopAndShip() {
                 </div>
               </div>
 
-              {/* Category chips — one tap, always visible (no dropdown to open) */}
-              <nav aria-label={t('shop.category_label')} className="-mx-5 mb-2 flex gap-2 overflow-x-auto px-5 pb-2 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
-                <button type="button" onClick={() => setFilter('all')} aria-pressed={filter === 'all'} className={chip(filter === 'all')}>
-                  {t('shop.chip_all')} ({searched.length})
-                </button>
-                {topLevelCategories.filter((c) => (categoryCounts.get(c.id) ?? 0) > 0 || c.id === filter).map((c) => (
-                  <button key={c.id} type="button" onClick={() => setFilter(c.id)} aria-pressed={activeFamilyId === c.id} className={chip(activeFamilyId === c.id)}>
-                    {categoryName(c, lang)} ({categoryCounts.get(c.id) ?? 0})
-                  </button>
-                ))}
-              </nav>
-              {subChips.length > 0 && activeFamilyId && (
-                <nav aria-label={categoryName(categories.find((c) => c.id === activeFamilyId)!, lang)} className="-mx-5 mb-2 flex gap-2 overflow-x-auto px-5 pb-2 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
-                  <button type="button" onClick={() => setFilter(activeFamilyId)} aria-pressed={filter === activeFamilyId} className={chip(filter === activeFamilyId)}>
-                    {t('shop.chip_all')} ({categoryCounts.get(activeFamilyId) ?? 0})
-                  </button>
-                  {subChips.map((c) => (
-                    <button key={c.id} type="button" onClick={() => setFilter(c.id)} aria-pressed={filter === c.id} className={chip(filter === c.id)}>
-                      {categoryName(c, lang)} ({categoryCounts.get(c.id) ?? 0})
-                    </button>
-                  ))}
-                </nav>
-              )}
+              {/* Category facet: sidebar tree on desktop, unfolding tree on mobile */}
+              <div className="lg:grid lg:grid-cols-[250px_minmax(0,1fr)] lg:items-start lg:gap-7">
+                <CategorySidebar categories={categories} counts={categoryCounts} total={searched.length} value={filter} onChange={setFilter} lang={lang as 'fr' | 'en'} />
+                <div className="min-w-0">
+                <CategoryDropdown categories={categories} counts={categoryCounts} total={searched.length} value={filter} onChange={setFilter} lang={lang as 'fr' | 'en'} />
               <div className="mb-5 mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-luna-muted-ink" aria-live="polite">
                 <span>{t('shop.results_count', { count: filtered.length })}</span>
                 {filtersActive && (
@@ -369,7 +341,7 @@ export default function ShopAndShip() {
                       {t('shop.products_empty')}
                     </div>
                   ) : (
-                    <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                    <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 2xl:grid-cols-4">
                       {shown.map((p) => (
                         <article key={p.id} className="flex flex-col overflow-hidden rounded-xl border border-[#DCE5F0] bg-white shadow-sm transition-all hover:-translate-y-1 hover:border-luna-aqua hover:shadow-[0_14px_30px_rgba(10,22,80,.13)]">
                           <Link to={productUrl(productSlug(p, lang), lang)} className="block">
@@ -515,6 +487,8 @@ export default function ShopAndShip() {
                     </p>
                   </div>
                 </aside>
+              </div>
+                </div>
               </div>
             </>
           )}
