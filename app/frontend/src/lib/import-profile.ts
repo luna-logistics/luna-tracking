@@ -18,6 +18,10 @@ export type ImportRules = {
   strip_slug_suffix?: boolean;
   /** Prices above this are refused as implausible (null = no cap). */
   max_price?: number | null;
+  /** Drop the store's generic marketing blurb used as description on every
+   *  product ("Toujours au meilleur prix. Voir toutes les informations…") —
+   *  the same text on hundreds of pages is useless and hurts SEO. */
+  strip_generic_description?: boolean;
 };
 
 export const DEFAULT_RULES: Required<ImportRules> = {
@@ -25,7 +29,31 @@ export const DEFAULT_RULES: Required<ImportRules> = {
   fix_price_x1000: true,
   strip_slug_suffix: true,
   max_price: 5000,
+  strip_generic_description: true,
 };
+
+const GENERIC_DESCRIPTION = /toujours au meilleur prix|voir toutes les informations sur les produits|ajoutez directement [àa] votre liste|always the best price/i;
+
+/** True when a description is a store's generic blurb rather than product text. */
+export function isGenericDescription(desc: string | null | undefined): boolean {
+  return !!desc && GENERIC_DESCRIPTION.test(desc);
+}
+
+const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+/** Some scrapers end the category path with the product itself
+ *  ("… > Jambon cuit > BONI jambon cuit 150g"), which makes every product its
+ *  own "category". Returns the path without that last segment when it is the
+ *  product name (or its start), so rows can be mapped per real category. */
+export function categoryGroupKey(sourceCategory: string | null | undefined, productName: string | null | undefined): string {
+  const sc = (sourceCategory ?? '').trim();
+  const parts = sc.split(SEP).map((p) => p.trim()).filter(Boolean);
+  if (parts.length < 2) return sc;
+  const last = fold(parts[parts.length - 1]);
+  const name = fold(productName ?? '');
+  if (last && name && (name.startsWith(last) || last.startsWith(name))) return parts.slice(0, -1).join(SEP);
+  return sc;
+}
 
 export type ImportProfile = {
   id: string;
@@ -175,6 +203,14 @@ export function applyImportProfile(
       if (cleaned !== (raw[dk] ?? '').trim()) r[dk] = cleaned;
     }
     if (r.description_fr !== raw.description_fr) notes.push('description nettoyée');
+  }
+
+  if (rules.strip_generic_description) {
+    let dropped = false;
+    for (const dk of ['description_fr', 'description_en'] as const) {
+      if (isGenericDescription(r[dk])) { r[dk] = ''; dropped = true; }
+    }
+    if (dropped) notes.push('texte générique du magasin retiré');
   }
 
   if (rules.strip_slug_suffix) {

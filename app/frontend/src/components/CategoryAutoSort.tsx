@@ -31,6 +31,10 @@ export function CategoryAutoSort({ products, categories, onChanged }: { products
       const target = slug ? bySlug.get(slug) : undefined;
       if (!target || target.id === p.category_id) continue;
       const current = byId.get(p.category_id);
+      // Rules are written per family (hygiene, drinks…): never move a product
+      // to another family on a name match ("bâton aux noix" is not cotton).
+      const rootOf = (c?: ProductCategory) => (c ? c.parent_id ?? c.id : null);
+      if (current && rootOf(current) !== rootOf(target)) continue;
       const kind: Group['kind'] = !current || parents.has(current.id) ? 'place' : 'move';
       const key = `${kind}:${target.id}`;
       const g = acc.get(key) ?? { key, kind, category: target, ids: [], samples: [] };

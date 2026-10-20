@@ -74,3 +74,26 @@ export function rejectedRowsToCsv(
   }
   return lines.join('\r\n');
 }
+
+/**
+ * Some tools export each CSV line a second time inside quotes (the whole row
+ * becomes ONE field, inner quotes doubled). Parsed with headers, every row
+ * then only fills the first column — and rows whose fields contain a comma
+ * ("1,5L") were silently rejected. Detects that shape and decodes each row
+ * once more. Returns null when the file is a normal CSV.
+ */
+export function unwrapDoubleEncodedRows(
+  fields: string[],
+  rows: Record<string, string | undefined>[],
+  parseLine: (line: string) => string[],
+): Record<string, string>[] | null {
+  if (fields.length < 2 || rows.length === 0) return null;
+  const [first, ...rest] = fields;
+  const wrapped = rows.filter((r) => (r[first] ?? '').includes(',') && rest.every((f) => !(r[f] ?? '').trim()));
+  if (wrapped.length < rows.length * 0.5) return null;
+  return rows.map((r) => {
+    if (!wrapped.includes(r)) return Object.fromEntries(fields.map((f) => [f, r[f] ?? '']));
+    const cells = parseLine(r[first] ?? '');
+    return Object.fromEntries(fields.map((f, i) => [f, cells[i] ?? '']));
+  });
+}

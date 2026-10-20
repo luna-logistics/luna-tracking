@@ -15,10 +15,11 @@ import { translateText } from '@/lib/translate';
 import { slugify } from '@/lib/blog';
 import { suggestHsCode, type HsSuggestion } from '@/lib/hs-classifier';
 import { isLunaEligibleProduct, type EligibilityResult } from '@/lib/product-eligibility';
-import { normalizeCsvRow, rejectedRowsToCsv } from '@/lib/store-import';
+import { normalizeCsvRow, rejectedRowsToCsv, unwrapDoubleEncodedRows } from '@/lib/store-import';
 import {
   applyImportProfile, categoryPrefixes, headerSignature, DEFAULT_RULES, slugify as slugifyImport,
   type CategoryMapping, type ImportProfile, type ProfiledRow,
+  categoryGroupKey,
 } from '@/lib/import-profile';
 import {
   fetchImportProfiles, fetchCategoryMappings, createImportProfile, updateImportProfile,
@@ -28,11 +29,12 @@ import type { ProductType } from '@/lib/normalized-product';
 import { optimizeImage } from '@/lib/optimize-image';
 import { BrandAutoDetect } from '@/components/BrandAutoDetect';
 import { CategoryAutoSort } from '@/components/CategoryAutoSort';
+import { ProductEnrichPanel } from '@/components/ProductEnrichPanel';
 import { detectBrandInText, matchBrandName } from '@/lib/brand-detect';
 import {
   fetchAllProducts, fetchProductCategories, upsertProduct, toggleProductActive, deleteProduct,
   upsertCategory, deleteCategory, uploadProductImage, fetchStores, upsertProductSource, type Store,
-  fetchBrands, upsertBrand, deleteBrand, type Brand,
+  fetchBrands, upsertBrand, deleteBrand, type Brand, orderedCategories,
   bulkUpdateProducts, bulkDeleteProducts,
   type Product, type ProductCategory,
 } from '@/lib/products';
@@ -118,7 +120,9 @@ function ProductList({
   const [query, setQuery] = useState('');
   const [catFilter, setCatFilter] = useState<string>('all');
   const [brandFilter, setBrandFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'draft'>('all');
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const catTree = useMemo(() => orderedCategories(categories), [categories]);
   const [bulkCategory, setBulkCategory] = useState<string>('nochange');
   const [bulkBrand, setBulkBrand] = useState<string>('nochange');
   const [bulkBusy, setBulkBusy] = useState(false);
@@ -126,12 +130,15 @@ function ProductList({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return products.filter((p) => {
-      if (catFilter !== 'all' && p.category_id !== catFilter) return false;
+      if (catFilter !== 'all' && p.category_id !== catFilter
+        && categories.find((c) => c.id === p.category_id)?.parent_id !== catFilter) return false;
+      if (statusFilter === 'active' && !p.is_active) return false;
+      if (statusFilter === 'draft' && p.is_active) return false;
       if (brandFilter === 'none' ? !!p.brand_id : brandFilter !== 'all' && (p.brand_id ?? '') !== brandFilter) return false;
       if (!q) return true;
       return [p.name_fr, p.name_en, p.slug_fr, p.slug_en, p.barcode ?? ''].some((f) => f.toLowerCase().includes(q));
     });
-  }, [products, query, catFilter, brandFilter]);
+  }, [products, query, catFilter, brandFilter, statusFilter, categories]);
 
   // Selection is kept by id, independent of which page/filter is showing —
   // but the "select all" checkbox only ever acts on what's currently visible.
@@ -199,6 +206,7 @@ function ProductList({
 
   return (
     <>
+      <ProductEnrichPanel products={products} categories={categories} onChanged={onChanged} />
       <CategoryAutoSort products={products} categories={categories} onChanged={onChanged} />
       <BrandAutoDetect products={products} brands={brands} onChanged={onChanged} />
       <div className="flex flex-wrap gap-3 mb-4">
@@ -212,7 +220,15 @@ function ProductList({
           <SelectTrigger className="w-64"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t('admin.products_filter_category_any')}</SelectItem>
-            {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.parent_id ? `— ${c.name_fr}` : c.name_fr}</SelectItem>)}
+            {catTree.map(({ category: c, label, depth }) => <SelectItem key={c.id} value={c.id} className={depth ? 'pl-8' : 'font-semibold'}>{depth ? label.split(' › ')[1] : label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as 'all' | 'active' | 'draft')}>
+          <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('admin.products_filter_status_any')}</SelectItem>
+            <SelectItem value="active">{t('admin.products_filter_status_active')}</SelectItem>
+            <SelectItem value="draft">{t('admin.products_filter_status_draft')}</SelectItem>
           </SelectContent>
         </Select>
         {brands.length > 0 && (
@@ -239,7 +255,7 @@ function ProductList({
               <SelectTrigger className="w-56 h-9 mt-1 bg-white"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="nochange">{t('admin.products_bulk_no_change')}</SelectItem>
-                {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.parent_id ? `— ${c.name_fr}` : c.name_fr}</SelectItem>)}
+                {catTree.map(({ category: c, label }) => <SelectItem key={c.id} value={c.id}>{label}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -466,7 +482,7 @@ function ProductForm({
           <Select value={values.category_id ?? ''} onValueChange={(v) => set('category_id', v)}>
             <SelectTrigger id="category_id" className="mt-1.5"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.parent_id ? `— ${c.name_fr}` : c.name_fr}</SelectItem>)}
+              {orderedCategories(categories).map(({ category: c, label }) => <SelectItem key={c.id} value={c.id}>{label}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -840,6 +856,8 @@ type MappingDraft = { prefix: string; action: 'map' | 'skip'; category_id: strin
 type RowResult = { ok: boolean; detail: string };
 
 const TYPE_KEYS: ProductType[] = ['food', 'hygiene', 'household', 'clothing', 'other'];
+/** Eligibility exclusions an admin may override with "accept fresh products". Frozen stays excluded. */
+const FRESH_EXCLUSION_CODES = new Set(['excluded_meat_seafood', 'excluded_dairy_fresh', 'excluded_refrigerated', 'excluded_cold_chain', 'excluded_fresh', 'excluded_produce_fresh', 'excluded_bakery']);
 
 function CsvImport({ categories, brands, onDone }: { categories: ProductCategory[]; brands: Brand[]; onDone: () => void }) {
   const { t } = useTranslation();
@@ -859,6 +877,13 @@ function CsvImport({ categories, brands, onDone }: { categories: ProductCategory
   const [overrides, setOverrides] = useState<Record<number, EnOverride>>({});
   const [forced, setForced] = useState<Set<number>>(new Set());
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+  // Admin decision: fresh / chilled products (charcuterie, fish, ready meals…)
+  // are excluded by the eligibility filter; when ticked they can be forced in
+  // bulk like "to verify" rows. Off by default — the filter stays the rule.
+  const [allowFresh, setAllowFresh] = useState(false);
+  // Bulk category mapping (keyed by group path).
+  const [pickedGroups, setPickedGroups] = useState<Set<string>>(new Set());
+  const [bulkMap, setBulkMap] = useState<{ category_id: string; product_type: ProductType | '' }>({ category_id: '', product_type: 'food' });
   const [translating, setTranslating] = useState(false);
   const [results, setResults] = useState<Record<number, RowResult>>({});
   const [busy, setBusy] = useState(false);
@@ -905,8 +930,13 @@ function CsvImport({ categories, brands, onDone }: { categories: ProductCategory
       complete: (res) => {
         const hdrs = res.meta.fields ?? [];
         setHeaders(hdrs);
-        setRawRows(res.data);
-        setOverrides({}); setForced(new Set()); setResults({}); setDrafts({}); setSelectedRows(new Set());
+        // A file whose lines were quoted twice collapses into one column —
+        // decode it once more instead of silently rejecting every row.
+        const unwrapped = unwrapDoubleEncodedRows(hdrs, res.data, (line) =>
+          (Papa.parse<string[]>(line, { header: false }).data[0] ?? []) as string[]);
+        if (unwrapped) toast.info(t('admin.imp_unwrapped', { count: unwrapped.length }));
+        setRawRows(unwrapped ?? res.data);
+        setOverrides({}); setForced(new Set()); setResults({}); setDrafts({}); setSelectedRows(new Set()); setPickedGroups(new Set());
         // Recognise the source by its column set.
         const sig = headerSignature(hdrs);
         const match = profiles.find((p) => p.header_signature === sig);
@@ -918,12 +948,14 @@ function CsvImport({ categories, brands, onDone }: { categories: ProductCategory
   };
 
   const isSkipped = (r: ImportRow) => !!r.profiled?.skip;
-  const canForce = (r: ImportRow) => r.errors.length === 0 && !isSkipped(r) && !r.storeUnknown && r.eligibility.status === 'to_verify';
+  const isFreshExclusion = (r: ImportRow) => r.eligibility.status === 'excluded' && FRESH_EXCLUSION_CODES.has(r.eligibility.code);
+  const canForce = (r: ImportRow) => r.errors.length === 0 && !isSkipped(r) && !r.storeUnknown
+    && (r.eligibility.status === 'to_verify' || (allowFresh && isFreshExclusion(r)));
   // A row imports only if it is structurally valid, not skipped by the
   // profile, its store (when given) is known, and it is either accepted by
   // the eligibility filter or explicitly forced by the admin (to_verify only).
   const importable = rows.filter((r) => r.errors.length === 0 && r.data && !isSkipped(r) && !r.storeUnknown
-    && (r.eligibility.status === 'accepted' || (r.eligibility.status === 'to_verify' && forced.has(r.index))));
+    && (r.eligibility.status === 'accepted' || (forced.has(r.index) && canForce(r))));
   const importableSet = new Set(importable.map((r) => r.index));
   const rejected = rows.filter((r) => r.errors.length === 0 && !isSkipped(r) && !importableSet.has(r.index));
 
@@ -939,6 +971,12 @@ function CsvImport({ categories, brands, onDone }: { categories: ProductCategory
   // Among the selected rows, only those `canForce` actually gets added to
   // `forced` — never bypasses eligibility/validation/store checks.
   const forceableSelected = rows.filter((r) => selectedRows.has(r.index) && canForce(r));
+  const forceableAll = rows.filter((r) => canForce(r) && !forced.has(r.index));
+  const forceAll = () => setForced((prev) => {
+    const next = new Set(prev);
+    forceableAll.forEach((r) => next.add(r.index));
+    return next;
+  });
   const forceSelected = () => {
     if (forceableSelected.length === 0) return;
     setForced((prev) => {
@@ -953,10 +991,23 @@ function CsvImport({ categories, brands, onDone }: { categories: ProductCategory
   const rowStatus = (r: ImportRow): 'accepted' | 'excluded' | 'to_verify' =>
     r.storeUnknown ? 'to_verify' : r.eligibility.status;
 
-  // Distinct unmapped source categories in this file (profile needed to save).
-  const unmappedCats = useMemo(() => Array.from(new Set(
-    rows.filter((r) => r.profiled?.unmapped && !r.profiled.skip).map((r) => r.raw.source_category?.trim()).filter(Boolean) as string[],
-  )), [rows]);
+  // Unmapped source categories, grouped per real category path (the product
+  // name some scrapers append is dropped) — one mapping covers the group.
+  const unmappedGroups = useMemo(() => {
+    const m = new Map<string, { count: number; samples: string[] }>();
+    for (const r of rows) {
+      if (!r.profiled?.unmapped || r.profiled.skip) continue;
+      const sc = r.raw.source_category?.trim();
+      if (!sc) continue;
+      const key = categoryGroupKey(sc, r.raw.name_fr);
+      const g = m.get(key) ?? { count: 0, samples: [] };
+      g.count++;
+      if (g.samples.length < 3) g.samples.push(r.raw.name_fr ?? '');
+      m.set(key, g);
+    }
+    return [...m.entries()].map(([key, g]) => ({ key, ...g })).sort((a, b) => a.key.localeCompare(b.key));
+  }, [rows]);
+  const unmappedCats = unmappedGroups.map((g) => g.key);
   const untranslated = rows.filter((r) => r.profiled?.untranslated && !isSkipped(r) && !overrides[r.index]?.name_en
     && r.eligibility.status !== 'excluded');
 
@@ -986,6 +1037,29 @@ function CsvImport({ categories, brands, onDone }: { categories: ProductCategory
     if (!window.confirm(t('admin.imp_map_delete_confirm', { path: m.source_category }))) return;
     try { await deleteCategoryMapping(m.id); setMappings((ms) => ms.filter((x) => x.id !== m.id)); }
     catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
+  };
+
+  /** Save one mapping per ticked group in one go. */
+  const saveMappingsBulk = async (action: 'map' | 'skip') => {
+    if (!profile || pickedGroups.size === 0) return;
+    if (action === 'map' && (!bulkMap.category_id || !bulkMap.product_type)) { toast.error(t('common.required')); return; }
+    setBusy(true);
+    const saved: CategoryMapping[] = [];
+    try {
+      for (const key of pickedGroups) {
+        saved.push(await saveCategoryMapping({
+          profile_id: profile.id, source_category: key, action,
+          category_id: action === 'map' ? bulkMap.category_id : null,
+          product_type: action === 'map' ? (bulkMap.product_type as ProductType) : null,
+        }));
+      }
+      toast.success(t('admin.imp_map_bulk_saved', { count: saved.length }));
+      setPickedGroups(new Set());
+    } catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
+    finally {
+      if (saved.length) setMappings((ms) => [...ms.filter((m) => !saved.some((x) => x.source_category === m.source_category)), ...saved]);
+      setBusy(false);
+    }
   };
 
   const createProfile = async () => {
@@ -1065,7 +1139,7 @@ function CsvImport({ categories, brands, onDone }: { categories: ProductCategory
             is_active: active,
             store_id: r.storeId,
             is_alcoholic: r.eligibility.is_alcoholic,
-            requires_cold_chain: r.eligibility.requires_cold_chain,
+            requires_cold_chain: isFreshExclusion(r) ? true : r.eligibility.requires_cold_chain,
           });
           productId = prod.id;
         }
@@ -1107,6 +1181,17 @@ function CsvImport({ categories, brands, onDone }: { categories: ProductCategory
   };
 
   const sel = 'h-9 rounded-md border border-slate-300 bg-white px-2 text-sm';
+  // "Famille › Sous-catégorie" labels, families first then their children.
+  const categoryOptions = useMemo(() => {
+    const out: { id: string; label: string }[] = [];
+    const roots = categories.filter((c) => !c.parent_id).sort((a, b) => a.display_order - b.display_order);
+    for (const r of roots) {
+      out.push({ id: r.id, label: r.name_fr });
+      categories.filter((c) => c.parent_id === r.id).sort((a, b) => a.display_order - b.display_order)
+        .forEach((c) => out.push({ id: c.id, label: `${r.name_fr} › ${c.name_fr}` }));
+    }
+    return out;
+  }, [categories]);
 
   return (
     <div className="max-w-6xl">
@@ -1167,6 +1252,7 @@ function CsvImport({ categories, brands, onDone }: { categories: ProductCategory
                   ['strip_description_price_suffix', 'admin.imp_rule_desc'],
                   ['fix_price_x1000', 'admin.imp_rule_price'],
                   ['strip_slug_suffix', 'admin.imp_rule_slug'],
+                  ['strip_generic_description', 'admin.imp_rule_generic_desc'],
                 ] as const).map(([k, label]) => (
                   <label key={k} className="flex items-center gap-2">
                     <input type="checkbox" checked={!!rules[k]} onChange={(e) => void patchProfile({ rules: { ...rules, [k]: e.target.checked } })} />
@@ -1189,38 +1275,70 @@ function CsvImport({ categories, brands, onDone }: { categories: ProductCategory
           <h3 id="imp-map" className="font-semibold text-luna-navy">{t('admin.imp_mappings_title', { count: unmappedCats.length })}</h3>
           <p className="mt-1 text-xs text-slate-600">{profile ? t('admin.imp_mappings_intro') : t('admin.imp_need_profile')}</p>
           {profile && (
-            <ul className="mt-3 space-y-3">
-              {unmappedCats.map((sc) => {
-                const d = draftFor(sc);
-                return (
-                  <li key={sc} className="rounded-xl bg-white p-3 text-sm">
-                    <p className="font-mono text-xs text-slate-500 break-words">{sc}</p>
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <select aria-label={t('admin.imp_map_level')} className={sel} value={d.prefix} onChange={(e) => setDraft(sc, { prefix: e.target.value })}>
-                        {categoryPrefixes(sc).map((p) => <option key={p} value={p}>{p.split(' > ').slice(-1)[0]}{p === sc ? '' : ` (${t('admin.imp_map_parent')})`}</option>)}
-                      </select>
-                      <select aria-label={t('admin.imp_map_action')} className={sel} value={d.action} onChange={(e) => setDraft(sc, { action: e.target.value as 'map' | 'skip' })}>
-                        <option value="map">{t('admin.imp_map_action_map')}</option>
-                        <option value="skip">{t('admin.imp_map_action_skip')}</option>
-                      </select>
-                      {d.action === 'map' && (
-                        <>
-                          <select aria-label={t('admin.imp_map_category')} className={sel} value={d.category_id} onChange={(e) => setDraft(sc, { category_id: e.target.value })}>
-                            <option value="">{t('admin.imp_map_category')}…</option>
-                            {categories.map((c) => <option key={c.id} value={c.id}>{c.name_fr}</option>)}
-                          </select>
-                          <select aria-label={t('admin.imp_map_type')} className={sel} value={d.product_type} onChange={(e) => setDraft(sc, { product_type: e.target.value as ProductType })}>
-                            <option value="">{t('admin.imp_map_type')}…</option>
-                            {TYPE_KEYS.map((k) => <option key={k} value={k}>{t(`admin.imp_type_${k}`)}</option>)}
-                          </select>
-                        </>
-                      )}
-                      <Button type="button" size="sm" variant="navy" onClick={() => saveMapping(sc)} disabled={busy}>{t('admin.imp_map_save')}</Button>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+            <>
+              <div className="mt-3 flex flex-wrap items-end gap-2 rounded-xl bg-white p-3 text-sm shadow-sm">
+                <label className="flex items-center gap-2 font-medium">
+                  <input type="checkbox"
+                    checked={pickedGroups.size > 0 && pickedGroups.size === unmappedGroups.length}
+                    onChange={(e) => setPickedGroups(e.target.checked ? new Set(unmappedCats) : new Set())} />
+                  {t('admin.imp_map_pick_all', { count: unmappedGroups.length })}
+                </label>
+                <span className="text-xs text-slate-500">{t('admin.imp_map_picked', { count: pickedGroups.size })}</span>
+                <select aria-label={t('admin.imp_map_category')} className={sel} value={bulkMap.category_id} onChange={(e) => setBulkMap((b) => ({ ...b, category_id: e.target.value }))}>
+                  <option value="">{t('admin.imp_map_category')}…</option>
+                  {categoryOptions.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+                </select>
+                <select aria-label={t('admin.imp_map_type')} className={sel} value={bulkMap.product_type} onChange={(e) => setBulkMap((b) => ({ ...b, product_type: e.target.value as ProductType }))}>
+                  <option value="">{t('admin.imp_map_type')}…</option>
+                  {TYPE_KEYS.map((k) => <option key={k} value={k}>{t(`admin.imp_type_${k}`)}</option>)}
+                </select>
+                <Button type="button" size="sm" variant="navy" disabled={busy || pickedGroups.size === 0} onClick={() => saveMappingsBulk('map')}>
+                  {t('admin.imp_map_bulk_apply', { count: pickedGroups.size })}
+                </Button>
+                <Button type="button" size="sm" variant="outline" disabled={busy || pickedGroups.size === 0} onClick={() => saveMappingsBulk('skip')}>
+                  {t('admin.imp_map_bulk_skip', { count: pickedGroups.size })}
+                </Button>
+              </div>
+              <ul className="mt-3 space-y-2">
+                {unmappedGroups.map(({ key: sc, count, samples }) => {
+                  const d = draftFor(sc);
+                  return (
+                    <li key={sc} className="rounded-xl bg-white p-3 text-sm">
+                      <label className="flex items-start gap-2">
+                        <input type="checkbox" className="mt-1" checked={pickedGroups.has(sc)}
+                          onChange={(e) => setPickedGroups((prev) => { const n = new Set(prev); if (e.target.checked) n.add(sc); else n.delete(sc); return n; })} />
+                        <span className="min-w-0 flex-1">
+                          <span className="block font-mono text-xs text-slate-600 break-words">{sc}</span>
+                          <span className="block text-xs text-slate-400">{t('admin.brand_auto_n_products', { count })} · {samples.join(' · ')}</span>
+                        </span>
+                      </label>
+                      <div className="mt-2 flex flex-wrap items-center gap-2 pl-6">
+                        <select aria-label={t('admin.imp_map_level')} className={sel} value={d.prefix} onChange={(e) => setDraft(sc, { prefix: e.target.value })}>
+                          {categoryPrefixes(sc).map((p) => <option key={p} value={p}>{p.split(' > ').slice(-1)[0]}{p === sc ? '' : ` (${t('admin.imp_map_parent')})`}</option>)}
+                        </select>
+                        <select aria-label={t('admin.imp_map_action')} className={sel} value={d.action} onChange={(e) => setDraft(sc, { action: e.target.value as 'map' | 'skip' })}>
+                          <option value="map">{t('admin.imp_map_action_map')}</option>
+                          <option value="skip">{t('admin.imp_map_action_skip')}</option>
+                        </select>
+                        {d.action === 'map' && (
+                          <>
+                            <select aria-label={t('admin.imp_map_category')} className={sel} value={d.category_id} onChange={(e) => setDraft(sc, { category_id: e.target.value })}>
+                              <option value="">{t('admin.imp_map_category')}…</option>
+                              {categoryOptions.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+                            </select>
+                            <select aria-label={t('admin.imp_map_type')} className={sel} value={d.product_type} onChange={(e) => setDraft(sc, { product_type: e.target.value as ProductType })}>
+                              <option value="">{t('admin.imp_map_type')}…</option>
+                              {TYPE_KEYS.map((k) => <option key={k} value={k}>{t(`admin.imp_type_${k}`)}</option>)}
+                            </select>
+                          </>
+                        )}
+                        <Button type="button" size="sm" variant="navy" onClick={() => saveMapping(sc)} disabled={busy}>{t('admin.imp_map_save')}</Button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
           )}
         </section>
       )}
@@ -1252,6 +1370,16 @@ function CsvImport({ categories, brands, onDone }: { categories: ProductCategory
               <Button type="button" size="sm" variant="outline" onClick={translateAll} disabled={translating}>
                 <Languages className="h-3.5 w-3.5" />
                 {translating ? t('admin.imp_translating') : t('admin.imp_translate', { count: untranslated.length })}
+              </Button>
+            )}
+            <label className="inline-flex items-center gap-2 rounded-md border border-sky-200 bg-sky-50 px-2 py-1 text-xs text-sky-900" title={t('admin.imp_allow_fresh_hint')}>
+              <input type="checkbox" checked={allowFresh} onChange={(e) => setAllowFresh(e.target.checked)} />
+              {t('admin.imp_allow_fresh')}
+            </label>
+            {forceableAll.length > 0 && (
+              <Button type="button" size="sm" variant="outline" onClick={forceAll}>
+                <Check className="h-3.5 w-3.5" />
+                {t('admin.imp_force_all', { count: forceableAll.length })}
               </Button>
             )}
             {rows.length > 0 && (

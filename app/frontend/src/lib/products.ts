@@ -186,11 +186,33 @@ export async function deleteProduct(id: string) {
  *  of each product's fields. */
 export async function bulkUpdateProducts(
   ids: string[],
-  patch: Partial<Pick<Product, 'category_id' | 'brand_id' | 'is_active'>>,
+  patch: Partial<Pick<Product, 'category_id' | 'brand_id' | 'is_active' | 'weight_kg' | 'hs_code' | 'requires_cold_chain'>>,
 ) {
   if (ids.length === 0) return;
   const { error } = await supabase.from('products').update(patch).in('id', ids);
   if (error) throw error;
+}
+
+/** Update one product's own fields (bulk tools that write a different value per product). */
+export async function updateProductFields(
+  id: string,
+  patch: Partial<Pick<Product, 'name_en' | 'description_en' | 'description_fr' | 'weight_kg' | 'hs_code'>>,
+) {
+  const { error } = await supabase.from('products').update(patch).eq('id', id);
+  if (error) throw error;
+}
+
+/** Families first, each followed by its sub-categories, with "Famille › Sous-catégorie" labels. */
+export function orderedCategories(categories: ProductCategory[]): Array<{ category: ProductCategory; label: string; depth: 0 | 1 }> {
+  const byOrder = (a: ProductCategory, b: ProductCategory) => a.display_order - b.display_order || a.name_fr.localeCompare(b.name_fr);
+  const out: Array<{ category: ProductCategory; label: string; depth: 0 | 1 }> = [];
+  for (const root of categories.filter((c) => !c.parent_id).sort(byOrder)) {
+    out.push({ category: root, label: root.name_fr, depth: 0 });
+    for (const child of categories.filter((c) => c.parent_id === root.id).sort(byOrder)) {
+      out.push({ category: child, label: `${root.name_fr} › ${child.name_fr}`, depth: 1 });
+    }
+  }
+  return out;
 }
 
 export async function bulkDeleteProducts(ids: string[]) {
