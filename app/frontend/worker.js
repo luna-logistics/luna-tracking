@@ -11,6 +11,7 @@
  */
 
 import { ROUTES, urlFor, SUPPORTED_LANGS } from './src/lib/url/routes.data.mjs';
+import { buildMetaFeed } from './src/lib/meta-feed.mjs';
 
 // Every fixed route path, both languages (incl. non-indexable SPA routes like
 // /connexion, /compte/*, …) — the allow-list that keeps a real app route a 200
@@ -300,6 +301,55 @@ async function regenerateOg(request, env) {
   return json(200, { ok: true, generated_at: new Date().toISOString(), images });
 }
 
+// ─── Meta (Facebook/Instagram) catalogue feed ──────────────────────────
+// GET /feeds/meta-products.csv[?lang=en] — a CSV Meta pulls on a schedule
+// ("Data feed" in Commerce Manager). Built live from the public tables (RLS:
+// active products only), cached 1 h at the edge. See src/lib/meta-feed.mjs
+// for what is included / left out.
+const META_FEED = '/feeds/meta-products.csv';
+
+async function supaRows(env, path) {
+  const res = await fetch(`${env.SUPABASE_URL}/rest/v1/${path}`, {
+    headers: { apikey: env.SUPABASE_ANON_KEY, authorization: `Bearer ${env.SUPABASE_ANON_KEY}`, 'range-unit': 'items', range: '0-4999' },
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!res.ok) throw new Error(`${path.split('?')[0]} -> HTTP ${res.status}`);
+  return res.json();
+}
+
+async function serveMetaFeed(request, env) {
+  if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
+    return new Response('Feed unavailable', { status: 503, headers: { 'content-type': 'text/plain; charset=utf-8' } });
+  }
+  const url = new URL(request.url);
+  const lang = url.searchParams.get('lang') === 'en' ? 'en' : 'fr';
+  const cache = caches.default;
+  const cacheKey = new Request(`${url.origin}${META_FEED}?lang=${lang}`);
+  const hit = await cache.match(cacheKey);
+  if (hit) return hit;
+  try {
+    const [products, brands, categories] = await Promise.all([
+      supaRows(env, 'products?select=id,slug_fr,slug_en,name_fr,name_en,description_fr,description_en,price,image_url,category_id,brand_id,is_active,is_alcoholic&is_active=eq.true&order=name_fr'),
+      supaRows(env, 'brands?select=id,name_fr,name_en'),
+      supaRows(env, 'product_categories?select=id,slug,name_fr,name_en,parent_id'),
+    ]);
+    const { csv, included } = buildMetaFeed(products, brands, categories, { lang });
+    const res = new Response(request.method === 'HEAD' ? null : csv, {
+      headers: {
+        'content-type': 'text/csv; charset=utf-8',
+        'cache-control': 'public, max-age=3600',
+        'x-robots-tag': 'noindex',
+        'x-luna-feed-items': String(included),
+      },
+    });
+    if (request.method === 'GET') await cache.put(cacheKey, res.clone());
+    return res;
+  } catch (err) {
+    console.error('[worker] meta feed failed:', err && err.message ? err.message : err);
+    return new Response('Feed temporarily unavailable', { status: 503, headers: { 'content-type': 'text/plain; charset=utf-8', 'retry-after': '300' } });
+  }
+}
+
 // Login-only areas + auth screens (+ the og:image render pages). Mirrors the
 // noindex list in public/_headers and the Disallow list in public/robots.txt.
 // + /facture/:token (a customer's invoice page: personal data, never indexed).
@@ -313,6 +363,7 @@ export default {
     try {
       const { pathname } = new URL(request.url);
       if (pathname === OG_REGENERATE) return await regenerateOg(request, env);
+      if (pathname === META_FEED && (request.method === 'GET' || request.method === 'HEAD')) return await serveMetaFeed(request, env);
       const og = OG_IMAGE.exec(pathname);
       if (og && (request.method === 'GET' || request.method === 'HEAD')) return await serveOgImage(request, env, og[1]);
 
