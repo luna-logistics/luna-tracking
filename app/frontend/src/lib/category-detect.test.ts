@@ -53,3 +53,28 @@ describe('detectCategorySlug — cheese & dairy (family-restricted)', () => {
     expect(detectCategorySlug('BONI Flan Caramel 4x100g')).toBeNull();
   });
 });
+
+describe('detectCategorySlug — household cleaning (family-restricted)', () => {
+  const HOUSEHOLD = new Set(['laundry-detergents', 'dishwashing', 'bathroom-wc', 'all-purpose-cleaners', 'floors-furniture', 'window-cleaners', 'cleaning-basics', 'drain-cleaners', 'air-fresheners', 'sponges-cloths', 'mops-brooms', 'bins-bags', 'food-wrap', 'paper-towels', 'pest-humidity', 'shoe-care']);
+  it.each([
+    ['DASH pods color 26pc', 'laundry-detergents'],
+    ['LENOR perles parfum aérien 240g', 'laundry-detergents'],
+    ['FINISH ULTIMATE tabs regular 16pc', 'dishwashing'],
+    ['ECOVER vais.power bergamotte&sauge 450ml', 'dishwashing'],
+    ['HARPIC WC-gel 100% détartrant 750ml', 'bathroom-wc'],
+    ['AIR WICK PURE spray Coton 250ml', 'air-fresheners'],
+    ['DESTOP gel turbo 1L', 'drain-cleaners'],
+    ['VILEDA Dermoplus gant M 1p', 'sponges-cloths'],
+    ['SWIFFER Wet Refills citrus 24pc', 'mops-brooms'],
+    ['INTRADURA HVZ 60L 10pc', 'bins-bags'],
+    ['TOPPITS sachets congélation 40x1L', 'food-wrap'],
+    ['OKAY essuie-tout 2é 65f 4r', 'paper-towels'],
+    ['LA CROIX eau de javel 5L', 'cleaning-basics'],
+    ['CAROLIN nett.sol sav.marseille-orange 1L', 'floors-furniture'],
+    ['HG nettoyant pour vitres 500ml', 'window-cleaners'],
+    ['ÇA-VA-SEUL cirage chaussures noir 60ml', 'shoe-care'],
+    ['MR PROPRE nettoie-tout fleurs coton 2L', 'all-purpose-cleaners'],
+  ])('%s → %s', (name, slug) => {
+    expect(detectCategorySlug(name, HOUSEHOLD)).toBe(slug);
+  });
+});

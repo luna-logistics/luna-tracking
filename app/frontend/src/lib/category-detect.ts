@@ -68,6 +68,28 @@ const FOOD_RULES: Array<[string, RegExp]> = [
   ['sliced-cheese', /gouda|emmental|cheddar|abbaye|maasdammer|leerdammer|raclette|comte|gruyere|cubes|tranches|bloc|brugge|flandrien|beemster|hollander|amsterdam|passendale|maredsous|grimbergen|chimay|joseph|jambon 48|fromage/],
 ];
 
+/** Household cleaning ("Produits d'entretien ménager"), family-restricted like
+ *  the food rules. Order matters: brand-specific lines before generic words. */
+const HOUSEHOLD_RULES: Array<[string, RegExp]> = [
+  ['drain-cleaners', /destop|deboucheur|fosse|canalisation/],
+  ['pest-humidity', /baygon|insecte|humidit/],
+  ['shoe-care', /ca-va-seul|cirage|chaussures/],
+  ['dishwashing', /vaiss|vais\.|finish|^sun |lave-? ?vais|rincage|sel regenerant|dreft platinum|dreft recharge power spray/],
+  ['air-fresheners', /air wick|glade|febreze desodorisant|desod/],
+  ['laundry-detergents', /lessive|adouc|lenor|soupline|silan|pods|discs|persil|\bdash |ariel|vanish|dr\.beckmann (.*det|super blanc)|detach|teinture|blanchiment|^blan |eau ecarlate|wipp|^riem|additif du linge|seche-linge|sac a linge|calgon|anti-calcaire tablettes|machine a laver|nettoyant textile|omino|brosse adhesive textile|quick wash fiber/],
+  ['mops-brooms', /attrape|attr-pous|balai|raclette|plumeau|manche|ramassette|swiffer|superduster|ultra ?max|easy wring|lave-vitres|brosse (radiateur|a recurer|de lavage)|\bmop |serpilli/],
+  ['bathroom-wc', /wc|toilet|harpic|canard|glorix|antikal|salle de bain|sdb|douche|bomb\.t\.bloc|reservoir d'eau|entretien san|bref power activ gel|moisiss|detartrant|anti-calcaire/],
+  ['all-purpose-cleaners', /chiffon nettoy\.desinfectant|lingett/],
+  ['sponges-cloths', /eponge|lavette|microfib|gant|gomme|chiffon|recureur|torchon|scotch-brite|spongidou|kit de nettoyage|vaporisateur|goupillon/],
+  ['paper-towels', /essuie|serviette|^nalys|^okay/],
+  ['food-wrap', /aluminium|congelation|cong\.|glacons|film micro-ondes|feuille 3en1|barq\./],
+  ['bins-bags', /poubelle|sacs-poub|intradura|composteur/],
+  ['cleaning-basics', /javel|vinaigre|soude|bicarbonate|savon noir|alcool menager|ammoniaque|percarbonate/],
+  ['floors-furniture', /\bsol\b|\.sol|parquet|carrelage|pledge|yplon|\bcire\b|meuble|pierre naturel/],
+  ['window-cleaners', /vitre|fenetre|instanet/],
+  ['all-purpose-cleaners', /nettoie|nettoyant|nett\.|degraiss|cuisine|multi|recur|desinf/],
+];
+
 /** Accent/punctuation-light normalisation that keeps the characters the rules rely on (. / % & -). */
 function normalizeName(s: string): string {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\u2019/g, "'");
@@ -78,7 +100,7 @@ function normalizeName(s: string): string {
  *  product's family); without it only the historical hygiene/drinks rules run. */
 export function detectCategorySlug(name: string, allowed?: Set<string>): string | null {
   const n = normalizeName(name);
-  const rules = allowed ? [...RULES, ...FOOD_RULES] : RULES;
+  const rules = allowed ? [...RULES, ...FOOD_RULES, ...HOUSEHOLD_RULES] : RULES;
   for (const [slug, rx] of rules) {
     if (allowed && !allowed.has(slug)) continue;
     if (rx.test(n)) return slug;
