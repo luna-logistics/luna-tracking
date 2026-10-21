@@ -5,6 +5,7 @@
  * the variety of the shop.
  */
 import type { Brand, Product, ProductCategory } from '@/lib/products';
+import { byCategoryName } from '@/lib/sort-labels';
 import { normalizeBrandText } from '@/lib/brand-detect';
 
 export type SortMode = 'featured' | 'price_asc' | 'price_desc' | 'name_asc' | 'brand' | 'category';
@@ -17,7 +18,8 @@ const nameOf = (p: Product, lang: Lang) => (lang === 'en' ? p.name_en : p.name_f
 const cmpName = (a: Product, b: Product, lang: Lang) => nameOf(a, lang).localeCompare(nameOf(b, lang), lang, { sensitivity: 'base' });
 
 export function sortProducts(list: Product[], mode: SortMode, { categories, brands, lang }: Ctx): Product[] {
-  const catOrder = new Map(categories.map((c) => [c.id, c.display_order]));
+  // Categories rank A→Z by their name in the shopper's language.
+  const catOrder = new Map([...categories].sort(byCategoryName(lang)).map((c, i) => [c.id, i]));
   const brandName = new Map(brands.map((b) => [b.id, (lang === 'en' ? b.name_en : b.name_fr) ?? '']));
   const byCat = (a: Product, b: Product) => (catOrder.get(a.category_id) ?? 999) - (catOrder.get(b.category_id) ?? 999);
 

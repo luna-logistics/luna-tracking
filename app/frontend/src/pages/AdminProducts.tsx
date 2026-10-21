@@ -1187,17 +1187,11 @@ function CsvImport({ categories, brands, onDone }: { categories: ProductCategory
   };
 
   const sel = 'h-9 rounded-md border border-slate-300 bg-white px-2 text-sm';
-  // "Famille › Sous-catégorie" labels, families first then their children.
-  const categoryOptions = useMemo(() => {
-    const out: { id: string; label: string }[] = [];
-    const roots = categories.filter((c) => !c.parent_id).sort((a, b) => a.display_order - b.display_order);
-    for (const r of roots) {
-      out.push({ id: r.id, label: r.name_fr });
-      categories.filter((c) => c.parent_id === r.id).sort((a, b) => a.display_order - b.display_order)
-        .forEach((c) => out.push({ id: c.id, label: `${r.name_fr} › ${c.name_fr}` }));
-    }
-    return out;
-  }, [categories]);
+  // "Famille › Sous-catégorie" labels, families A→Z then their children A→Z.
+  const categoryOptions = useMemo(
+    () => orderedCategories(categories).map(({ category, label }) => ({ id: category.id, label })),
+    [categories],
+  );
 
   return (
     <div className="max-w-6xl">
@@ -1607,16 +1601,11 @@ function CategoriesEditor({
   // Render parents followed immediately by their own children, so the
   // family/sub-category relationship reads naturally top to bottom.
   const ordered = useMemo(() => {
-    const top = [...topLevel].sort((a, b) => a.display_order - b.display_order);
-    const rows: ProductCategory[] = [];
-    for (const p of top) {
-      rows.push(p);
-      categories.filter((c) => c.parent_id === p.id).sort((a, b) => a.display_order - b.display_order).forEach((c) => rows.push(c));
-    }
+    const rows = orderedCategories(categories).map((o) => o.category);
     const seen = new Set(rows.map((r) => r.id));
     categories.forEach((c) => { if (!seen.has(c.id)) rows.push(c); }); // orphans, just in case
     return rows;
-  }, [categories, topLevel]);
+  }, [categories]);
 
   const add = async () => {
     if (!slug || !nameFr || !nameEn) { toast.error(t('common.required')); return; }

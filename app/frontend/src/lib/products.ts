@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { byCategoryName, compareLabels } from '@/lib/sort-labels';
 
 export type ProductCategory = {
   id: string;
@@ -87,10 +88,12 @@ export function brandName(b: Brand, lang: 'fr' | 'en'): string {
   return lang === 'en' ? b.name_en : b.name_fr;
 }
 
+export { byCategoryName, compareLabels };
+
 export async function fetchProductCategories(): Promise<ProductCategory[]> {
-  const { data, error } = await supabase.from('product_categories').select('*').order('display_order');
+  const { data, error } = await supabase.from('product_categories').select('*');
   if (error) { console.warn('[products] categories fetch failed:', error.message); return []; }
-  return (data ?? []) as ProductCategory[];
+  return ((data ?? []) as ProductCategory[]).sort(byCategoryName());
 }
 
 /** The API returns at most 1000 rows per request — read page by page so a
@@ -144,9 +147,9 @@ export async function upsertProduct(p: Omit<Product, 'id'> & { id?: string }) {
 /** Active stores, ordered — used by the CSV import to resolve store_slug and
  *  by the Courses page store selector (later). */
 export async function fetchStores(): Promise<Store[]> {
-  const { data, error } = await supabase.from('stores').select('*').order('display_order');
+  const { data, error } = await supabase.from('stores').select('*');
   if (error) { console.warn('[stores] fetch failed:', error.message); return []; }
-  return (data ?? []) as Store[];
+  return ((data ?? []) as Store[]).sort((a, b) => compareLabels(a.name, b.name));
 }
 
 export async function upsertStore(s: Omit<Store, 'id'> & { id?: string }): Promise<Store> {
@@ -213,13 +216,13 @@ export async function updateProductFields(
   if (error) throw error;
 }
 
-/** Families first, each followed by its sub-categories, with "Famille › Sous-catégorie" labels. */
+/** Families A→Z, each followed by its sub-categories A→Z, with "Famille › Sous-catégorie" labels. */
 export function orderedCategories(categories: ProductCategory[]): Array<{ category: ProductCategory; label: string; depth: 0 | 1 }> {
-  const byOrder = (a: ProductCategory, b: ProductCategory) => a.display_order - b.display_order || a.name_fr.localeCompare(b.name_fr);
+  const byName = byCategoryName('fr');
   const out: Array<{ category: ProductCategory; label: string; depth: 0 | 1 }> = [];
-  for (const root of categories.filter((c) => !c.parent_id).sort(byOrder)) {
+  for (const root of categories.filter((c) => !c.parent_id).sort(byName)) {
     out.push({ category: root, label: root.name_fr, depth: 0 });
-    for (const child of categories.filter((c) => c.parent_id === root.id).sort(byOrder)) {
+    for (const child of categories.filter((c) => c.parent_id === root.id).sort(byName)) {
       out.push({ category: child, label: `${root.name_fr} › ${child.name_fr}`, depth: 1 });
     }
   }
@@ -244,9 +247,9 @@ export async function deleteCategory(id: string) {
 }
 
 export async function fetchBrands(): Promise<Brand[]> {
-  const { data, error } = await supabase.from('brands').select('*').order('display_order');
+  const { data, error } = await supabase.from('brands').select('*');
   if (error) { console.warn('[products] brands fetch failed:', error.message); return []; }
-  return (data ?? []) as Brand[];
+  return ((data ?? []) as Brand[]).sort((a, b) => compareLabels(a.name_fr, b.name_fr));
 }
 
 export async function upsertBrand(b: Omit<Brand, 'id'> & { id?: string }) {

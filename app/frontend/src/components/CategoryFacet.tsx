@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, SlidersHorizontal } from 'lucide-react';
-import { categoryName, type ProductCategory } from '@/lib/products';
+import { byCategoryName, categoryName, type ProductCategory } from '@/lib/products';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -15,8 +15,6 @@ type Props = {
   lang: 'fr' | 'en';
 };
 
-const byOrder = (a: ProductCategory, b: ProductCategory) => a.display_order - b.display_order;
-
 /** The category tree itself: families with counts, each expandable to its sub-categories. */
 function Tree({ categories, counts, total, value, onChange, lang, onPicked }: Props & { onPicked?: () => void }) {
   const { t } = useTranslation();
@@ -27,7 +25,8 @@ function Tree({ categories, counts, total, value, onChange, lang, onPicked }: Pr
   useEffect(() => { if (activeFamily) setOpen((s) => (s.has(activeFamily) ? s : new Set([...s, activeFamily]))); }, [activeFamily]);
 
   const pick = (id: string) => { onChange(id); onPicked?.(); };
-  const families = categories.filter((c) => !c.parent_id && ((counts.get(c.id) ?? 0) > 0 || c.id === value)).sort(byOrder);
+  const byName = byCategoryName(lang);
+  const families = categories.filter((c) => !c.parent_id && ((counts.get(c.id) ?? 0) > 0 || c.id === value)).sort(byName);
   const row = (selected: boolean) => cn(
     'flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-[13.5px] transition-colors',
     selected ? 'bg-luna-royal font-semibold text-white' : 'text-luna-ink hover:bg-luna-aqua/10',
@@ -44,7 +43,7 @@ function Tree({ categories, counts, total, value, onChange, lang, onPicked }: Pr
         </button>
       </li>
       {families.map((f) => {
-        const children = categories.filter((c) => c.parent_id === f.id && ((counts.get(c.id) ?? 0) > 0 || c.id === value)).sort(byOrder);
+        const children = categories.filter((c) => c.parent_id === f.id && ((counts.get(c.id) ?? 0) > 0 || c.id === value)).sort(byName);
         const isOpen = open.has(f.id);
         const listId = `facet-${f.id}`;
         return (

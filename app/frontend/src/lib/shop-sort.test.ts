@@ -14,8 +14,11 @@ const LIST = [
 ];
 
 describe('sortProducts', () => {
-  it('featured: interleaves categories so the first screen is varied', () => {
-    expect(sortProducts(LIST, 'featured', ctx).map((x) => x.id)).toEqual(['w1', 'd1', 'a1', 'w2', 'w3']);
+  it('featured: interleaves categories (A→Z) so the first screen is varied', () => {
+    expect(sortProducts(LIST, 'featured', ctx).map((x) => x.id)).toEqual(['a1', 'd1', 'w1', 'w2', 'w3']);
+  });
+  it('category: categories A→Z by name, whatever their display order', () => {
+    expect(sortProducts(LIST, 'category', ctx).map((x) => x.id)).toEqual(['a1', 'd1', 'w1', 'w2', 'w3']);
   });
   it('featured: photo products come first inside a category', () => {
     const l = [p('w1', 'w', 'A', 1, null), p('w2', 'w', 'B', 1, 'img')];
