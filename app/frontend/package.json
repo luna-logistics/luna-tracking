@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/check-i18n.mjs && node scripts/check-calc-figures.mjs && tsc -p tsconfig.app.json --noEmit && vite build && node scripts/generate-sitemap.mjs && node scripts/generate-llms.mjs && node scripts/prerender-metas.mjs && node scripts/check-sitemap.mjs",
+    "build": "node scripts/check-i18n.mjs && node scripts/check-calc-figures.mjs && tsc -p tsconfig.app.json --noEmit && vite build && node scripts/check-php-exposure.mjs --ci && node scripts/generate-sitemap.mjs && node scripts/generate-llms.mjs && node scripts/prerender-metas.mjs && node scripts/check-sitemap.mjs",
     "lint": "eslint --quiet ./src",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
@@ -14,6 +14,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:eligibility": "node scripts/check-eligibility.mjs",
+    "check-php": "node scripts/check-php-exposure.mjs",
+    "test:php-exposure": "node --test scripts/__tests__/php-exposure.test.mjs",
     "test:scraper": "node --test scripts/scraper/__tests__/scraper.test.mjs scripts/scraper/__tests__/robustness.test.mjs scripts/scraper/__tests__/jobstore.test.mjs",
     "probe": "node scripts/scrape.mjs probe",
     "scrape": "node scripts/scrape.mjs scrape",
