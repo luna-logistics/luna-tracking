@@ -1,3 +1,4 @@
+import { trackEvent } from '@/lib/analytics';
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -31,6 +32,7 @@ export default function Login() {
       toast.error(error.message);
       return;
     }
+    trackEvent('login', { method: 'email' });
     // Admins land on /admin (never on the client onboarding pick) unless
     // they were bounced here from a specific protected page.
     let target = from;

@@ -124,6 +124,18 @@ export default function ShopAndShip() {
   }), [lines, productsById, loading]);
   const availableRows = cartRows.filter((r) => !r.unavailable);
   const revalidatedTotal = availableRows.reduce((s, r) => s + r.newPrice * r.l.quantity, 0);
+
+  // Funnel step between add_to_cart and the order: the visitor opened the checkout form.
+  useEffect(() => {
+    if (view !== 'checkout' || availableRows.length === 0) return;
+    trackEvent('begin_checkout', {
+      currency: 'EUR',
+      value: revalidatedTotal,
+      item_count: availableRows.reduce((n, r) => n + r.l.quantity, 0),
+      items: availableRows.map((r) => ({ item_id: r.l.product_id, item_name: r.l.name, price: r.newPrice, quantity: r.l.quantity })),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view]);
   const priceChanges = cartRows.filter((r) => r.priceChanged && !r.unavailable);
   const hasUnavailable = cartRows.some((r) => r.unavailable);
 

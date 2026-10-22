@@ -1,3 +1,4 @@
+import { trackEvent } from '@/lib/analytics';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -37,6 +38,7 @@ export default function BusinessCreate() {
       const biz = await createBusiness({ name, country, currency });
       await refresh();
       select(biz.id);
+      trackEvent('business_created', { country, currency });
       navigate(urlFor('businessDashboard', lang), { replace: true });
     } catch (err) {
       console.error('[business-create] failed', err);

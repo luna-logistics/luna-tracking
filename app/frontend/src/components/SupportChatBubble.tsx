@@ -1,3 +1,4 @@
+import { trackEvent } from '@/lib/analytics';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -231,6 +232,7 @@ function AuthedBubbleBody() {
       if (!id) {
         const conv = await createConversation(null);
         id = conv.id; setConvId(id);
+        trackEvent('chat_started', { has_account: true });
       }
       const m = await sendMessage(id, body);
       setMessages((prev) => appendMessage(prev, m));
@@ -343,6 +345,7 @@ function GuestBubbleBody() {
       const proof = await shield.getProof();
       const row = await guestCreateConversation({ email, name, subject: '', body: firstMessage, captcha: proof.captcha, hp: proof.hp });
       writeGuestToken(row.guest_token);
+      trackEvent('chat_started', { has_account: false });
       const fresh = await guestFetchConversation(row.guest_token);
       setConv(fresh);
       setFirstMessage('');

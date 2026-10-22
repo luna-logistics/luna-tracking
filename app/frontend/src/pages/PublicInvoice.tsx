@@ -1,3 +1,4 @@
+import { trackEventOnce } from '@/lib/analytics';
 import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -40,6 +41,18 @@ export default function PublicInvoice() {
     void load();
     return () => { cancelled = true; };
   }, [token, returnState]);
+
+  // Invoice settled online: back from Stripe AND the webhook marked it paid.
+  // transaction_id is the invoice number, never the secret payment token.
+  useEffect(() => {
+    if (returnState !== 'ok' || !inv || inv.status !== 'paid' || !inv.number) return;
+    trackEventOnce(`invoice_${inv.number}`, 'purchase', {
+      transaction_id: inv.number,
+      value: Number(inv.total),
+      currency: inv.currency,
+      purchase_type: 'invoice',
+    });
+  }, [returnState, inv]);
 
   const pay = async () => {
     setPaying(true); setPayError(null);

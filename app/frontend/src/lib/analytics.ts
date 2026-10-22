@@ -150,6 +150,18 @@ export function trackEvent(name: string, params: Record<string, string | number 
   } catch { /* analytics must never break a user flow */ }
 }
 
+/** Fire a business event at most once per `key` on this browser (a reload of
+ *  the Stripe return page must not count the same sale twice). */
+export function trackEventOnce(key: string, name: string, params: Parameters<typeof trackEvent>[1] = {}): void {
+  try {
+    if (!analyticsEnabled || !window.gtag) return;
+    const k = `luna_ev_${key}`;
+    if (localStorage.getItem(k)) return;
+    localStorage.setItem(k, '1');
+  } catch { /* storage blocked: fall through and send */ }
+  trackEvent(name, params);
+}
+
 /** GA4 event name → Meta standard event. Every trackEvent() call site is
  *  mirrored to the pixel through this table, so adding a business event in
  *  one place feeds both tools. Only fires once the visitor accepted the
@@ -163,6 +175,9 @@ const META_EVENTS: Record<string, string> = {
   sign_up: 'CompleteRegistration',
   contact_click: 'Contact',
   tracking_search: 'Search',
+  purchase: 'Purchase',
+  view_item: 'ViewContent',
+  chat_started: 'Contact',
 };
 
 function trackMetaEvent(name: string, params: Record<string, unknown>): void {

@@ -1,3 +1,4 @@
+import { trackEvent } from '@/lib/analytics';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -37,6 +38,9 @@ export default function AuthCallback() {
         navigate(urlFor('login', lang), { replace: true });
         return;
       }
+      // Social sign-in only (email logins fire their own event on the form).
+      let provider: string | null = null;
+      try { provider = sessionStorage.getItem('luna_oauth_provider'); sessionStorage.removeItem('luna_oauth_provider'); } catch { /* ignore */ }
       const { data: admin } = await supabase.rpc('is_admin', { uid: data.session.user.id });
       if (cancelled) return;
       if (admin === true) {
@@ -45,6 +49,7 @@ export default function AuthCallback() {
       }
       const profile = await fetchProfile(data.session.user.id);
       if (cancelled) return;
+      if (provider) trackEvent(!profile?.onboarded_at ? 'sign_up' : 'login', { method: provider });
       if (!profile?.onboarded_at || !profile?.account_type) {
         navigate(urlFor('onboarding', lang), { replace: true });
         return;

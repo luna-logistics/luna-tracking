@@ -29,6 +29,7 @@ export async function setProviderEnabled(id: string, enabled: boolean) {
  *  success Supabase redirects to `/auth/callback` where our AuthCallback
  *  page resolves the session and sends the user home. */
 export async function signInWithProvider(provider: Provider): Promise<void> {
+  try { sessionStorage.setItem('luna_oauth_provider', String(provider)); } catch { /* ignore */ }
   const { error } = await supabase.auth.signInWithOAuth({
     provider,
     options: { redirectTo: `${window.location.origin}/auth/callback` },

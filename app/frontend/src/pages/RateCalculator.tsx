@@ -154,6 +154,26 @@ export default function RateCalculator() {
 
   const hasAnyInput = size.used > 0 || parseDecimal(volume) != null;
 
+  // Calculator engagement: the first time a price is actually shown (debounced
+  // so typing "12" doesn't fire at "1"). Once per page view. No weights/sizes.
+  const [calcTracked, setCalcTracked] = useState(false);
+  useEffect(() => {
+    if (calcTracked || !quote) return;
+    const priced = MODES.filter((m) => quote[m].kind === 'price');
+    if (priced.length === 0) return;
+    const id = window.setTimeout(() => {
+      setCalcTracked(true);
+      const totals = priced.map((m) => (quote[m] as PricedResult).totalCents);
+      trackEvent('calculator_result', {
+        destination: String(destination),
+        modes_priced: priced.join(','),
+        value: Math.min(...totals) / 100,
+        currency: 'EUR',
+      });
+    }, 1500);
+    return () => window.clearTimeout(id);
+  }, [quote, calcTracked, destination]);
+
   useEffect(() => {
     if (!quote) return;
     const parts = MODES.map((m) => {

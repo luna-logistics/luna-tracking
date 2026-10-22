@@ -1,3 +1,4 @@
+import { trackEvent } from '@/lib/analytics';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -37,6 +38,7 @@ export default function Onboarding() {
     try {
       await setAccountType(user.id, type);
       await refresh();
+      trackEvent('onboarding_completed', { account_type: type });
       navigate(type === 'business' ? urlFor('businessDashboard', lang) : urlFor('account', lang), { replace: true });
     } catch (err) {
       console.error('[onboarding] setAccountType failed', err);

@@ -1,3 +1,4 @@
+import { trackEvent } from '@/lib/analytics';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -31,6 +32,15 @@ export default function ShopAndShipProduct() {
     Promise.all([fetchProductBySlug(lang, slug), fetchProductCategories(), fetchBrands()])
       .then(([p, cats, b]) => { setProduct(p); setCategories(cats); setBrands(b); setLoading(false); });
   }, [slug, lang]);
+
+  useEffect(() => {
+    if (!product) return;
+    trackEvent('view_item', {
+      currency: 'EUR',
+      value: product.price,
+      items: [{ item_id: product.id, item_name: productName(product, lang), price: product.price }],
+    });
+  }, [product?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!product) { setLangUrls(null); return; }

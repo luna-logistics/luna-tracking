@@ -1,3 +1,4 @@
+import { trackEventOnce } from '@/lib/analytics';
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -51,6 +52,19 @@ export default function AccountOrders() {
   };
 
   const returned = orders.find((o) => o.id === returnOrder);
+
+  // Sale confirmed: back from Stripe AND the webhook has marked the order paid
+  // (so a hand-typed ?paiement=ok on an unpaid order counts nothing).
+  useEffect(() => {
+    if (returnState !== 'ok' || !returned || returned.status === 'pending_payment' || returned.status === 'cancelled') return;
+    trackEventOnce(`purchase_${returned.id}`, 'purchase', {
+      transaction_id: returned.id,
+      value: Number(returned.total),
+      currency: 'EUR',
+      purchase_type: 'shop_order',
+      items: returned.items.map((i) => ({ item_id: i.product_id, item_name: i.name, price: i.unit_price, quantity: i.quantity })),
+    });
+  }, [returnState, returned]);
 
   return (
     <>
