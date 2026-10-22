@@ -8,6 +8,7 @@ import { urlFor } from '@/lib/url/routes';
 import { useContent } from '@/contexts/SiteContentContext';
 import { Ed } from '@/components/Ed';
 import { HeroBackground } from '@/components/HeroBackground';
+import { BackToTop } from '@/components/BackToTop';
 
 export default function BlogIndex() {
   const { t, i18n } = useTranslation();
@@ -97,6 +98,7 @@ export default function BlogIndex() {
           )}
         </div>
       </section>
+      <BackToTop />
     </>
   );
 }

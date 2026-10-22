@@ -89,3 +89,16 @@
      viewport bottom on short pages instead of floating mid-screen. */
   main { min-height: calc(100vh - 64px - 320px); }
 }
+
+/* Blog article headings: anchor target offset (sticky navbar) + "#" link. */
+.blog-heading { scroll-margin-top: 5.5rem; }
+.blog-heading .blog-anchor {
+  margin-left: 0.4em;
+  font-weight: 400;
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.blog-heading:hover .blog-anchor,
+.blog-heading .blog-anchor:focus { opacity: 0.5; }
+@media (hover: none) { .blog-heading .blog-anchor { display: none; } }

@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, CalendarDays } from 'lucide-react';
+import { ArrowLeft, CalendarDays, ListTree } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { JsonLd } from '@/components/JsonLd';
 import { articleGraph } from '@/lib/seo/jsonld.data.mjs';
@@ -14,6 +14,8 @@ import {
 import { urlFor } from '@/lib/url/routes';
 import { sanitizeBlogHtml } from '@/lib/rich-content';
 import { useLangUrls } from '@/contexts/LangUrlContext';
+import { BackToTop } from '@/components/BackToTop';
+import { addBlogAnchors, scrollToSection } from '@/lib/blog-toc';
 
 const SITE_URL = 'https://lunatrackinglogistics.com';
 
@@ -42,6 +44,24 @@ export default function BlogPostPage() {
     return () => setLangUrls(null);
   }, [post, setLangUrls]);
 
+  const faqItems = post ? postFaq(post, lang) : [];
+  const { html: bodyHtml, toc } = useMemo(
+    () => addBlogAnchors(sanitizeBlogHtml(post ? postContent(post, lang) : '')),
+    [post, lang],
+  );
+  const tocItems = faqItems.length > 0
+    ? [...toc, { id: 'faq-heading', text: t('blog.faq_heading'), level: 2 as const }]
+    : toc;
+
+  // Deep link (/blog/slug#section): the body renders after the fetch, so the
+  // browser's native hash scroll has nothing to land on yet.
+  useEffect(() => {
+    if (!post || !window.location.hash) return;
+    const id = decodeURIComponent(window.location.hash.slice(1));
+    const timer = window.setTimeout(() => scrollToSection(id), 50);
+    return () => window.clearTimeout(timer);
+  }, [post]);
+
   if (loading) {
     return <div className="py-24 text-center text-slate-500">{t('common.loading')}</div>;
   }
@@ -66,11 +86,10 @@ export default function BlogPostPage() {
   }
 
   const title = postTitle(post, lang);
-  const body  = postContent(post, lang);
   const langSlug = lang === 'en' ? post.slug_en : post.slug_fr;
   const canonical = `${SITE_URL}${lang === 'en' ? `/en/blog/${langSlug}` : `/blog/${langSlug}`}`;
 
-  const faq = postFaq(post, lang);
+  const faq = faqItems;
   const heroImg = postImage(post, lang);
 
   // Article + BreadcrumbList (+ FAQPage when the post has a FAQ), from the
@@ -125,14 +144,41 @@ export default function BlogPostPage() {
             />
           )}
 
+          {tocItems.length >= 3 && (
+            <nav aria-label={t('blog.toc_heading')} className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+              <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-luna-navy">
+                <ListTree className="h-4 w-4" aria-hidden="true" /> {t('blog.toc_heading')}
+              </p>
+              <ol className="mt-3 space-y-1.5 text-sm">
+                {tocItems.map((item) => (
+                  <li key={item.id}>
+                    <a
+                      href={`#${item.id}`}
+                      onClick={(e) => { e.preventDefault(); scrollToSection(item.id); }}
+                      className="text-luna-blue hover:underline"
+                    >
+                      {item.text}
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            </nav>
+          )}
+
           <div
             className="prose prose-slate max-w-none mt-8 prose-headings:text-luna-navy prose-a:text-luna-blue"
-            dangerouslySetInnerHTML={{ __html: sanitizeBlogHtml(body) }}
+            onClick={(e) => {
+              const a = (e.target as HTMLElement).closest('a[data-blog-anchor]');
+              if (!a) return;
+              e.preventDefault();
+              scrollToSection(a.getAttribute('href')!.slice(1));
+            }}
+            dangerouslySetInnerHTML={{ __html: bodyHtml }}
           />
 
           {faq.length > 0 && (
-            <section className="mt-12 border-t border-slate-200 pt-8" aria-labelledby="faq-heading">
-              <h2 id="faq-heading" className="text-2xl font-bold text-luna-navy">{t('blog.faq_heading')}</h2>
+            <section className="mt-12 scroll-mt-24 border-t border-slate-200 pt-8" id="faq" aria-labelledby="faq-heading">
+              <h2 id="faq-heading" className="scroll-mt-24 text-2xl font-bold text-luna-navy">{t('blog.faq_heading')}</h2>
               <dl className="mt-6 space-y-6">
                 {faq.map((f, i) => (
                   <div key={i}>
@@ -145,6 +191,7 @@ export default function BlogPostPage() {
           )}
         </div>
       </article>
+      <BackToTop />
     </>
   );
 }

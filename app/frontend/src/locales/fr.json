@@ -2399,7 +2399,9 @@
     "empty": "Aucun article publié pour le moment.",
     "not_found_title": "Article introuvable",
     "not_found_body": "Cet article n'existe pas ou a été retiré.",
-    "faq_heading": "Questions fréquentes"
+    "faq_heading": "Questions fréquentes",
+    "toc_heading": "Dans cet article",
+    "back_to_top": "Retour en haut de la page"
   },
   "admin_blog": {
     "title": "Blog",
