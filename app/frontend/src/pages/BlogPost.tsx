@@ -16,6 +16,7 @@ import { sanitizeBlogHtml } from '@/lib/rich-content';
 import { useLangUrls } from '@/contexts/LangUrlContext';
 import { BackToTop } from '@/components/BackToTop';
 import { addBlogAnchors, scrollToSection } from '@/lib/blog-toc';
+import { trackEvent } from '@/lib/analytics';
 
 const SITE_URL = 'https://lunatrackinglogistics.com';
 
@@ -52,6 +53,27 @@ export default function BlogPostPage() {
   const tocItems = faqItems.length > 0
     ? [...toc, { id: 'faq-heading', text: t('blog.faq_heading'), level: 2 as const }]
     : toc;
+
+  // Reading depth: one event per 25/50/75/100 % of the article, once each.
+  useEffect(() => {
+    if (!post) return;
+    const postSlug = lang === 'en' ? post.slug_en : post.slug_fr;
+    const sent = new Set<number>();
+    const onScroll = () => {
+      const el = document.querySelector('article');
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const pct = ((window.innerHeight - r.top) / r.height) * 100;
+      for (const step of [25, 50, 75, 100]) {
+        if (pct >= step && !sent.has(step)) {
+          sent.add(step);
+          trackEvent('blog_scroll_depth', { post_slug: postSlug, percent: step, language: lang });
+        }
+      }
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [post, lang]);
 
   // Deep link (/blog/slug#section): the body renders after the fetch, so the
   // browser's native hash scroll has nothing to land on yet.
@@ -154,7 +176,11 @@ export default function BlogPostPage() {
                   <li key={item.id}>
                     <a
                       href={`#${item.id}`}
-                      onClick={(e) => { e.preventDefault(); scrollToSection(item.id); }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        trackEvent('blog_toc_click', { post_slug: langSlug, section_id: item.id, language: lang });
+                        scrollToSection(item.id);
+                      }}
                       className="text-luna-blue hover:underline"
                     >
                       {item.text}

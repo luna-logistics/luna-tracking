@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowUp } from 'lucide-react';
+import { trackEvent } from '@/lib/analytics';
 
 /** Floating "back to top" button, bottom-left (the support chat owns bottom-right). */
 export function BackToTop() {
@@ -17,7 +18,10 @@ export function BackToTop() {
   return (
     <button
       type="button"
-      onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+      onClick={() => {
+        trackEvent('back_to_top_click', { page_path: window.location.pathname });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }}
       aria-label={t('blog.back_to_top')}
       title={t('blog.back_to_top')}
       tabIndex={visible ? 0 : -1}

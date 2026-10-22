@@ -9,6 +9,7 @@ import { useContent } from '@/contexts/SiteContentContext';
 import { Ed } from '@/components/Ed';
 import { HeroBackground } from '@/components/HeroBackground';
 import { BackToTop } from '@/components/BackToTop';
+import { trackEvent } from '@/lib/analytics';
 
 export default function BlogIndex() {
   const { t, i18n } = useTranslation();
@@ -58,6 +59,7 @@ export default function BlogIndex() {
                   <Link
                     key={p.id}
                     to={url}
+                    onClick={() => trackEvent('blog_post_click', { post_slug: postSlug(p, lang), language: lang })}
                     className="group rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-md hover:border-luna-blue/40 transition-shadow"
                   >
                     {postImage(p, lang) ? (
