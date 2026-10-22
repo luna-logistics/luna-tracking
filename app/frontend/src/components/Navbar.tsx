@@ -72,7 +72,7 @@ export function Navbar() {
 
   const pill = (active: boolean) =>
     cn(
-      'px-3 py-2 rounded-lg text-[13px] whitespace-nowrap transition-colors border',
+      'px-2.5 py-2 xl:px-3 rounded-lg text-[13px] whitespace-nowrap transition-colors border',
       active
         ? 'bg-luna-aqua border-luna-aqua text-luna-ink font-semibold hover:bg-luna-aqua2 hover:border-luna-aqua2'
         : 'bg-luna-royal border-luna-hair text-[#E4EDF9] font-medium hover:bg-luna-azure hover:border-[#4A6FA0]',
@@ -97,7 +97,7 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-40 w-full bg-luna-ink border-b border-luna-aqua/20">
-      <div className="mx-auto flex max-w-[1220px] flex-nowrap items-center gap-x-2 px-3 py-1.5 sm:gap-x-3 sm:px-8 lg:px-5 lg:py-2.5">
+      <div className="mx-auto flex max-w-[1360px] flex-nowrap items-center gap-x-2 px-3 py-1.5 sm:gap-x-3 sm:px-6 lg:px-3 lg:py-2.5">
         {/* Logo — far left */}
         <Link to={urlFor('home', lang)} className="flex-none flex items-center gap-2.5" aria-label={t('brand.name')}>
           <img src="/brand/luna-icon-64.webp" srcSet="/brand/luna-icon-44.webp 44w, /brand/luna-icon-64.webp 64w, /brand/luna-icon.webp 88w" sizes="(min-width: 1024px) 44px, 30px" alt="" aria-hidden="true" className="block h-[30px] w-auto lg:h-11" width={44} height={44} />
@@ -110,7 +110,7 @@ export function Navbar() {
         </Link>
 
         {/* Inline nav — centered, single row (>= navfull) */}
-        <nav className="hidden navfull:flex flex-1 min-w-0 items-center justify-center gap-1.5 xl:gap-2" aria-label={t('nav.main_navigation')}>
+        <nav className="hidden navfull:flex flex-1 min-w-0 items-center [justify-content:safe_center] gap-1 xl:gap-2" aria-label={t('nav.main_navigation')}>
           {linksBefore.map((l) => (
             <Link key={l.to} to={l.to} aria-current={isActive(l.to) ? 'page' : undefined} className={pill(isActive(l.to))}>
               {l.label}
