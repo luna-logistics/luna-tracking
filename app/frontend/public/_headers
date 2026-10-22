@@ -7,10 +7,22 @@
 # subdomain will ever need HTTP; the flag is safe to ship without
 # actually submitting there. Redirect HTTP→HTTPS itself is handled by
 # the "Always Use HTTPS" toggle at the Cloudflare zone level.
+# CSP is REPORT-ONLY on purpose (2026-10-22 decision): it blocks nothing, the
+# browser only logs "[Report Only] Refused to …" in the console. Do NOT switch
+# it to an enforcing Content-Security-Policy before the violation list has been
+# reviewed (docs/SECURITE-PHP.md); `pnpm check-php` fails the build if an
+# enforcing CSP line appears here. No report-uri: there is no collector yet.
+# Allow-list = what the site really loads: Supabase (REST/auth/functions/
+# realtime/storage images), Cloudflare Turnstile, gtag + Meta pixel (after
+# cookie consent), Google Maps embed (Contact page), GitHub API (admin rebuild
+# status). Stripe Checkout is a hosted page reached by redirect, so it needs no
+# entry. style-src keeps 'unsafe-inline' (inline <style> + React style props).
+# No Permissions-Policy: it has no usable report-only mode, so it would block.
 /*
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' https://challenges.cloudflare.com https://www.googletagmanager.com https://connect.facebook.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://zlpzajjfzezjildvchoz.supabase.co https://*.google-analytics.com https://*.googletagmanager.com https://www.facebook.com; font-src 'self' data:; connect-src 'self' https://zlpzajjfzezjildvchoz.supabase.co wss://zlpzajjfzezjildvchoz.supabase.co https://zlpzajjfzezjildvchoz.functions.supabase.co https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://www.facebook.com https://connect.facebook.net https://api.github.com; frame-src https://www.google.com https://challenges.cloudflare.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'
 
 # ─── Private / auth surfaces — never indexed ────────────────────────────
 # These are SPA routes served the home index.html as a fallback (no
