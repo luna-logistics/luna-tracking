@@ -1,3 +1,4 @@
+import { ContactEmails } from '@/components/ContactEmails';
 import { useMemo, useState } from 'react';
 import { trackEvent } from '@/lib/analytics';
 import { writeGuestToken } from '@/lib/support-chat';
@@ -564,7 +565,7 @@ export default function Forwarding() {
               </div>
               <div className="min-w-0 border-t border-[#D9E2EC] pt-[18px]">
                 <p className="mb-2.5 text-[13px] font-semibold uppercase tracking-[.1em] text-luna-royal">{t('forwarding.contact_email_label')}</p>
-                <p className="break-words text-[17px] leading-[1.6]"><a href={`mailto:${t('footer.email')}`} className="text-luna-sky hover:underline">{t('footer.email')}</a></p>
+                <p className="break-words text-[17px] leading-[1.6]"><ContactEmails className="text-luna-sky hover:underline" /></p>
               </div>
               <div className="min-w-0 border-t border-[#D9E2EC] pt-[18px]">
                 <p className="mb-2.5 text-[13px] font-semibold uppercase tracking-[.1em] text-luna-royal">{t('forwarding.contact_insta_label')}</p>

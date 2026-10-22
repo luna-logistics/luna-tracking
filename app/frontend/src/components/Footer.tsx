@@ -1,3 +1,4 @@
+import { ContactEmails } from '@/components/ContactEmails';
 import { openConsentBanner } from '@/lib/consent';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -111,9 +112,7 @@ export function Footer() {
                 )}
                 <li className="flex items-start gap-2">
                   <Mail className="h-4 w-4 mt-0.5 shrink-0 text-luna-sky" aria-hidden="true" />
-                  <a href={`mailto:${email}`} className="hover:text-white break-all">
-                    {email}
-                  </a>
+                  <div><ContactEmails className="hover:text-white break-all" /></div>
                 </li>
                 <li className="flex items-start gap-2">
                   <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-luna-sky" aria-hidden="true" />

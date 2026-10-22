@@ -185,7 +185,7 @@ export default function AdminSupport() {
               <Input
                 value={notify.recipient_email}
                 onChange={(e) => patchNotify({ recipient_email: e.target.value })}
-                placeholder="ex: contact@lunatrackinglogistics.com, admin@..."
+                placeholder="ex: veronique@lunatrackinglogistics.com, lina@lunatrackinglogistics.com"
                 className="mt-1 h-9 text-sm bg-white"
               />
               <p className="text-[11px] text-slate-500 mt-1">{t('admin_support.notify_recipient_help')}</p>

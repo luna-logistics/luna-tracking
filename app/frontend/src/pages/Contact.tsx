@@ -1,3 +1,4 @@
+import { ContactEmails } from '@/components/ContactEmails';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { trackEvent } from '@/lib/analytics';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -679,7 +680,7 @@ export default function Contact() {
               ))}
               <div className="flex flex-wrap gap-2 text-[14px]">
                 <dt className="font-semibold text-luna-ink">{t('contact.legal_label_email')} :</dt>
-                <dd><a href={`mailto:${email}`} className={`text-luna-azure hover:underline ${ringLight}`}>{email}</a></dd>
+                <dd><ContactEmails className={`text-luna-azure hover:underline ${ringLight}`} /></dd>
               </div>
             </dl>
             <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-[13px]">

@@ -1,3 +1,4 @@
+import { CONTACT_EMAILS } from '@/lib/contact-emails';
 import { useTranslation } from 'react-i18next';
 import { useContent } from '@/contexts/SiteContentContext';
 
@@ -20,7 +21,7 @@ export function useLegalIdentity() {
     registeredOffice: useContent('legal', 'registered_office', t('legal_identity.registered_office')),
     publisher:        useContent('legal', 'publisher',         t('legal_identity.publisher')),
     agency:           t('footer.address'),
-    email:            t('footer.email'),
+    email:            CONTACT_EMAILS.join(' / '),
     phone:            useContent('contact', 'phone', t('contact.phone')),
   };
 }

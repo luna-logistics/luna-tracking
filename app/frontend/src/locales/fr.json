@@ -47,7 +47,6 @@
     "contact_title": "Nous contacter",
     "address": "Rue de l'Automne 59, 1050 Ixelles",
     "address_kinshasa": "8e rue Industrielle n° 22, Limete, Kinshasa",
-    "email": "info@lunatrackinglogistics.com",
     "instagram": "Instagram",
     "instagram_handle": "@Luna_TrackingLogistics",
     "legal": "© {{year}} Luna Tracking Logistics. Tous droits réservés.",
@@ -134,7 +133,7 @@
     "submit": "Suivre mon colis",
     "loading": "Recherche en cours…",
     "unavailable_title": "Suivi temporairement indisponible",
-    "unavailable_body": "Notre service de suivi en ligne n'est pas encore actif. Contactez-nous à info@lunatrackinglogistics.com avec votre numéro de suivi et nous vous répondrons sous un jour ouvré.",
+    "unavailable_body": "Notre service de suivi en ligne n'est pas encore actif. Contactez-nous à veronique@lunatrackinglogistics.com ou lina@lunatrackinglogistics.com avec votre numéro de suivi et nous vous répondrons sous un jour ouvré.",
     "empty_result": "Aucun colis trouvé pour ce numéro de suivi. Vérifiez-le ou contactez-nous.",
     "map_alt": "Carte illustrant les trajets de fret entre la Belgique et le Congo : par avion de Bruxelles vers Kinshasa et Lubumbashi, par bateau d'Anvers vers Kinshasa via Matadi",
     "map_preview_note": "Carte illustrative",
@@ -387,7 +386,7 @@
     "quote_sending": "Envoi…",
     "quote_success_title": "Demande envoyée",
     "quote_success_body": "Notre équipe vous répond par e-mail et dans la bulle de discussion.",
-    "quote_error": "L'envoi a échoué. Réessayez ou écrivez-nous à info@lunatrackinglogistics.com.",
+    "quote_error": "L'envoi a échoué. Réessayez ou écrivez-nous à veronique@lunatrackinglogistics.com ou lina@lunatrackinglogistics.com.",
     "how_title": "Comment se construit un prix de transport",
     "how_body": "Le prix ne dépend pas seulement du poids affiché sur la balance. Un carton d'oreillers, léger mais volumineux, coûte plus que son poids ne le laisse penser : c'est le poids volumétrique qui entre en jeu.",
     "how_actual": "Poids réel : ce que pèse réellement votre envoi, facturé au gramme près.",
@@ -2738,7 +2737,7 @@
     "page_title": "Mentions légales",
     "page_intro": "Informations légales relatives à l'éditeur du site lunatrackinglogistics.com, conformément aux articles XII.6 et suivants du Code de droit économique belge.",
     "s1_title": "Éditeur du site",
-    "s1_body": "Le site lunatrackinglogistics.com est édité par Luna Tracking Logistics, dont les coordonnées figurent ci-dessus. Pour toute question relative au site ou à nos services, écrivez-nous à info@lunatrackinglogistics.com.",
+    "s1_body": "Le site lunatrackinglogistics.com est édité par Luna Tracking Logistics, dont les coordonnées figurent ci-dessus. Pour toute question relative au site ou à nos services, écrivez-nous à veronique@lunatrackinglogistics.com ou lina@lunatrackinglogistics.com.",
     "s2_title": "Hébergement",
     "s2_body": "Le site est hébergé par Cloudflare, Inc., 101 Townsend St, San Francisco, CA 94107, États-Unis (www.cloudflare.com). Les données applicatives (comptes clients, commandes, messages de support) sont hébergées par Supabase, Inc. sur des serveurs situés dans l'Union européenne.",
     "s3_title": "Propriété intellectuelle",
@@ -2776,7 +2775,7 @@
     "page_title": "Politique de confidentialité",
     "page_intro": "Luna Tracking Logistics traite vos données personnelles conformément au Règlement général sur la protection des données (RGPD) et à la loi belge du 30 juillet 2018. Cette page explique quelles données nous collectons, pourquoi, et quels sont vos droits.",
     "s1_title": "1. Responsable du traitement",
-    "s1_body": "Le responsable du traitement est Luna Tracking Logistics, dont les coordonnées figurent ci-dessus. Pour toute question relative à vos données : info@lunatrackinglogistics.com.",
+    "s1_body": "Le responsable du traitement est Luna Tracking Logistics, dont les coordonnées figurent ci-dessus. Pour toute question relative à vos données : veronique@lunatrackinglogistics.com ou lina@lunatrackinglogistics.com.",
     "s2_title": "2. Données collectées",
     "s2_body": "- **Demande de devis et messagerie** : nom, e-mail, téléphone, détails de l'envoi, contenu de vos messages.\n- **Compte client** : e-mail, mot de passe (chiffré), nom, historique des envois et des commandes.\n- **Commandes Achat & Envoi** : produits commandés, nom, téléphone et adresse du destinataire au Congo. Le paiement est traité par notre prestataire de paiement ; nous ne stockons pas vos données de carte.\n- **Suivi de colis** : numéro de suivi et données de l'envoi consulté.\n- **Données techniques** : adresse IP, navigateur et pages consultées, dans les journaux de notre hébergeur, pour la sécurité du site.",
     "s3_title": "3. Finalités et bases légales",
@@ -2786,7 +2785,7 @@
     "s5_title": "5. Durée de conservation",
     "s5_body": "Données de devis et messages : 3 ans après le dernier contact. Données de compte : tant que le compte est actif, puis 3 ans. Documents de transport et de facturation : 7 ans (obligation comptable). Journaux techniques : 12 mois maximum.",
     "s6_title": "6. Vos droits",
-    "s6_body": "Vous disposez d'un droit d'accès, de rectification, d'effacement, de limitation, de portabilité et d'opposition, ainsi que du droit de retirer votre consentement à tout moment. Écrivez-nous à info@lunatrackinglogistics.com ; nous répondons dans un délai d'un mois. Vous pouvez également introduire une réclamation auprès de l'Autorité de protection des données (Rue de la Presse 35, 1000 Bruxelles — www.autoriteprotectiondonnees.be).",
+    "s6_body": "Vous disposez d'un droit d'accès, de rectification, d'effacement, de limitation, de portabilité et d'opposition, ainsi que du droit de retirer votre consentement à tout moment. Écrivez-nous à veronique@lunatrackinglogistics.com ou lina@lunatrackinglogistics.com ; nous répondons dans un délai d'un mois. Vous pouvez également introduire une réclamation auprès de l'Autorité de protection des données (Rue de la Presse 35, 1000 Bruxelles — www.autoriteprotectiondonnees.be).",
     "s7_title": "7. Cookies et stockage local",
     "s7_body": "Ce site utilise des éléments strictement nécessaires (session de connexion, langue choisie, contenu du panier, jeton de conversation avec le support), qui ne nécessitent pas de consentement. Avec votre accord uniquement, via le bandeau affiché à la première visite, il utilise aussi des cookies de mesure d'audience (Google Analytics) et de publicité (Meta Pixel, Meta Platforms Ireland Ltd). Sans votre accord, aucun de ces outils ne dépose de cookie ni ne collecte de données. Vous pouvez modifier votre choix à tout moment via le lien « Cookies » en bas de chaque page.",
     "s8_title": "8. Sécurité",
@@ -2895,8 +2894,8 @@
     "no_match": "Aucun pays ne correspond."
   },
   "form_shield": {
-    "rate_limited": "Trop de demandes envoyées depuis votre connexion. Patientez quelques minutes puis réessayez, ou écrivez-nous à info@lunatrackinglogistics.com.",
-    "captcha_failed": "La vérification anti-robot n'a pas abouti. Réessayez ; si le problème persiste, écrivez-nous à info@lunatrackinglogistics.com."
+    "rate_limited": "Trop de demandes envoyées depuis votre connexion. Patientez quelques minutes puis réessayez, ou écrivez-nous à veronique@lunatrackinglogistics.com ou lina@lunatrackinglogistics.com.",
+    "captcha_failed": "La vérification anti-robot n'a pas abouti. Réessayez ; si le problème persiste, écrivez-nous à veronique@lunatrackinglogistics.com ou lina@lunatrackinglogistics.com."
   },
   "grid_estimate": {
     "title": "Estimation selon la grille publique (indicative) :",

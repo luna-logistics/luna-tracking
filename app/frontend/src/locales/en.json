@@ -47,7 +47,6 @@
     "contact_title": "Get in touch",
     "address": "Rue de l'Automne 59, 1050 Ixelles",
     "address_kinshasa": "22, 8th Industrial Street, Limete, Kinshasa",
-    "email": "info@lunatrackinglogistics.com",
     "instagram": "Instagram",
     "instagram_handle": "@Luna_TrackingLogistics",
     "legal": "© {{year}} Luna Tracking Logistics. All rights reserved.",
@@ -134,7 +133,7 @@
     "submit": "Track my shipment",
     "loading": "Searching…",
     "unavailable_title": "Tracking temporarily unavailable",
-    "unavailable_body": "Our online tracking service is not live yet. Email us at info@lunatrackinglogistics.com with your tracking number and we will reply promptly.",
+    "unavailable_body": "Our online tracking service is not live yet. Email us at veronique@lunatrackinglogistics.com or lina@lunatrackinglogistics.com with your tracking number and we will reply promptly.",
     "empty_result": "No shipment found for that tracking number. Check it or contact us.",
     "map_alt": "Map illustrating the freight routes between Belgium and Congo: by air from Brussels to Kinshasa and Lubumbashi, by sea from Antwerp to Kinshasa via Matadi",
     "map_preview_note": "Illustrative map",
@@ -387,7 +386,7 @@
     "quote_sending": "Sending…",
     "quote_success_title": "Request sent",
     "quote_success_body": "Our team will reply by e-mail and in the chat bubble.",
-    "quote_error": "Sending failed. Please try again or write to info@lunatrackinglogistics.com.",
+    "quote_error": "Sending failed. Please try again or write to veronique@lunatrackinglogistics.com or lina@lunatrackinglogistics.com.",
     "how_title": "How a freight price is built",
     "how_body": "The price doesn't depend only on the weight shown on the scale. A box of pillows — light but bulky — costs more than its weight suggests: that's where volumetric weight comes in.",
     "how_actual": "Actual weight: what your shipment really weighs, billed to the gram.",
@@ -2736,7 +2735,7 @@
     "page_title": "Legal notice",
     "page_intro": "Legal information about the publisher of lunatrackinglogistics.com, as required by articles XII.6 and following of the Belgian Code of Economic Law.",
     "s1_title": "Site publisher",
-    "s1_body": "The website lunatrackinglogistics.com is published by Luna Tracking Logistics, whose details appear above. For any question about the site or our services, write to info@lunatrackinglogistics.com.",
+    "s1_body": "The website lunatrackinglogistics.com is published by Luna Tracking Logistics, whose details appear above. For any question about the site or our services, write to veronique@lunatrackinglogistics.com or lina@lunatrackinglogistics.com.",
     "s2_title": "Hosting",
     "s2_body": "The site is hosted by Cloudflare, Inc., 101 Townsend St, San Francisco, CA 94107, USA (www.cloudflare.com). Application data (customer accounts, orders, support messages) is hosted by Supabase, Inc. on servers located in the European Union.",
     "s3_title": "Intellectual property",
@@ -2774,7 +2773,7 @@
     "page_title": "Privacy policy",
     "page_intro": "Luna Tracking Logistics processes your personal data in accordance with the General Data Protection Regulation (GDPR) and the Belgian law of 30 July 2018. This page explains what data we collect, why, and what your rights are.",
     "s1_title": "1. Data controller",
-    "s1_body": "The data controller is Luna Tracking Logistics, whose details appear above. For any question about your data: info@lunatrackinglogistics.com.",
+    "s1_body": "The data controller is Luna Tracking Logistics, whose details appear above. For any question about your data: veronique@lunatrackinglogistics.com or lina@lunatrackinglogistics.com.",
     "s2_title": "2. Data we collect",
     "s2_body": "- **Quote requests and messaging**: name, email, phone, shipment details, the content of your messages.\n- **Customer account**: email, password (encrypted), name, shipment and order history.\n- **Shop & Ship orders**: products ordered, recipient name, phone and address in the Congo. Payment is handled by our payment provider; we do not store your card details.\n- **Parcel tracking**: tracking number and data of the shipment consulted.\n- **Technical data**: IP address, browser and pages visited, in our host's logs, for site security.",
     "s3_title": "3. Purposes and legal bases",
@@ -2784,7 +2783,7 @@
     "s5_title": "5. Retention",
     "s5_body": "Quote data and messages: 3 years after the last contact. Account data: as long as the account is active, then 3 years. Transport and invoicing documents: 7 years (accounting obligation). Technical logs: 12 months at most.",
     "s6_title": "6. Your rights",
-    "s6_body": "You have the right to access, rectify, erase, restrict, port and object to the processing of your data, and to withdraw your consent at any time. Write to info@lunatrackinglogistics.com; we reply within one month. You may also lodge a complaint with the Belgian Data Protection Authority (Rue de la Presse 35, 1000 Brussels — www.dataprotectionauthority.be).",
+    "s6_body": "You have the right to access, rectify, erase, restrict, port and object to the processing of your data, and to withdraw your consent at any time. Write to veronique@lunatrackinglogistics.com or lina@lunatrackinglogistics.com; we reply within one month. You may also lodge a complaint with the Belgian Data Protection Authority (Rue de la Presse 35, 1000 Brussels — www.dataprotectionauthority.be).",
     "s7_title": "7. Cookies and local storage",
     "s7_body": "This site uses strictly necessary items (login session, chosen language, cart contents, support conversation token), which require no consent. Only with your consent, given through the banner shown on your first visit, it also uses audience-measurement cookies (Google Analytics) and advertising cookies (Meta Pixel, Meta Platforms Ireland Ltd). Without your consent, none of these tools sets a cookie or collects data. You can change your choice at any time via the \"Cookies\" link at the bottom of every page.",
     "s8_title": "8. Security",
@@ -2893,8 +2892,8 @@
     "no_match": "No matching country."
   },
   "form_shield": {
-    "rate_limited": "Too many requests from your connection. Please wait a few minutes and try again, or email info@lunatrackinglogistics.com.",
-    "captcha_failed": "The anti-bot check did not go through. Please try again; if it keeps failing, email info@lunatrackinglogistics.com."
+    "rate_limited": "Too many requests from your connection. Please wait a few minutes and try again, or email veronique@lunatrackinglogistics.com or lina@lunatrackinglogistics.com.",
+    "captcha_failed": "The anti-bot check did not go through. Please try again; if it keeps failing, email veronique@lunatrackinglogistics.com or lina@lunatrackinglogistics.com."
   },
   "grid_estimate": {
     "title": "Estimate from the public rate grid (indicative):",

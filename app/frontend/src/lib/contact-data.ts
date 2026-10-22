@@ -144,8 +144,8 @@ const CHANNELS: Channel[] = [
   },
   {
     id: 'email', name: { fr: 'E-mail', en: 'Email' },
-    value: { fr: 'info@lunatrackinglogistics.com', en: 'info@lunatrackinglogistics.com' },
-    href: 'mailto:info@lunatrackinglogistics.com',
+    value: { fr: 'veronique@lunatrackinglogistics.com · lina@lunatrackinglogistics.com', en: 'veronique@lunatrackinglogistics.com · lina@lunatrackinglogistics.com' },
+    href: 'mailto:veronique@lunatrackinglogistics.com,lina@lunatrackinglogistics.com',
     use: { fr: 'Tout ce qui demande une pièce jointe ou une trace écrite', en: 'Anything needing an attachment or a written record' },
     delay: { fr: '', en: '' },
   },

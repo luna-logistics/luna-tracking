@@ -1,3 +1,4 @@
+import { ContactEmails } from '@/components/ContactEmails';
 import { useTranslation } from 'react-i18next';
 import { SEO } from '@/components/SEO';
 import { Ed } from '@/components/Ed';
@@ -81,7 +82,7 @@ export default function LegalPage({ kind }: { kind: LegalKind }) {
                     <dt className="text-slate-500">{r.label}</dt>
                     <dd className="text-luna-navy font-medium break-words">
                       {r.key === 'email' ? (
-                        <a href={`mailto:${r.value}`} className="text-luna-blue hover:underline">{r.value}</a>
+                        <ContactEmails className="text-luna-blue hover:underline" />
                       ) : r.value || (
                         <span className="text-amber-700 font-normal italic">{t('legal_common.missing_hint')}</span>
                       )}

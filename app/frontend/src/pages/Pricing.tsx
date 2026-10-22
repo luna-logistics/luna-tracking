@@ -1,3 +1,4 @@
+import { contactEmailsInline } from '@/lib/contact-emails';
 import { useEffect, useMemo, useState } from 'react';
 import { trackEvent } from '@/lib/analytics';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -85,7 +86,7 @@ export default function Pricing() {
   const metaDescription = useContent('pricing', 'meta_description', t('pricing.meta_description'));
   const pageTitle       = useContent('pricing', 'page_title',       t('pricing.page_title'));
   const pageIntro       = useContent('pricing', 'page_intro',       t('pricing.page_intro'));
-  const supportEmail    = t('footer.email');
+  const supportEmail    = contactEmailsInline(i18n.language === 'en' ? 'en' : 'fr');
 
   const [cities, setCities] = useState<DestinationCity[]>([]);
   // Same grid as /calculateur (database, or the fallback grid when it can't be used).

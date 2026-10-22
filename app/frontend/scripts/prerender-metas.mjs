@@ -490,7 +490,7 @@ async function emitStaticRoute(key, def) {
               url: SITE_URL,
               logo: `${SITE_URL}/brand/logo-luna-navbar2.png`,
               image: `${SITE_URL}/brand/logo-luna-navbar2.png`,
-              email: 'info@lunatrackinglogistics.com',
+              email: 'veronique@lunatrackinglogistics.com',
               telephone: '+32 2 241 96 72',
               vatID: 'BE1040011234',
               legalName: 'Luna Tracking Logistics SRL',

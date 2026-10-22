@@ -41,7 +41,7 @@ const OPENAPI_SPEC = {
     version: '1.0.0',
     summary: 'Freight logistics API for Luna Tracking Logistics.',
     description: 'Read-only public API today (shipments, quotes, rates, tracking, usage). Every scoped endpoint is enforced server-side: an ApiKey may only reach the endpoints its scopes cover, and only its own business data. Requests are rate-limited per client IP (429 + Retry-After). Write endpoints, webhooks setup via API, and paid tiers are on the roadmap. Documentation: https://lunatrackinglogistics.com/docs/api',
-    contact: { name: 'Luna Tracking Logistics', email: 'info@lunatrackinglogistics.com', url: 'https://lunatrackinglogistics.com/contact' },
+    contact: { name: 'Luna Tracking Logistics', email: 'veronique@lunatrackinglogistics.com', url: 'https://lunatrackinglogistics.com/contact' },
     license: { name: 'Proprietary', url: 'https://lunatrackinglogistics.com/mentions-legales' },
   },
   servers: [
@@ -538,7 +538,7 @@ const getCustomer: Handler = async (ctx) => {
  *  and the pro dashboard. Usage log: 1 call before retirement besides the
  *  team's own tests, 0 API keys → retired rather than kept serving wrong
  *  prices. The RPC itself is no longer executable by anon/authenticated. */
-const RATES_RETIRED_MESSAGE = 'The /rates endpoint was retired on 2026-09-24. Current Brussels -> Kinshasa prices: https://lunatrackinglogistics.com/calculateur (English: https://lunatrackinglogistics.com/en/calculator). For programmatic pricing, contact info@lunatrackinglogistics.com.';
+const RATES_RETIRED_MESSAGE = 'The /rates endpoint was retired on 2026-09-24. Current Brussels -> Kinshasa prices: https://lunatrackinglogistics.com/calculateur (English: https://lunatrackinglogistics.com/en/calculator). For programmatic pricing, contact veronique@lunatrackinglogistics.com or lina@lunatrackinglogistics.com.';
 const rates: Handler = async () => fail('gone', RATES_RETIRED_MESSAGE, 410);
 
 /** Usage summary — authenticated only. Returns totals + timeline +
