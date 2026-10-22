@@ -109,7 +109,6 @@ export default function Contact() {
   const [sent, setSent] = useState(false);
   const [reference, setReference] = useState('');
   const [replyEmail, setReplyEmail] = useState('');
-  const [showMap, setShowMap] = useState(false);
 
   const formRef = useRef<HTMLElement>(null);
   const subjectRef = useRef<HTMLSelectElement>(null);
@@ -536,92 +535,60 @@ export default function Contact() {
         </div>
       </section>
 
-      {/* ── 5 + 6. Office/map + hours ── */}
+      {/* ── 5 + 6. Offices/maps + hours ── */}
       <section className="bg-luna-mist">
-        <div className={`${wrap} grid gap-8 lg:grid-cols-2`} style={{ paddingTop: 'clamp(40px,5vw,64px)', paddingBottom: 'clamp(40px,5vw,64px)' }}>
-          <div>
-            <h2 className={H2}>{t('contact.office_title')}</h2>
-            <div className="mt-4 flex items-start gap-2.5">
-              <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-luna-azure" aria-hidden="true" />
-              <div>
-                <p className="text-[15px] font-medium text-luna-ink">{t('contact.office_address')}</p>
-                <p className="mt-1 text-[14px] text-luna-body">{t('contact.office_note')}</p>
-                <a href={`https://www.google.com/maps?q=${mapsQuery}`} target="_blank" rel="noopener noreferrer"
-                  className={`mt-2 inline-flex items-center gap-1 text-[14px] font-medium text-luna-azure hover:underline ${ringLight}`}>
-                  {t('contact.map_open')}<ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-                </a>
-              </div>
-            </div>
-            <div className="mt-4 overflow-hidden rounded-[14px] border border-luna-hair/40 bg-white">
-              {showMap ? (
-                <iframe title={t('contact.map_alt')} src={`https://www.google.com/maps?q=${mapsQuery}&output=embed`}
-                  className="h-[280px] w-full border-0" loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
-              ) : (
-                <button type="button" onClick={() => setShowMap(true)}
-                  className={`flex h-[280px] w-full flex-col items-center justify-center gap-3 bg-[linear-gradient(135deg,#EAF1FB,#F4F7FB)] ${ringLight}`}>
-                  <MapPin className="h-8 w-8 text-luna-azure" aria-hidden="true" />
-                  <span className="rounded-full bg-luna-royal px-5 py-2.5 text-[14px] font-semibold text-white">{t('contact.map_button')}</span>
-                  <span className="max-w-[24em] px-4 text-center text-[12px] leading-[1.5] text-luna-muted-ink">{t('contact.map_hint')}</span>
-                </button>
-              )}
-            </div>
-
-            {/* Kinshasa office */}
-            <h2 className={`${H2} mt-8`}>{t('contact.office_kin_title')}</h2>
-            <div className="mt-4 flex items-start gap-2.5">
-              <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-luna-azure" aria-hidden="true" />
-              <div>
-                <p className="text-[15px] font-medium text-luna-ink">{t('contact.office_kin_address')}</p>
-                <a href={`https://www.google.com/maps?q=${kinMapsQuery}`} target="_blank" rel="noopener noreferrer"
-                  className={`mt-2 inline-flex items-center gap-1 text-[14px] font-medium text-luna-azure hover:underline ${ringLight}`}>
-                  {t('contact.map_open')}<ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-                </a>
-            <a href="tel:+243817488283" className={`mt-2 block text-[14px] font-medium text-luna-azure hover:underline ${ringLight}`}>
-                {t('contact.office_kin_phone')}
-                </a>
-              </div>
-            </div>
-           {/* Lubumbashi office */}
-           <h2 className={`${H2} mt-8`}>{t('contact.office_lub_title')}</h2>
-           <div className="mt-4 flex items-start gap-2.5">
-             <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-luna-azure" aria-hidden="true" />
-             <div>
-               <p className="text-[15px] font-medium text-luna-ink">{t('contact.office_lub_address')}</p>
-               <a href={`https://www.google.com/maps?q=${lubMapsQuery}`} target="_blank" rel="noopener noreferrer" 
-                 className={`mt-2 inline-flex items-center gap-1 text-[14px] font-medium text-luna-azure hover:underline ${ringLight}`}>
-                  {t('contact.map_open')}<ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-                </a>
-              <a href="tel:+243850215001" className={`mt-2 block text-[14px] font-medium text-luna-azure hover:underline ${ringLight}`}>
-                  {t('contact.office_lub_phone')}
-                </a>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <h2 className={H2}>{t('contact.hours_when_title')}</h2>
-            <div className="mt-4 inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[13px] font-semibold"
+        <div className={wrap} style={{ paddingTop: 'clamp(32px,4vw,48px)', paddingBottom: 'clamp(32px,4vw,48px)' }}>
+          {/* Hours: one compact strip */}
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-[12px] border border-luna-hair/40 bg-white px-4 py-3">
+            <h2 className="text-[16px] font-semibold text-luna-ink">{t('contact.hours_when_title')}</h2>
+            <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[12px] font-semibold"
               style={status.open
                 ? { color: '#12855F', background: '#E8F6F0', border: '1px solid #12855F' }
                 : { color: '#4A5A75', background: '#F6F8FB', border: '1px solid #D9E2EC' }}>
               <span className="inline-block h-2 w-2 rounded-full" style={{ background: status.open ? '#12855F' : '#4A5A75' }} aria-hidden="true" />
               {statusText}
             </div>
-
-            <dl className="mt-5 space-y-4">
+            <dl className="flex flex-wrap items-center gap-x-5 gap-y-1 text-[14px]">
               {HOURS_ROWS.map((r) => (
-                <div key={`${r.from}-${r.to}`} className="rounded-[12px] border border-luna-hair/40 bg-white p-4">
-                  <dt className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[.05em] text-luna-muted-ink">
-                    <Clock className="h-4 w-4 text-luna-azure" aria-hidden="true" />{daysLabel(r)}
-                  </dt>
-                  <dd className="mt-2 flex items-baseline justify-between gap-4">
-                    <span className="text-[15px] font-medium text-luna-ink">{brusselsWindow(r)}</span>
-                    <span className="text-[13px] text-luna-muted-ink">{t('contact.hours_brussels')}</span>
-                  </dd>
+                <div key={`${r.from}-${r.to}`} className="flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5 text-luna-azure" aria-hidden="true" />
+                  <dt className="font-semibold text-luna-muted-ink">{daysLabel(r)}</dt>
+                  <dd className="text-luna-ink">{brusselsWindow(r)} <span className="text-[12px] text-luna-muted-ink">{t('contact.hours_brussels')}</span></dd>
                 </div>
               ))}
-              <p className="text-[14px] text-luna-body">{t('contact.hours_closed_note')}</p>
+              <p className="text-[13px] text-luna-body">{t('contact.hours_closed_note')}</p>
             </dl>
+          </div>
+
+          {/* Offices: three compact cards */}
+          <div className="mt-6 grid gap-5 md:grid-cols-3">
+            {[
+              { key: 'ixl', title: t('contact.office_title'), address: t('contact.office_address'), note: t('contact.office_note'), query: mapsQuery, tel: '', phone: '' },
+              { key: 'kin', title: t('contact.office_kin_title'), address: t('contact.office_kin_address'), note: '', query: kinMapsQuery, tel: 'tel:+243817488283', phone: t('contact.office_kin_phone') },
+              { key: 'lub', title: t('contact.office_lub_title'), address: t('contact.office_lub_address'), note: '', query: lubMapsQuery, tel: 'tel:+243850215001', phone: t('contact.office_lub_phone') },
+            ].map((o) => (
+              <div key={o.key} className="flex flex-col rounded-[14px] border border-luna-hair/40 bg-white p-4">
+                <h2 className="text-[18px] font-semibold leading-[1.25] text-luna-ink">{o.title}</h2>
+                <div className="mt-2 flex items-start gap-2">
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-luna-azure" aria-hidden="true" />
+                  <div className="min-w-0 text-[14px]">
+                    <p className="font-medium text-luna-ink">{o.address}</p>
+                    {o.note && <p className="mt-0.5 text-[13px] text-luna-body">{o.note}</p>}
+                    <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
+                      <a href={`https://www.google.com/maps?q=${o.query}`} target="_blank" rel="noopener noreferrer"
+                        className={`inline-flex items-center gap-1 font-medium text-luna-azure hover:underline ${ringLight}`}>
+                        {t('contact.map_open')}<ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                      </a>
+                      {o.tel && <a href={o.tel} className={`font-medium text-luna-azure hover:underline ${ringLight}`}>{o.phone}</a>}
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-3 overflow-hidden rounded-[10px] border border-luna-hair/40 bg-white">
+                  <iframe title={o.title} src={`https://www.google.com/maps?q=${o.query}&output=embed`}
+                    className="h-[170px] w-full border-0" loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
