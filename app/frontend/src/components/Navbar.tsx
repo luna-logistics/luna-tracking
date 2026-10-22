@@ -55,7 +55,6 @@ export function Navbar() {
     { to: urlFor('shopAndShip', lang), label: t('nav.shop_and_ship') },
   ];
   const linksAfter = [
-    { to: urlFor('blogIndex', lang), label: t('nav.blog') },
     { to: urlFor('pricing', lang), label: t('nav.pricing') },
     { to: urlFor('rateCalculator', lang), label: t('nav.calculator') },
     { to: urlFor('contact', lang), label: t('nav.contact') },
@@ -67,6 +66,7 @@ export function Navbar() {
     { to: urlFor('serviceHome', lang), label: t('nav.service_home') },
     { to: urlFor('servicePickup', lang), label: t('nav.service_pickup') },
     { to: urlFor('forwarding', lang), label: t('nav.forwarding') },
+    { to: urlFor('blogIndex', lang), label: t('nav.blog') },
   ];
   const servicesActive = serviceLinks.some((l) => isActive(l.to));
 
