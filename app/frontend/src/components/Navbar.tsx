@@ -100,7 +100,7 @@ export function Navbar() {
       <div className="mx-auto flex max-w-[1360px] flex-nowrap items-center gap-x-2 px-3 py-1.5 sm:gap-x-3 sm:px-6 lg:px-3 lg:py-2.5">
         {/* Logo — far left */}
         <Link to={urlFor('home', lang)} className="flex-none flex items-center gap-2.5" aria-label={t('brand.name')}>
-          <img src="/brand/luna-icon-64.webp" srcSet="/brand/luna-icon-44.webp 44w, /brand/luna-icon-64.webp 64w, /brand/luna-icon.webp 88w" sizes="(min-width: 1024px) 44px, 30px" alt="" aria-hidden="true" className="block h-[30px] w-auto lg:h-11" width={44} height={44} />
+          <img src="/brand/luna-icon-64.webp" srcSet="/brand/luna-icon-44.webp 44w, /brand/luna-icon-64.webp 64w, /brand/luna-icon.webp 88w" sizes="(min-width: 1024px) 50px, 34px" alt="" aria-hidden="true" className="block h-[34px] w-auto lg:h-[50px]" width={44} height={44} />
           {/* translate="no": stop Chrome/Google Translate rendering the brand
               "LUNA" as "LUNE" (moon) when it auto-translates the FR page. */}
           <span className="block leading-none" translate="no">
