@@ -104,6 +104,7 @@ const AdminDashboardConfig = lazy(() => import('@/pages/AdminDashboardConfig'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 const About = lazy(() => import('@/pages/About'));
 const LegalPage = lazy(() => import('@/pages/LegalPage'));
+const DataDeletion = lazy(() => import('@/pages/DataDeletion'));
 const SupportChatBubble = lazy(() => import('@/components/SupportChatBubble').then(m => ({ default: m.SupportChatBubble })));
 const SupportAdminNotifier = lazy(() => import('@/components/SupportAdminNotifier').then(m => ({ default: m.SupportAdminNotifier })));
 const Toaster = lazy(() => import('@/components/ui/sonner').then(m => ({ default: m.Toaster })));
@@ -190,6 +191,7 @@ function PageRoutes({ lang }: { lang: 'fr' | 'en' }) {
           <Route path={t('/mentions-legales', '/legal-notice')} element={<PublicLayout><LegalPage kind="notice" /></PublicLayout>} />
           <Route path={t('/conditions-generales', '/terms')} element={<PublicLayout><LegalPage kind="terms" /></PublicLayout>} />
           <Route path={t('/confidentialite', '/privacy')} element={<PublicLayout><LegalPage kind="privacy" /></PublicLayout>} />
+          <Route path={t('/suppression-des-donnees', '/data-deletion')} element={<PublicLayout><DataDeletion /></PublicLayout>} />
 
           {/* Auth — plain shell (no Navbar/Footer, focused card) */}
           <Route path={t('/connexion', '/login')} element={<Login />} />

@@ -76,7 +76,8 @@ export type RouteKey =
   | 'about'
   | 'legalNotice'
   | 'terms'
-  | 'privacy';
+  | 'privacy'
+  | 'dataDeletion';
 
 type RouteDef = {
   indexable: boolean;
@@ -147,6 +148,7 @@ export const ROUTES: Record<RouteKey, RouteDef> = {
   legalNotice:  { indexable: true,  bilingual: true,  fr: '/mentions-legales',     en: '/legal-notice' },
   terms:        { indexable: true,  bilingual: true,  fr: '/conditions-generales', en: '/terms' },
   privacy:      { indexable: true,  bilingual: true,  fr: '/confidentialite',      en: '/privacy' },
+  dataDeletion: { indexable: false, bilingual: true,  fr: '/suppression-des-donnees', en: '/data-deletion' },
 };
 
 export function urlFor(key: RouteKey, lang: Lang = 'fr'): string {
