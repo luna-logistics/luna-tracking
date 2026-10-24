@@ -8,6 +8,7 @@ import { parseWeightKg } from '@/lib/product-enrich';
 import { suggestHsCode } from '@/lib/hs-classifier';
 import { isGenericDescription } from '@/lib/import-profile';
 import { translateText } from '@/lib/translate';
+import { MissingDescriptionsPanel } from '@/components/MissingDescriptionsPanel';
 
 const BATCH = 40;      // names per translation call
 const PARALLEL = 6;    // concurrent row updates
@@ -21,8 +22,9 @@ async function inPool<T>(items: T[], worker: (item: T) => Promise<void>, onDone:
 /**
  * Admin helper: fills, for every product at once, what can be derived from
  * data already there — English names (DeepL), net weight read from the name,
- * HS customs codes (only confident suggestions), and removal of the store's
- * generic description blurb. Each action only touches empty / untranslated
+ * HS customs codes (only confident suggestions), removal of the store's
+ * generic description blurb, and missing descriptions read on the store page
+ * (MissingDescriptionsPanel). Each action only touches empty / untranslated
  * fields, never something an admin typed.
  */
 export function ProductEnrichPanel({ products, categories, onChanged }: { products: Product[]; categories: ProductCategory[]; onChanged: () => void }) {
@@ -110,6 +112,7 @@ export function ProductEnrichPanel({ products, categories, onChanged }: { produc
               <span className="min-w-0 flex-1 text-xs text-slate-500">{r.hint}</span>
             </li>
           ))}
+          <MissingDescriptionsPanel products={products} onChanged={onChanged} />
         </ul>
       )}
     </div>
