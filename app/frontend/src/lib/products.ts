@@ -194,13 +194,13 @@ export async function deleteProduct(id: string) {
   if (error) throw error;
 }
 
-/** Apply the same patch (category, brand and/or active status) to several
+/** Apply the same patch (category, brand, store and/or active status) to several
  *  products at once — used by the admin's bulk-select toolbar. A direct
  *  `.update()` rather than `.upsert()` per row, so it never needs the rest
  *  of each product's fields. */
 export async function bulkUpdateProducts(
   ids: string[],
-  patch: Partial<Pick<Product, 'category_id' | 'brand_id' | 'is_active' | 'weight_kg' | 'hs_code' | 'requires_cold_chain'>>,
+  patch: Partial<Pick<Product, 'category_id' | 'brand_id' | 'store_id' | 'is_active' | 'weight_kg' | 'hs_code' | 'requires_cold_chain'>>,
 ) {
   if (ids.length === 0) return;
   const { error } = await supabase.from('products').update(patch).in('id', ids);

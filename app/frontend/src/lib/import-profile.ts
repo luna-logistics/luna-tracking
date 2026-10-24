@@ -22,6 +22,8 @@ export type ImportRules = {
    *  product ("Toujours au meilleur prix. Voir toutes les informations…") —
    *  the same text on hundreds of pages is useless and hurts SEO. */
   strip_generic_description?: boolean;
+  /** The source writes prices in cents (1599 for 15,99 €) → divide by 100. */
+  price_in_cents?: boolean;
 };
 
 export const DEFAULT_RULES: Required<ImportRules> = {
@@ -30,6 +32,7 @@ export const DEFAULT_RULES: Required<ImportRules> = {
   strip_slug_suffix: true,
   max_price: 5000,
   strip_generic_description: true,
+  price_in_cents: false,
 };
 
 const GENERIC_DESCRIPTION = /toujours au meilleur prix|voir toutes les informations sur les produits|ajoutez directement [àa] votre liste|always the best price/i;
@@ -100,6 +103,20 @@ export function findMapping(sourceCategory: string | null | undefined, mappings:
   return null;
 }
 
+/** "15,99" · "15.99" · "1 599,00 €" · "1.599,00" → number; '' → null; junk → NaN. */
+export function parseDecimal(v: string | null | undefined): number | null {
+  let s = (v ?? '').replace(/[\s\u00A0€$£]/g, '');
+  if (!s) return null;
+  const lastComma = s.lastIndexOf(','), lastDot = s.lastIndexOf('.');
+  if (lastComma > -1 && lastDot > -1) {
+    // The last separator is the decimal one; the other groups thousands.
+    s = lastComma > lastDot ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+  } else if (lastComma > -1) {
+    s = s.replace(',', '.');
+  }
+  return /^-?\d+(\.\d+)?$/.test(s) ? Number(s) : NaN;
+}
+
 const PRICE_SUFFIX = /\s*-\s*(\d+(?:[.,]\d+)?)\s*€?\s*\(\d{2}\.\d{2}\.\d{4}\)\s*$/;
 
 /** Price the scraper wrote at the end of the description, if any. */
@@ -148,6 +165,8 @@ export type ProfiledRow = {
   unmapped: boolean;
   /** Blocking price problem that needs a human (null = fine). */
   priceProblem: string | null;
+  /** Same problem, structured for the translated preview. */
+  priceIssue: { code: 'price_mismatch' | 'price_implausible'; csv: number; ref: number } | null;
   /** English fields are a copy of the French ones. */
   untranslated: boolean;
   /** What the profile changed, for the preview. */
@@ -165,6 +184,7 @@ export function applyImportProfile(
   const notes: string[] = [];
   let skip: string | null = null;
   let priceProblem: string | null = null;
+  let priceIssue: ProfiledRow['priceIssue'] = null;
 
   if (profile && ctx.storeSlug) {
     if ((raw.store_slug ?? '').trim() !== ctx.storeSlug) r.store_slug = ctx.storeSlug;
@@ -182,18 +202,26 @@ export function applyImportProfile(
 
   // Price: compare with the price the scraper wrote in the description.
   const descP = descriptionPrice(raw.description_fr) ?? descriptionPrice(raw.description_en);
-  const csvP = raw.price?.trim() ? Number(raw.price) : NaN;
+  let csvP = parseDecimal(raw.price) ?? NaN;
+  if (rules.price_in_cents && Number.isFinite(csvP)) {
+    const euros = Math.round(csvP) / 100;
+    notes.push(`prix en centimes ${csvP} → ${euros}`);
+    csvP = euros;
+    r.price = String(euros);
+  }
   if (descP != null && Number.isFinite(csvP)) {
     if (rules.fix_price_x1000 && Math.abs(csvP - descP * 1000) < 0.5 && descP > 0) {
       r.price = String(descP);
       notes.push(`prix corrigé ${csvP} → ${descP} (×1000)`);
     } else if (Math.abs(csvP - descP) > 0.005) {
       priceProblem = `prix incohérent : CSV ${csvP} € ≠ fiche ${descP} €`;
+      priceIssue = { code: 'price_mismatch', csv: csvP, ref: descP };
     }
   }
-  const finalP = Number(r.price);
+  const finalP = parseDecimal(r.price) ?? NaN;
   if (!priceProblem && rules.max_price != null && Number.isFinite(finalP) && finalP > rules.max_price) {
     priceProblem = `prix improbable : ${finalP} € (> ${rules.max_price} €)`;
+    priceIssue = { code: 'price_implausible', csv: finalP, ref: rules.max_price };
   }
 
   if (rules.strip_description_price_suffix) {
@@ -221,5 +249,5 @@ export function applyImportProfile(
   }
 
   const untranslated = !!r.name_fr?.trim() && r.name_fr.trim() === (r.name_en ?? '').trim();
-  return { raw: r, skip, unmapped, priceProblem, untranslated, notes };
+  return { raw: r, skip, unmapped, priceProblem, priceIssue, untranslated, notes };
 }

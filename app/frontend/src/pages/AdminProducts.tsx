@@ -8,14 +8,19 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/components/ui/sonner';
-import Papa from 'papaparse';
 import { Upload, Trash2, Languages, Wand2, Check, X } from 'lucide-react';
 import { BilingualPair } from '@/components/BilingualPair';
 import { translateText } from '@/lib/translate';
 import { slugify } from '@/lib/blog';
 import { suggestHsCode, type HsSuggestion } from '@/lib/hs-classifier';
-import { isLunaEligibleProduct, type EligibilityResult } from '@/lib/product-eligibility';
-import { normalizeCsvRow, rejectedRowsToCsv, unwrapDoubleEncodedRows } from '@/lib/store-import';
+import type { EligibilityResult } from '@/lib/product-eligibility';
+import { rejectedRowsToCsv } from '@/lib/store-import';
+import {
+  decodeCsvBytes, detectSourceFormat, diagnoseFile, looksLikeCents, parseImportCsv, pickProfile, resolveStore,
+  type CsvDelimiter,
+} from '@/lib/import-csv';
+import { validateImportRow, type ImportIssue, type ImportRowData, type ValidatedRow } from '@/lib/import-validate';
+import { detectCategorySlug } from '@/lib/category-detect';
 import {
   applyImportProfile, categoryPrefixes, headerSignature, DEFAULT_RULES, slugify as slugifyImport,
   type CategoryMapping, type ImportProfile, type ProfiledRow,
@@ -103,7 +108,7 @@ export default function AdminProducts() {
             onSaved={async () => { await reload(); setEditing(null); }}
           />
         )}
-        {tab === 'import' && <CsvImport categories={categories} brands={brands} onDone={reload} />}
+        {tab === 'import' && <CsvImport categories={categories} brands={brands} onDone={reload} onBrandCreated={addBrand} />}
         {tab === 'categories' && (
           <CategoriesEditor categories={categories} products={products} onChanged={reload} />
         )}
@@ -125,10 +130,14 @@ function ProductList({
   const [catFilter, setCatFilter] = useState<string>('all');
   const [brandFilter, setBrandFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'draft'>('all');
+  const [storeFilter, setStoreFilter] = useState<string>('all');
+  const [stores, setStores] = useState<Store[]>([]);
+  useEffect(() => { void fetchStores().then(setStores); }, []);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const catTree = useMemo(() => orderedCategories(categories), [categories]);
   const [bulkCategory, setBulkCategory] = useState<string>('nochange');
   const [bulkBrand, setBulkBrand] = useState<string>('nochange');
+  const [bulkStore, setBulkStore] = useState<string>('nochange');
   const [bulkBusy, setBulkBusy] = useState(false);
 
   const filtered = useMemo(() => {
@@ -139,10 +148,11 @@ function ProductList({
       if (statusFilter === 'active' && !p.is_active) return false;
       if (statusFilter === 'draft' && p.is_active) return false;
       if (brandFilter === 'none' ? !!p.brand_id : brandFilter !== 'all' && (p.brand_id ?? '') !== brandFilter) return false;
+      if (storeFilter === 'none' ? !!p.store_id : storeFilter !== 'all' && (p.store_id ?? '') !== storeFilter) return false;
       if (!q) return true;
       return [p.name_fr, p.name_en, p.slug_fr, p.slug_en, p.barcode ?? ''].some((f) => f.toLowerCase().includes(q));
     });
-  }, [products, query, catFilter, brandFilter, statusFilter, categories]);
+  }, [products, query, catFilter, brandFilter, storeFilter, statusFilter, categories]);
 
   // Selection is kept by id, independent of which page/filter is showing —
   // but the "select all" checkbox only ever acts on what's currently visible.
@@ -158,12 +168,13 @@ function ProductList({
     return next;
   });
 
-  const resetBulkForm = () => { setBulkCategory('nochange'); setBulkBrand('nochange'); };
+  const resetBulkForm = () => { setBulkCategory('nochange'); setBulkBrand('nochange'); setBulkStore('nochange'); };
 
   const applyBulk = async () => {
     const patch: Parameters<typeof bulkUpdateProducts>[1] = {};
     if (bulkCategory !== 'nochange') patch.category_id = bulkCategory;
     if (bulkBrand !== 'nochange') patch.brand_id = bulkBrand === 'none' ? null : bulkBrand;
+    if (bulkStore !== 'nochange') patch.store_id = bulkStore === 'none' ? null : bulkStore;
     if (Object.keys(patch).length === 0) { toast.error(t('admin.products_bulk_nothing_selected')); return; }
     setBulkBusy(true);
     try {
@@ -235,6 +246,16 @@ function ProductList({
             <SelectItem value="draft">{t('admin.products_filter_status_draft')}</SelectItem>
           </SelectContent>
         </Select>
+        {stores.length > 0 && (
+          <Select value={storeFilter} onValueChange={setStoreFilter}>
+            <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('admin.products_filter_store_any')}</SelectItem>
+              <SelectItem value="none">{t('admin.products_filter_store_none')}</SelectItem>
+              {stores.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
         {brands.length > 0 && (
           <Select value={brandFilter} onValueChange={setBrandFilter}>
             <SelectTrigger className="w-64"><SelectValue /></SelectTrigger>
@@ -276,6 +297,20 @@ function ProductList({
             />
           </div>
 
+          {stores.length > 0 && (
+            <div>
+              <Label className="text-xs">{t('admin.products_col_store')}</Label>
+              <Select value={bulkStore} onValueChange={setBulkStore}>
+                <SelectTrigger className="w-48 h-9 mt-1 bg-white"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nochange">{t('admin.products_bulk_no_change')}</SelectItem>
+                  <SelectItem value="none">{t('admin.products_filter_store_none')}</SelectItem>
+                  {stores.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <Button size="sm" variant="navy" disabled={bulkBusy} onClick={applyBulk}>
             {t('admin.products_bulk_apply')}
           </Button>
@@ -314,6 +349,7 @@ function ProductList({
               <th className="text-left px-4 py-3 font-semibold">{t('admin.products_col_slug')}</th>
               <th className="text-left px-4 py-3 font-semibold">{t('admin.products_col_category')}</th>
               <th className="text-left px-4 py-3 font-semibold">{t('admin.products_col_brand')}</th>
+              <th className="text-left px-4 py-3 font-semibold">{t('admin.products_col_store')}</th>
               <th className="text-right px-4 py-3 font-semibold">{t('admin.products_col_price')}</th>
               <th className="text-left px-4 py-3 font-semibold">{t('admin.products_col_barcode')}</th>
               <th className="text-center px-4 py-3 font-semibold">{t('admin.products_col_active')}</th>
@@ -322,7 +358,7 @@ function ProductList({
           </thead>
           <tbody className="divide-y divide-slate-100">
             {filtered.length === 0 && (
-              <tr><td colSpan={9} className="px-4 py-8 text-center text-slate-500">—</td></tr>
+              <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-500">—</td></tr>
             )}
             {filtered.map((p) => {
               const cat = categories.find((c) => c.id === p.category_id);
@@ -346,6 +382,7 @@ function ProductList({
                   </td>
                   <td className="px-4 py-3 text-slate-600">{cat?.name_fr ?? '—'}</td>
                   <td className="px-4 py-3 text-slate-600">{brand?.name_fr ?? '—'}</td>
+                  <td className="px-4 py-3 text-slate-600">{stores.find((s) => s.id === p.store_id)?.name ?? '—'}</td>
                   <td className="px-4 py-3 text-right font-semibold text-luna-navy">{Number(p.price).toFixed(2)} €</td>
                   <td className="px-4 py-3 font-mono text-xs text-slate-600">{p.barcode ?? '—'}</td>
                   <td className="px-4 py-3 text-center">
@@ -830,8 +867,9 @@ type ImportRow = {
   row: number;
   /** Index in the parsed file (key for per-row admin choices). */
   index: number;
+  /** Row after profile + admin fixes — what is validated and imported. */
   raw: Record<string, string>;
-  errors: string[];
+  errors: ImportIssue[];
   /** Eligibility verdict (accepted / excluded / to_verify) from the shared,
    *  store-agnostic filter — computed for every row regardless of structural
    *  validity, so the admin sees why a row will or won't be imported. */
@@ -842,33 +880,44 @@ type ImportRow = {
    *  as "to verify" and NOT imported (never auto-creates a store). */
   storeUnknown: boolean;
   /** What the import profile did to / found in this row. */
-  profiled?: ProfiledRow;
-  data?: {
-    slug_fr: string; slug_en: string;
-    name_fr: string; name_en: string;
-    description_fr: string | null; description_en: string | null;
-    price: number; category_id: string;
-    /** Only set when a brand was recognised (scraper `brand` column, else the product name) — never overwrites a manual brand. */
-    brand_id?: string;
-    barcode: string | null; hs_code: string | null; weight_kg: number | null; image_url: string | null;
-    is_active: boolean;
-    meta_title_fr: string | null; meta_title_en: string | null;
-    meta_description_fr: string | null; meta_description_en: string | null;
-  };
+  profiled: ProfiledRow;
+  /** Skipped by a profile mapping or by the admin (null = not skipped). */
+  skip: string | null;
+  /** English name is a copy of the French one. */
+  untranslated: boolean;
+  filled: ValidatedRow['filled'];
+  data?: ImportRowData;
 };
 
-type EnOverride = { name_en?: string; description_en?: string };
+/** Per-row admin fixes made in the preview (single row or in bulk). */
+type RowOverride = {
+  name_en?: string; description_en?: string;
+  category_slug?: string; store_slug?: string;
+  /** Luna product type — a scraper's own value ("Alcool") is unknown to the eligibility filter. */
+  product_type?: ProductType;
+  /** null = explicitly no brand. */
+  brand_id?: string | null;
+  skip?: boolean;
+};
 type MappingDraft = { prefix: string; action: 'map' | 'skip'; category_id: string; product_type: ProductType | '' };
 type RowResult = { ok: boolean; detail: string };
+type FileInfo = { delimiter: CsvDelimiter; encoding: string; unwrapped: number; eloshon: boolean };
+type RowFilter = 'all' | 'errors' | 'accepted' | 'to_verify' | 'excluded' | 'skipped';
+/** Issue groups shown in the "problems" panel: validation codes + unknown store. */
+type IssueKey = ImportIssue['code'] | 'store_unknown';
 
 const TYPE_KEYS: ProductType[] = ['food', 'hygiene', 'household', 'clothing', 'other'];
 /** Eligibility exclusions an admin may override with "accept fresh products". Frozen stays excluded. */
 const FRESH_EXCLUSION_CODES = new Set(['excluded_meat_seafood', 'excluded_dairy_fresh', 'excluded_refrigerated', 'excluded_cold_chain', 'excluded_fresh', 'excluded_produce_fresh', 'excluded_bakery']);
+/** Bulk-fix bar of the import preview, nothing chosen ('' / 'nochange' = leave as is). */
+const BULK_ROW_EMPTY = { category_slug: '', product_type: '' as ProductType | '', store_slug: '', brand: 'nochange' };
+const DELIMITER_LABEL: Record<CsvDelimiter, string> = { ',': ',', ';': ';', '\t': 'tab', '|': '|' };
 
-function CsvImport({ categories, brands, onDone }: { categories: ProductCategory[]; brands: Brand[]; onDone: () => void }) {
+function CsvImport({ categories, brands, onDone, onBrandCreated }: { categories: ProductCategory[]; brands: Brand[]; onDone: () => void; onBrandCreated: (b: Brand) => void }) {
   const { t } = useTranslation();
   const [rawRows, setRawRows] = useState<Record<string, string>[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
+  const [fileInfo, setFileInfo] = useState<FileInfo | null>(null);
   const [importing, setImporting] = useState(false);
   const [stores, setStores] = useState<Store[]>([]);
   // Safety default: imported products land as drafts (is_active=false) for
@@ -880,36 +929,45 @@ function CsvImport({ categories, brands, onDone }: { categories: ProductCategory
   const [mappings, setMappings] = useState<CategoryMapping[]>([]);
   const [newProfile, setNewProfile] = useState({ name: '', store_id: '' });
   const [drafts, setDrafts] = useState<Record<string, MappingDraft>>({});
-  const [overrides, setOverrides] = useState<Record<number, EnOverride>>({});
+  const [overrides, setOverrides] = useState<Record<number, RowOverride>>({});
   const [forced, setForced] = useState<Set<number>>(new Set());
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+  const [rowFilter, setRowFilter] = useState<RowFilter>('all');
   // Admin decision: fresh / chilled products (charcuterie, fish, ready meals…)
   // are excluded by the eligibility filter; when ticked they can be forced in
   // bulk like "to verify" rows. Off by default — the filter stays the rule.
   const [allowFresh, setAllowFresh] = useState(false);
+  // "Prices in cents" without a saved profile (with one it is a profile rule).
+  const [centsNoProfile, setCentsNoProfile] = useState(false);
   // Bulk category mapping (keyed by group path).
   const [pickedGroups, setPickedGroups] = useState<Set<string>>(new Set());
   const [bulkMap, setBulkMap] = useState<{ category_id: string; product_type: ProductType | '' }>({ category_id: '', product_type: 'food' });
+  // Bulk fixes on selected preview rows.
+  const [bulkRow, setBulkRow] = useState(BULK_ROW_EMPTY);
   const [translating, setTranslating] = useState(false);
   const [results, setResults] = useState<Record<number, RowResult>>({});
   const [busy, setBusy] = useState(false);
 
   useEffect(() => { fetchStores().then(setStores); void fetchImportProfiles().then(setProfiles); }, []);
-  const storeBySlug = useMemo(() => new Map(stores.map((s) => [s.slug, s.id])), [stores]);
   const profile = profiles.find((p) => p.id === profileId) ?? null;
   const profileStoreSlug = profile?.store_id ? stores.find((s) => s.id === profile.store_id)?.slug ?? null : null;
   const categorySlugById = useMemo(() => new Map(categories.map((c) => [c.id, c.slug])), [categories]);
+  const categoryBySlug = useMemo(() => new Map(categories.map((c) => [c.slug, c])), [categories]);
   const signature = useMemo(() => headerSignature(headers), [headers]);
+  const diagnostic = useMemo(() => (headers.length ? diagnoseFile(headers) : null), [headers]);
+  const rules = { ...DEFAULT_RULES, ...(profile?.rules ?? {}) };
+  const priceInCents = profile ? !!rules.price_in_cents : centsNoProfile;
+  const centsSuspected = useMemo(() => looksLikeCents(rawRows.map((r) => r.price)), [rawRows]);
 
   useEffect(() => {
     if (!profileId) { setMappings([]); return; }
     void fetchCategoryMappings(profileId).then(setMappings);
   }, [profileId]);
 
-  // Re-validated whenever categories, stores, the profile or its mappings
-  // change, so a mapping saved in the preview applies to every row at once.
-  const rows = useMemo(() => rawRows.map((raw, i) => {
-    const profiled = applyImportProfile(raw, profile, mappings, { storeSlug: profileStoreSlug, categorySlugById });
+  // Re-validated whenever categories, stores, the profile, its mappings or
+  // an admin fix change, so one action updates every row at once.
+  const rows = useMemo(() => rawRows.map((raw, i): ImportRow => {
+    const profiled = applyImportProfile(raw, profile ?? { rules: { price_in_cents: centsNoProfile } }, mappings, { storeSlug: profileStoreSlug, categorySlugById });
     const o = overrides[i] ?? {};
     const merged = { ...profiled.raw };
     if (o.name_en?.trim()) {
@@ -918,91 +976,164 @@ function CsvImport({ categories, brands, onDone }: { categories: ProductCategory
       if (!merged.slug_en || merged.slug_en === merged.slug_fr) merged.slug_en = slugifyImport(merged.name_en);
     }
     if (o.description_en !== undefined) merged.description_en = o.description_en;
-    const base = validateRow(merged, i + 2, categories, storeBySlug);
-    if (base.data) {
-      const brand = matchBrandName(merged.brand, brands) ?? detectBrandInText(base.data.name_fr, brands);
-      if (brand) base.data = { ...base.data, brand_id: brand.id };
+    if (o.category_slug) merged.category_slug = o.category_slug;
+    if (o.store_slug) merged.store_slug = o.store_slug;
+    if (o.product_type) merged.product_type = o.product_type;
+    const v = validateImportRow(merged, categories, stores);
+    const errors = [...v.errors];
+    if (profiled.priceIssue) errors.push({ code: profiled.priceIssue.code, csv: profiled.priceIssue.csv, ref: profiled.priceIssue.ref });
+    let data = errors.length ? undefined : v.data;
+    if (data) {
+      const brandId = o.brand_id !== undefined ? o.brand_id
+        : (matchBrandName(merged.brand, brands) ?? detectBrandInText(data.name_fr, brands))?.id ?? null;
+      if (brandId) data = { ...data, brand_id: brandId };
     }
-    const errors = [...base.errors];
-    if (profiled.priceProblem) errors.push(profiled.priceProblem);
-    if (profiled.unmapped && !profiled.skip) errors.push(t('admin.imp_err_unmapped'));
-    return { ...base, index: i, errors, profiled, data: errors.length ? undefined : base.data } as ImportRow;
-  }), [rawRows, profile, mappings, profileStoreSlug, categorySlugById, overrides, categories, brands, storeBySlug, t]);
+    const skip = profiled.skip ?? (o.skip ? t('admin.imp_skipped_by_admin') : null);
+    const untranslated = !o.name_en?.trim() && (profiled.untranslated || v.filled.includes('name_en'));
+    return {
+      row: i + 2, index: i, raw: merged, errors, eligibility: v.eligibility, storeId: v.storeId, storeUnknown: v.storeUnknown,
+      profiled, skip, untranslated, filled: v.filled, data,
+    };
+  }), [rawRows, profile, centsNoProfile, mappings, profileStoreSlug, categorySlugById, overrides, categories, brands, stores, t]);
 
-  const onFile = (file: File) => {
-    Papa.parse<Record<string, string>>(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (res) => {
-        const hdrs = res.meta.fields ?? [];
-        setHeaders(hdrs);
-        // A file whose lines were quoted twice collapses into one column —
-        // decode it once more instead of silently rejecting every row.
-        const unwrapped = unwrapDoubleEncodedRows(hdrs, res.data, (line) =>
-          (Papa.parse<string[]>(line, { header: false }).data[0] ?? []) as string[]);
-        if (unwrapped) toast.info(t('admin.imp_unwrapped', { count: unwrapped.length }));
-        setRawRows(unwrapped ?? res.data);
-        setOverrides({}); setForced(new Set()); setResults({}); setDrafts({}); setSelectedRows(new Set()); setPickedGroups(new Set());
-        // Recognise the source by its column set.
-        const sig = headerSignature(hdrs);
-        const match = profiles.find((p) => p.header_signature === sig);
-        setProfileId(match?.id ?? null);
-        if (match) toast.success(t('admin.imp_profile_detected', { name: match.name }));
-      },
-      error: (err) => { toast.error(err.message); },
-    });
+  const resetRowState = () => {
+    setOverrides({}); setForced(new Set()); setResults({}); setDrafts({}); setSelectedRows(new Set()); setPickedGroups(new Set());
+    setRowFilter('all'); setCentsNoProfile(false);
   };
 
-  const isSkipped = (r: ImportRow) => !!r.profiled?.skip;
+  const onFile = async (file: File) => {
+    try {
+      const { text, encoding } = decodeCsvBytes(await file.arrayBuffer());
+      const parsed = parseImportCsv(text);
+      const eloshon = detectSourceFormat(parsed.headers) === 'eloshon';
+      setHeaders(parsed.headers);
+      setRawRows(parsed.rows);
+      setFileInfo({ delimiter: parsed.delimiter, encoding, unwrapped: parsed.unwrapped, eloshon });
+      resetRowState();
+      if (parsed.unwrapped) toast.info(t('admin.imp_unwrapped', { count: parsed.unwrapped }));
+      // Recognise the source: same columns, else the Eloshon profile of the file's store.
+      const fileStore = resolveStore(parsed.rows.find((r) => r.store_slug?.trim())?.store_slug, stores);
+      const match = pickProfile(parsed.headers, fileStore?.id ?? null, profiles);
+      setProfileId(match?.profile.id ?? null);
+      if (match) toast.success(t('admin.imp_profile_detected', { name: match.profile.name }));
+      setNewProfile({
+        name: eloshon ? `Eloshon Scraper — ${fileStore?.name ?? parsed.rows[0]?.store_slug ?? ''}`.replace(/ — $/, '') : '',
+        store_id: fileStore?.id ?? '',
+      });
+    } catch (err) {
+      toast.error(errorMessage(err, t('common.error_generic')));
+    }
+  };
+
+  const isSkipped = (r: ImportRow) => !!r.skip;
   const isFreshExclusion = (r: ImportRow) => r.eligibility.status === 'excluded' && FRESH_EXCLUSION_CODES.has(r.eligibility.code);
   const canForce = (r: ImportRow) => r.errors.length === 0 && !isSkipped(r) && !r.storeUnknown
     && (r.eligibility.status === 'to_verify' || (allowFresh && isFreshExclusion(r)));
-  // A row imports only if it is structurally valid, not skipped by the
-  // profile, its store (when given) is known, and it is either accepted by
-  // the eligibility filter or explicitly forced by the admin (to_verify only).
+  // A row imports only if it is structurally valid, not skipped, its store
+  // (when given) is known, and it is either accepted by the eligibility
+  // filter or explicitly forced by the admin.
   const importable = rows.filter((r) => r.errors.length === 0 && r.data && !isSkipped(r) && !r.storeUnknown
     && (r.eligibility.status === 'accepted' || (forced.has(r.index) && canForce(r))));
   const importableSet = new Set(importable.map((r) => r.index));
   const rejected = rows.filter((r) => r.errors.length === 0 && !isSkipped(r) && !importableSet.has(r.index));
 
-  // Row selection (independent of eligibility/forcing) — used for the bulk
-  // "force" action below. Keyed by r.index, like `forced`.
-  const allSelected = rows.length > 0 && rows.every((r) => selectedRows.has(r.index));
+  const rowStatus = (r: ImportRow): 'accepted' | 'excluded' | 'to_verify' =>
+    r.storeUnknown ? 'to_verify' : r.eligibility.status;
+  const rowReason = (r: ImportRow): string =>
+    r.skip ?? (r.storeUnknown ? t('admin.imp_issue_store_unknown', { value: r.raw.store_slug?.trim() }) : r.eligibility.reason);
+  const issueText = (e: ImportIssue) => t(`admin.imp_issue_${e.code}`, { value: e.value ?? '', csv: e.csv, ref: e.ref });
+  const matchesFilter = (r: ImportRow): boolean => {
+    switch (rowFilter) {
+      case 'all': return true;
+      case 'skipped': return isSkipped(r);
+      case 'errors': return !isSkipped(r) && (r.errors.length > 0 || r.storeUnknown);
+      default: return !isSkipped(r) && r.errors.length === 0 && !r.storeUnknown && r.eligibility.status === rowFilter;
+    }
+  };
+  const visibleRows = rows.filter(matchesFilter);
+
+  // Rows grouped by problem — each group can be selected (then fixed with the
+  // bulk bar) or skipped in one click.
+  const issueGroups = (() => {
+    const m = new Map<IssueKey, { sample: string; indices: number[] }>();
+    const add = (key: IssueKey, sample: string, index: number) => {
+      const g = m.get(key) ?? { sample, indices: [] };
+      g.indices.push(index);
+      m.set(key, g);
+    };
+    for (const r of rows) {
+      if (r.skip) continue;
+      for (const e of r.errors) add(e.code, issueText(e), r.index);
+      if (r.storeUnknown) add('store_unknown', t('admin.imp_issue_store_unknown', { value: r.raw.store_slug?.trim() }), r.index);
+    }
+    return [...m.entries()].map(([key, g]) => ({ key, ...g })).sort((a, b) => b.indices.length - a.indices.length);
+  })();
+
+  // Selection is kept by row index; "select all" acts on the visible rows.
+  const allVisibleSelected = visibleRows.length > 0 && visibleRows.every((r) => selectedRows.has(r.index));
   const toggleRowSelected = (index: number, v: boolean) => setSelectedRows((prev) => {
     const next = new Set(prev);
     if (v) next.add(index); else next.delete(index);
     return next;
   });
-  const toggleAllSelected = (v: boolean) => setSelectedRows(v ? new Set(rows.map((r) => r.index)) : new Set());
-  // Among the selected rows, only those `canForce` actually gets added to
-  // `forced` — never bypasses eligibility/validation/store checks.
-  const forceableSelected = rows.filter((r) => selectedRows.has(r.index) && canForce(r));
-  const forceableAll = rows.filter((r) => canForce(r) && !forced.has(r.index));
-  const forceAll = () => setForced((prev) => {
+  const toggleAllVisible = (v: boolean) => setSelectedRows((prev) => {
     const next = new Set(prev);
-    forceableAll.forEach((r) => next.add(r.index));
+    visibleRows.forEach((r) => { if (v) next.add(r.index); else next.delete(r.index); });
     return next;
   });
-  const forceSelected = () => {
-    if (forceableSelected.length === 0) return;
-    setForced((prev) => {
-      const next = new Set(prev);
-      forceableSelected.forEach((r) => next.add(r.index));
-      return next;
-    });
-  };
+  const selected = rows.filter((r) => selectedRows.has(r.index));
+  // Among the selected rows, only those `canForce` actually gets added to
+  // `forced` — never bypasses eligibility/validation/store checks.
+  const forceableSelected = selected.filter(canForce);
+  const forceableAll = rows.filter((r) => canForce(r) && !forced.has(r.index));
+  const addForced = (list: ImportRow[]) => setForced((prev) => {
+    const next = new Set(prev);
+    list.forEach((r) => next.add(r.index));
+    return next;
+  });
 
-  const rowReason = (r: ImportRow): string =>
-    r.profiled?.skip ?? (r.storeUnknown ? `magasin inconnu « ${r.raw.store_slug?.trim()} »` : r.eligibility.reason);
-  const rowStatus = (r: ImportRow): 'accepted' | 'excluded' | 'to_verify' =>
-    r.storeUnknown ? 'to_verify' : r.eligibility.status;
+  /** Apply the same fix to several rows. */
+  const patchRows = (indices: Iterable<number>, patch: RowOverride) => setOverrides((prev) => {
+    const next = { ...prev };
+    for (const i of indices) next[i] = { ...next[i], ...patch };
+    return next;
+  });
+  const applyBulkRows = () => {
+    const patch: RowOverride = {};
+    if (bulkRow.category_slug) patch.category_slug = bulkRow.category_slug;
+    if (bulkRow.store_slug) patch.store_slug = bulkRow.store_slug;
+    if (bulkRow.product_type) patch.product_type = bulkRow.product_type;
+    if (bulkRow.brand !== 'nochange') patch.brand_id = bulkRow.brand === 'none' ? null : bulkRow.brand;
+    if (Object.keys(patch).length === 0) { toast.error(t('admin.imp_bulk_nothing')); return; }
+    patchRows(selectedRows, patch);
+    toast.success(t('admin.imp_bulk_applied', { count: selectedRows.size }));
+    setBulkRow(BULK_ROW_EMPTY);
+  };
+  /** Category suggested from the product name (same rules as "Trier les catégories"). */
+  const suggestCategories = () => {
+    const allowed = new Set(categories.filter((c) => c.parent_id).map((c) => c.slug));
+    const next: Record<number, RowOverride> = {};
+    for (const r of selected) {
+      if (r.raw.category_slug?.trim() && categoryBySlug.has(r.raw.category_slug.trim())) continue;
+      const slug = detectCategorySlug(r.raw.name_fr ?? '', allowed);
+      if (slug) next[r.index] = { category_slug: slug };
+    }
+    const n = Object.keys(next).length;
+    setOverrides((prev) => {
+      const out = { ...prev };
+      for (const [i, p] of Object.entries(next)) out[Number(i)] = { ...out[Number(i)], ...p };
+      return out;
+    });
+    if (n) toast.success(t('admin.imp_suggest_done', { count: n }));
+    else toast.info(t('admin.imp_suggest_none'));
+  };
 
   // Unmapped source categories, grouped per real category path (the product
   // name some scrapers append is dropped) — one mapping covers the group.
   const unmappedGroups = useMemo(() => {
     const m = new Map<string, { count: number; samples: string[] }>();
     for (const r of rows) {
-      if (!r.profiled?.unmapped || r.profiled.skip) continue;
+      if (!r.profiled.unmapped || r.skip || r.raw.category_slug?.trim()) continue;
       const sc = r.raw.source_category?.trim();
       if (!sc) continue;
       const key = categoryGroupKey(sc, r.raw.name_fr);
@@ -1014,8 +1145,7 @@ function CsvImport({ categories, brands, onDone }: { categories: ProductCategory
     return [...m.entries()].map(([key, g]) => ({ key, ...g })).sort((a, b) => a.key.localeCompare(b.key));
   }, [rows]);
   const unmappedCats = unmappedGroups.map((g) => g.key);
-  const untranslated = rows.filter((r) => r.profiled?.untranslated && !isSkipped(r) && !overrides[r.index]?.name_en
-    && r.eligibility.status !== 'excluded');
+  const untranslated = rows.filter((r) => r.untranslated && !isSkipped(r) && r.eligibility.status !== 'excluded');
 
   const draftFor = (sc: string): MappingDraft =>
     drafts[sc] ?? { prefix: sc, action: 'map', category_id: '', product_type: '' };
@@ -1075,7 +1205,7 @@ function CsvImport({ categories, brands, onDone }: { categories: ProductCategory
     try {
       const p = await createImportProfile({
         slug: slugifyImport(name) || `profil-${Date.now()}`, name, header_signature: signature,
-        store_id: newProfile.store_id || null, rules: DEFAULT_RULES,
+        store_id: newProfile.store_id || null, rules: { ...DEFAULT_RULES, price_in_cents: centsNoProfile },
       });
       setProfiles((ps) => [...ps, p]);
       setProfileId(p.id);
@@ -1091,14 +1221,18 @@ function CsvImport({ categories, brands, onDone }: { categories: ProductCategory
       setProfiles((ps) => ps.map((p) => (p.id === profile.id ? { ...p, ...patch } : p)));
     } catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
   };
-  const rules = { ...DEFAULT_RULES, ...(profile?.rules ?? {}) };
+  const setPriceInCents = (v: boolean) => {
+    if (profile) void patchProfile({ rules: { ...rules, price_in_cents: v } });
+    else setCentsNoProfile(v);
+  };
 
-  const translateAll = async () => {
-    if (untranslated.length === 0) return;
+  /** DeepL FR → EN for the given rows (names, and descriptions when present). */
+  const translateRows = async (list: ImportRow[]) => {
+    if (list.length === 0) return;
     setTranslating(true);
     try {
-      const names = untranslated.map((r) => r.raw.name_fr);
-      const descs = untranslated.map((r) => r.raw.description_fr ?? '');
+      const names = list.map((r) => r.raw.name_fr);
+      const descs = list.map((r) => r.raw.description_fr ?? '');
       const withDesc = descs.map((d, i) => [d, i] as const).filter(([d]) => d.trim());
       const [n, d] = await Promise.all([
         translateText(names, 'en', 'fr'),
@@ -1106,14 +1240,14 @@ function CsvImport({ categories, brands, onDone }: { categories: ProductCategory
       ]);
       setOverrides((prev) => {
         const next = { ...prev };
-        untranslated.forEach((r, i) => { next[r.index] = { ...next[r.index], name_en: n.translations[i] ?? '' }; });
+        list.forEach((r, i) => { next[r.index] = { ...next[r.index], name_en: n.translations[i] ?? '' }; });
         withDesc.forEach(([, i], k) => {
-          const r = untranslated[i];
+          const r = list[i];
           next[r.index] = { ...next[r.index], description_en: d.translations[k] ?? '' };
         });
         return next;
       });
-      toast.success(t('admin.imp_translated', { count: untranslated.length }));
+      toast.success(t('admin.imp_translated', { count: list.length }));
     } catch (err) { toast.error(errorMessage(err, t('common.error_generic'))); }
     finally { setTranslating(false); }
   };
@@ -1178,7 +1312,7 @@ function CsvImport({ categories, brands, onDone }: { categories: ProductCategory
       status: rowStatus(r),
       reason: rowReason(r),
     })));
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = 'luna-import-a-verifier.csv';
@@ -1189,19 +1323,50 @@ function CsvImport({ categories, brands, onDone }: { categories: ProductCategory
   const sel = 'h-9 rounded-md border border-slate-300 bg-white px-2 text-sm';
   // "Famille › Sous-catégorie" labels, families A→Z then their children A→Z.
   const categoryOptions = useMemo(
-    () => orderedCategories(categories).map(({ category, label }) => ({ id: category.id, label })),
+    () => orderedCategories(categories).map(({ category, label }) => ({ id: category.id, slug: category.slug, label, depth: category.parent_id ? 1 : 0 })),
     [categories],
   );
+  const categoryLabel = useMemo(() => new Map(categoryOptions.map((c) => [c.slug, c.label])), [categoryOptions]);
+  const counts = {
+    all: rows.length,
+    errors: rows.filter((r) => !isSkipped(r) && (r.errors.length > 0 || r.storeUnknown)).length,
+    accepted: rows.filter((r) => !isSkipped(r) && !r.errors.length && !r.storeUnknown && r.eligibility.status === 'accepted').length,
+    to_verify: rows.filter((r) => !isSkipped(r) && !r.errors.length && !r.storeUnknown && r.eligibility.status === 'to_verify').length,
+    excluded: rows.filter((r) => !isSkipped(r) && !r.errors.length && !r.storeUnknown && r.eligibility.status === 'excluded').length,
+    skipped: rows.filter(isSkipped).length,
+  };
+  // Once the last row is fixed, show everything again instead of an empty table.
+  useEffect(() => { if (rowFilter === 'errors' && counts.errors === 0) setRowFilter('all'); }, [rowFilter, counts.errors]);
 
   return (
     <div className="max-w-6xl">
       <p className="text-sm text-slate-600 mb-4">{t('admin.products_import_intro')}</p>
       <label className="inline-flex items-center gap-2 rounded-md bg-luna-navy text-white px-4 py-2 text-sm font-medium cursor-pointer hover:bg-luna-navy/90">
         {t('admin.products_import_choose')}
-        <input type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
+        <input type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void onFile(f); e.target.value = ''; }} />
       </label>
 
-      {rawRows.length > 0 && (
+      {fileInfo && (
+        <p className="mt-3 text-xs text-slate-500">
+          {t('admin.imp_file_info', {
+            rows: rawRows.length, columns: headers.length, delimiter: DELIMITER_LABEL[fileInfo.delimiter],
+            encoding: fileInfo.encoding === 'utf-8' ? 'UTF-8' : 'Windows-1252',
+          })}
+          {fileInfo.eloshon && ` · ${t('admin.imp_file_eloshon')}`}
+          {fileInfo.unwrapped > 0 && ` · ${t('admin.imp_file_unwrapped', { count: fileInfo.unwrapped })}`}
+        </p>
+      )}
+
+      {diagnostic && (
+        <section role="alert" className="mt-4 rounded-2xl border-2 border-red-300 bg-red-50 p-4 text-sm text-red-900">
+          <h3 className="font-semibold">{t('admin.imp_diag_title')}</h3>
+          <p className="mt-1">{t('admin.imp_diag_missing', { columns: diagnostic.missing.join(', ') })}</p>
+          <p className="mt-1">{diagnostic.singleColumn ? t('admin.imp_diag_single_column') : t('admin.imp_diag_wrong_columns')}</p>
+          <p className="mt-2 text-xs text-red-800 break-words">{t('admin.imp_diag_read', { columns: headers.slice(0, 12).join(' · ').slice(0, 300) })}</p>
+        </section>
+      )}
+
+      {rawRows.length > 0 && !diagnostic && (
         <section aria-labelledby="imp-profile" className="mt-6 rounded-2xl border border-slate-200 bg-white p-4">
           <h3 id="imp-profile" className="font-semibold text-luna-navy">{t('admin.imp_profile_title')}</h3>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
@@ -1212,9 +1377,7 @@ function CsvImport({ categories, brands, onDone }: { categories: ProductCategory
                 <option key={p.id} value={p.id}>{p.name}{p.header_signature === signature ? ` — ${t('admin.imp_profile_matches')}` : ''}</option>
               ))}
             </select>
-            {!profiles.some((p) => p.header_signature === signature) && (
-              <span className="text-amber-700">{t('admin.imp_profile_none_match')}</span>
-            )}
+            {!profile && <span className="text-amber-700">{t('admin.imp_profile_none_match')}</span>}
           </div>
 
           {!profile && (
@@ -1228,11 +1391,12 @@ function CsvImport({ categories, brands, onDone }: { categories: ProductCategory
                 <Label htmlFor="imp-new-store" className="text-xs">{t('admin.imp_profile_store')}</Label>
                 <select id="imp-new-store" className={cn(sel, 'block')} value={newProfile.store_id}
                   onChange={(e) => setNewProfile((p) => ({ ...p, store_id: e.target.value }))}>
-                  <option value="">{t('admin.imp_profile_store_none')}</option>
+                  <option value="">{t('admin.imp_profile_store_from_file')}</option>
                   {stores.map((s) => <option key={s.id} value={s.id}>{s.name} ({s.slug})</option>)}
                 </select>
               </div>
               <Button type="button" variant="navy" size="sm" onClick={createProfile} disabled={busy}>{t('admin.imp_profile_create')}</Button>
+              <p className="basis-full text-xs text-slate-500">{t('admin.imp_profile_optional')}</p>
             </div>
           )}
 
@@ -1242,7 +1406,7 @@ function CsvImport({ categories, brands, onDone }: { categories: ProductCategory
                 <Label htmlFor="imp-store" className="text-xs">{t('admin.imp_profile_store')}</Label>
                 <select id="imp-store" className={cn(sel, 'block')} value={profile.store_id ?? ''}
                   onChange={(e) => void patchProfile({ store_id: e.target.value || null })}>
-                  <option value="">{t('admin.imp_profile_store_none')}</option>
+                  <option value="">{t('admin.imp_profile_store_from_file')}</option>
                   {stores.map((s) => <option key={s.id} value={s.id}>{s.name} ({s.slug})</option>)}
                 </select>
               </div>
@@ -1251,6 +1415,7 @@ function CsvImport({ categories, brands, onDone }: { categories: ProductCategory
                 {([
                   ['strip_description_price_suffix', 'admin.imp_rule_desc'],
                   ['fix_price_x1000', 'admin.imp_rule_price'],
+                  ['price_in_cents', 'admin.imp_rule_cents'],
                   ['strip_slug_suffix', 'admin.imp_rule_slug'],
                   ['strip_generic_description', 'admin.imp_rule_generic_desc'],
                 ] as const).map(([k, label]) => (
@@ -1268,6 +1433,19 @@ function CsvImport({ categories, brands, onDone }: { categories: ProductCategory
             </div>
           )}
         </section>
+      )}
+
+      {centsSuspected && !priceInCents && !diagnostic && (
+        <section role="status" className="mt-4 rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 text-sm flex flex-wrap items-center gap-3">
+          <p className="flex-1 min-w-[16rem] text-amber-900">{t('admin.imp_cents_hint', { sample: rawRows.find((r) => r.price?.trim())?.price ?? '' })}</p>
+          <Button type="button" size="sm" variant="navy" onClick={() => setPriceInCents(true)}>{t('admin.imp_cents_apply')}</Button>
+        </section>
+      )}
+      {priceInCents && !profile && (
+        <p className="mt-2 text-xs text-slate-600">
+          {t('admin.imp_cents_on')}{' '}
+          <button type="button" className="underline" onClick={() => setPriceInCents(false)}>{t('admin.imp_cents_undo')}</button>
+        </p>
       )}
 
       {unmappedCats.length > 0 && (
@@ -1362,12 +1540,41 @@ function CsvImport({ categories, brands, onDone }: { categories: ProductCategory
         </details>
       )}
 
-      {rows.length > 0 && (
+      {issueGroups.length > 0 && !diagnostic && (
+        <section aria-labelledby="imp-issues" className="mt-4 rounded-2xl border border-red-200 bg-white p-4">
+          <h3 id="imp-issues" className="font-semibold text-luna-navy">{t('admin.imp_issues_title', { count: counts.errors })}</h3>
+          <p className="mt-1 text-xs text-slate-600">{t('admin.imp_issues_intro')}</p>
+          <ul className="mt-3 divide-y divide-slate-100 text-sm">
+            {issueGroups.map((g) => (
+              <li key={g.key} className="flex flex-wrap items-center gap-2 py-2">
+                <span className="inline-flex min-w-[3rem] justify-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800">{g.indices.length}</span>
+                <span className="flex-1 min-w-[16rem] text-slate-700">
+                  {g.sample}
+                  <span className="block text-xs text-slate-500">{t(`admin.imp_fix_${g.key}`)}</span>
+                </span>
+                <Button type="button" size="sm" variant="outline" onClick={() => { setSelectedRows(new Set(g.indices)); setRowFilter('errors'); }}>
+                  {t('admin.imp_issue_select', { count: g.indices.length })}
+                </Button>
+                <Button type="button" size="sm" variant="ghost" onClick={() => patchRows(g.indices, { skip: true })}>
+                  {t('admin.imp_issue_skip', { count: g.indices.length })}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {rows.length > 0 && !diagnostic && (
         <>
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <h3 className="text-lg font-semibold text-luna-navy">{t('admin.products_import_preview')}</h3>
+            <select aria-label={t('admin.imp_filter_label')} className={sel} value={rowFilter} onChange={(e) => setRowFilter(e.target.value as RowFilter)}>
+              {(['all', 'errors', 'accepted', 'to_verify', 'excluded', 'skipped'] as RowFilter[]).map((k) => (
+                <option key={k} value={k}>{t(`admin.imp_filter_${k}`)} ({counts[k]})</option>
+              ))}
+            </select>
             {untranslated.length > 0 && (
-              <Button type="button" size="sm" variant="outline" onClick={translateAll} disabled={translating}>
+              <Button type="button" size="sm" variant="outline" onClick={() => translateRows(untranslated)} disabled={translating}>
                 <Languages className="h-3.5 w-3.5" />
                 {translating ? t('admin.imp_translating') : t('admin.imp_translate', { count: untranslated.length })}
               </Button>
@@ -1377,29 +1584,74 @@ function CsvImport({ categories, brands, onDone }: { categories: ProductCategory
               {t('admin.imp_allow_fresh')}
             </label>
             {forceableAll.length > 0 && (
-              <Button type="button" size="sm" variant="outline" onClick={forceAll}>
+              <Button type="button" size="sm" variant="outline" onClick={() => addForced(forceableAll)}>
                 <Check className="h-3.5 w-3.5" />
                 {t('admin.imp_force_all', { count: forceableAll.length })}
               </Button>
             )}
-            {rows.length > 0 && (
-              <Button type="button" size="sm" variant="outline" onClick={() => toggleAllSelected(!allSelected)}>
-                {allSelected ? t('admin.imp_deselect_all') : t('admin.imp_select_all_btn')}
-              </Button>
-            )}
-            {selectedRows.size > 0 && (
-              <>
-                <span className="text-xs text-slate-500">{t('admin.imp_selected_count', { count: selectedRows.size })}</span>
-                <Button type="button" size="sm" variant="outline" onClick={forceSelected} disabled={forceableSelected.length === 0}>
-                  <Check className="h-3.5 w-3.5" />
-                  {forceableSelected.length === selectedRows.size
-                    ? t('admin.imp_force_selected', { count: forceableSelected.length })
-                    : t('admin.imp_force_selected_partial', { forceable: forceableSelected.length, selected: selectedRows.size })}
-                </Button>
-              </>
-            )}
+            <Button type="button" size="sm" variant="outline" onClick={() => toggleAllVisible(!allVisibleSelected)}>
+              {allVisibleSelected ? t('admin.imp_deselect_all') : t('admin.imp_select_all_btn')}
+            </Button>
           </div>
           <p className="mt-1 text-xs text-slate-500 max-w-3xl">{t('admin.products_import_filter_note')}</p>
+
+          {selectedRows.size > 0 && (
+            <div className="sticky top-0 z-10 mt-3 rounded-xl border border-luna-navy/20 bg-slate-50 p-3 flex flex-wrap items-end gap-2 text-sm shadow-sm">
+              <div className="basis-full text-sm font-semibold text-luna-navy">{t('admin.imp_selected_count', { count: selectedRows.size })}</div>
+              <div>
+                <Label htmlFor="imp-bulk-cat" className="text-xs">{t('admin.product_field_category')}</Label>
+                <select id="imp-bulk-cat" className={cn(sel, 'block w-60')} value={bulkRow.category_slug} onChange={(e) => setBulkRow((b) => ({ ...b, category_slug: e.target.value }))}>
+                  <option value="">{t('admin.products_bulk_no_change')}</option>
+                  {categoryOptions.map((c) => <option key={c.id} value={c.slug}>{c.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <Label htmlFor="imp-bulk-type" className="text-xs">{t('admin.imp_map_type')}</Label>
+                <select id="imp-bulk-type" className={cn(sel, 'block w-40')} value={bulkRow.product_type} onChange={(e) => setBulkRow((b) => ({ ...b, product_type: e.target.value as ProductType | '' }))}>
+                  <option value="">{t('admin.products_bulk_no_change')}</option>
+                  {TYPE_KEYS.map((k) => <option key={k} value={k}>{t(`admin.imp_type_${k}`)}</option>)}
+                </select>
+              </div>
+              <div>
+                <Label htmlFor="imp-bulk-store" className="text-xs">{t('admin.products_col_store')}</Label>
+                <select id="imp-bulk-store" className={cn(sel, 'block w-44')} value={bulkRow.store_slug} onChange={(e) => setBulkRow((b) => ({ ...b, store_slug: e.target.value }))}>
+                  <option value="">{t('admin.products_bulk_no_change')}</option>
+                  {stores.map((s) => <option key={s.id} value={s.slug}>{s.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs">{t('admin.product_field_brand')}</Label>
+                <BrandPicker
+                  value={bulkRow.brand}
+                  onChange={(v) => setBulkRow((b) => ({ ...b, brand: v }))}
+                  brands={brands}
+                  onBrandCreated={onBrandCreated}
+                  leading={[{ value: 'nochange', label: t('admin.products_bulk_no_change') }, { value: 'none', label: t('admin.product_field_brand_none') }]}
+                  className="w-56 h-9 bg-white"
+                />
+              </div>
+              <Button type="button" size="sm" variant="navy" onClick={applyBulkRows}>{t('admin.products_bulk_apply')}</Button>
+              <div className="h-9 w-px bg-luna-navy/15 hidden sm:block" />
+              <Button type="button" size="sm" variant="outline" onClick={suggestCategories}>
+                <Wand2 className="h-3.5 w-3.5" />
+                {t('admin.imp_suggest_categories')}
+              </Button>
+              <Button type="button" size="sm" variant="outline" onClick={() => translateRows(selected.filter((r) => !isSkipped(r)))} disabled={translating}>
+                <Languages className="h-3.5 w-3.5" />
+                {t('admin.imp_translate_selected')}
+              </Button>
+              <Button type="button" size="sm" variant="outline" onClick={() => addForced(forceableSelected)} disabled={forceableSelected.length === 0}>
+                <Check className="h-3.5 w-3.5" />
+                {forceableSelected.length === selectedRows.size
+                  ? t('admin.imp_force_selected', { count: forceableSelected.length })
+                  : t('admin.imp_force_selected_partial', { forceable: forceableSelected.length, selected: selectedRows.size })}
+              </Button>
+              <Button type="button" size="sm" variant="ghost" onClick={() => patchRows(selectedRows, { skip: true })}>{t('admin.imp_skip_selected')}</Button>
+              <Button type="button" size="sm" variant="ghost" onClick={() => patchRows(selectedRows, { skip: false })}>{t('admin.imp_unskip_selected')}</Button>
+              <Button type="button" size="sm" variant="ghost" onClick={() => setSelectedRows(new Set())}>{t('admin.products_bulk_clear')}</Button>
+            </div>
+          )}
+
           <div className="mt-3 rounded-2xl border border-slate-200 bg-white overflow-x-auto">
             <table className="w-full text-xs">
               <thead className="bg-slate-50 text-luna-navy">
@@ -1408,22 +1660,25 @@ function CsvImport({ categories, brands, onDone }: { categories: ProductCategory
                     <input
                       type="checkbox"
                       aria-label={t('admin.imp_select_all')}
-                      checked={allSelected}
-                      onChange={(e) => toggleAllSelected(e.target.checked)}
+                      checked={allVisibleSelected}
+                      onChange={(e) => toggleAllVisible(e.target.checked)}
                     />
                   </th>
                   <th className="text-left px-3 py-2 font-semibold">{t('admin.products_import_row_col')}</th>
                   <th className="text-left px-3 py-2 font-semibold">{t('admin.products_import_status_col')}</th>
                   <th className="text-left px-3 py-2 font-semibold">{t('admin.products_import_reason_col')}</th>
-                  <th className="text-left px-3 py-2 font-semibold">name_fr</th>
+                  <th className="text-left px-3 py-2 font-semibold">{t('admin.imp_name_fr_col')}</th>
                   <th className="text-left px-3 py-2 font-semibold">{t('admin.imp_name_en_col')}</th>
-                  <th className="text-left px-3 py-2 font-semibold">product_type</th>
-                  <th className="text-left px-3 py-2 font-semibold">price</th>
-                  <th className="text-left px-3 py-2 font-semibold">category_slug</th>
+                  <th className="text-left px-3 py-2 font-semibold">{t('admin.products_col_price')}</th>
+                  <th className="text-left px-3 py-2 font-semibold">{t('admin.products_col_category')}</th>
+                  <th className="text-left px-3 py-2 font-semibold">{t('admin.products_col_store')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {rows.map((r) => {
+                {visibleRows.length === 0 && (
+                  <tr><td colSpan={9} className="px-4 py-6 text-center text-slate-500">{t('admin.imp_filter_empty')}</td></tr>
+                )}
+                {visibleRows.map((r) => {
                   const hasErr = r.errors.length > 0;
                   const skipped = isSkipped(r);
                   const status = rowStatus(r);
@@ -1431,9 +1686,11 @@ function CsvImport({ categories, brands, onDone }: { categories: ProductCategory
                   const rowBg = skipped ? 'bg-slate-50 text-slate-400'
                     : hasErr || status === 'excluded' ? 'bg-red-50/40'
                     : status === 'to_verify' ? 'bg-amber-50/40' : '';
-                  const nameEn = overrides[r.index]?.name_en ?? r.profiled?.raw.name_en ?? r.raw.name_en ?? '';
+                  const nameEn = overrides[r.index]?.name_en ?? r.raw.name_en ?? '';
+                  const catSlug = r.raw.category_slug?.trim() ?? '';
+                  const store = resolveStore(r.raw.store_slug, stores);
                   return (
-                    <tr key={r.row} className={rowBg}>
+                    <tr key={r.row} className={cn(rowBg, selectedRows.has(r.index) && 'outline outline-1 outline-luna-navy/30')}>
                       <td className="px-3 py-2">
                         <input
                           type="checkbox"
@@ -1448,7 +1705,7 @@ function CsvImport({ categories, brands, onDone }: { categories: ProductCategory
                           <span className="inline-flex items-center rounded-full bg-slate-200 text-slate-600 px-2 py-0.5 font-semibold">{t('admin.imp_status_skipped')}</span>
                         ) : hasErr ? (
                           <span className="inline-flex items-center rounded-full bg-red-100 text-red-800 px-2 py-0.5 font-semibold">
-                            {t('admin.products_import_error')}
+                            {t('admin.imp_status_to_fix')}
                           </span>
                         ) : status === 'accepted' ? (
                           <span className="inline-flex items-center rounded-full bg-green-100 text-green-800 px-2 py-0.5 font-semibold">
@@ -1476,13 +1733,15 @@ function CsvImport({ categories, brands, onDone }: { categories: ProductCategory
                           </span>
                         )}
                       </td>
-                      <td className="px-3 py-2 text-slate-600">
-                        {hasErr ? <span className="text-red-700">{r.errors.join('; ')}</span> : rowReason(r)}
-                        {r.eligibility.is_alcoholic && <span className="ml-1 text-slate-400">· alcool</span>}
-                        {r.eligibility.requires_cold_chain === true && <span className="ml-1 text-sky-600">· chaîne du froid</span>}
+                      <td className="px-3 py-2 text-slate-600 min-w-[14rem]">
+                        {hasErr && !skipped ? (
+                          <ul className="space-y-0.5 text-red-700">{r.errors.map((e) => <li key={e.code}>• {issueText(e)}</li>)}</ul>
+                        ) : rowReason(r)}
+                        {r.eligibility.is_alcoholic && <span className="ml-1 text-slate-400">· {t('admin.imp_tag_alcohol')}</span>}
+                        {r.eligibility.requires_cold_chain === true && <span className="ml-1 text-sky-600">· {t('admin.imp_tag_cold_chain')}</span>}
                         {!hasErr && !skipped && !r.storeUnknown && r.eligibility.status === 'accepted' && r.eligibility.requires_cold_chain === null &&
-                          <span className="ml-1 text-amber-600">· conservation inconnue</span>}
-                        {!!r.profiled?.notes.length && <span className="block text-slate-400">{r.profiled.notes.join(' · ')}</span>}
+                          <span className="ml-1 text-amber-600">· {t('admin.imp_tag_storage_unknown')}</span>}
+                        {!!r.profiled.notes.length && <span className="block text-slate-400">{r.profiled.notes.join(' · ')}</span>}
                       </td>
                       <td className="px-3 py-2">{r.raw.name_fr ?? ''}</td>
                       <td className="px-3 py-2 min-w-[14rem]">
@@ -1491,13 +1750,23 @@ function CsvImport({ categories, brands, onDone }: { categories: ProductCategory
                             aria-label={`${t('admin.imp_name_en_col')} — ${r.raw.name_fr ?? ''}`}
                             value={nameEn}
                             onChange={(e) => setOverrides((o) => ({ ...o, [r.index]: { ...o[r.index], name_en: e.target.value } }))}
-                            className={cn('h-8 text-xs', r.profiled?.untranslated && !overrides[r.index]?.name_en && 'border-amber-400')}
+                            className={cn('h-8 text-xs', r.untranslated && 'border-amber-400')}
                           />
                         )}
                       </td>
-                      <td className="px-3 py-2 font-mono text-slate-500">{r.profiled?.raw.product_type || r.raw.product_type || '—'}</td>
-                      <td className="px-3 py-2">{r.profiled?.raw.price ?? r.raw.price ?? ''}</td>
-                      <td className="px-3 py-2 font-mono">{r.profiled?.raw.category_slug ?? r.raw.category_slug ?? ''}</td>
+                      <td className="px-3 py-2 whitespace-nowrap">{r.data ? `${r.data.price.toFixed(2)} €` : (r.raw.price ?? '')}</td>
+                      <td className="px-3 py-2 min-w-[12rem]">
+                        {skipped ? (categoryLabel.get(catSlug) ?? catSlug) : (
+                          <select aria-label={`${t('admin.products_col_category')} — ${r.raw.name_fr ?? ''}`}
+                            className={cn('h-8 w-full rounded-md border bg-white px-1 text-xs', catSlug && categoryLabel.has(catSlug) ? 'border-slate-300' : 'border-red-300')}
+                            value={categoryLabel.has(catSlug) ? catSlug : ''}
+                            onChange={(e) => patchRows([r.index], { category_slug: e.target.value })}>
+                            <option value="">{catSlug ? `« ${catSlug} » ?` : t('admin.imp_category_choose')}</option>
+                            {categoryOptions.map((c) => <option key={c.id} value={c.slug}>{c.label}</option>)}
+                          </select>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap">{store?.name ?? (r.raw.store_slug?.trim() ? <span className="text-red-700">{r.raw.store_slug}</span> : '—')}</td>
                     </tr>
                   );
                 })}
@@ -1522,60 +1791,6 @@ function CsvImport({ categories, brands, onDone }: { categories: ProductCategory
       )}
     </div>
   );
-}
-
-function validateRow(raw: Record<string, string>, row: number, categories: ProductCategory[], storeBySlug: Map<string, string>): Omit<ImportRow, 'index'> {
-  const errors: string[] = [];
-  // Store-agnostic eligibility — same pipeline a future scraper will use
-  // (normalise → filter). Independent of the structural checks below.
-  const eligibility = isLunaEligibleProduct(normalizeCsvRow(raw));
-  // Resolve store_slug → store_id. An unknown slug never creates a store; the
-  // row is treated as "to verify" and not imported.
-  const storeSlug = raw.store_slug?.trim();
-  const storeId = storeSlug ? (storeBySlug.get(storeSlug) ?? null) : null;
-  const storeUnknown = !!storeSlug && !storeBySlug.has(storeSlug);
-  // Back-compat: accept a legacy single `slug` column and use it for both
-  // slug_fr and slug_en if the FR/EN columns are missing.
-  const slugFr = (raw.slug_fr ?? raw.slug ?? '').trim();
-  const slugEn = (raw.slug_en ?? raw.slug ?? '').trim();
-  if (!slugFr) errors.push('slug_fr required (or legacy slug)');
-  if (!slugEn) errors.push('slug_en required (or legacy slug)');
-  const req = (k: string) => { if (!raw[k]?.trim()) errors.push(`${k} required`); };
-  ['name_fr', 'name_en', 'price', 'category_slug'].forEach(req);
-
-  const price = Number(raw.price);
-  if (raw.price != null && Number.isNaN(price)) errors.push('price NaN');
-  if (price < 0) errors.push('price < 0');
-  const weight = raw.weight_kg?.trim() ? Number(raw.weight_kg) : null;
-  if (weight !== null && Number.isNaN(weight)) errors.push('weight_kg NaN');
-
-  const cat = categories.find((c) => c.slug === raw.category_slug?.trim());
-  if (raw.category_slug?.trim() && !cat) errors.push(`unknown category_slug "${raw.category_slug}"`);
-  if (slugFr && !/^[a-z0-9-]+$/.test(slugFr)) errors.push('slug_fr format');
-  if (slugEn && !/^[a-z0-9-]+$/.test(slugEn)) errors.push('slug_en format');
-
-  if (errors.length) return { row, raw, errors, eligibility, storeId, storeUnknown };
-  return {
-    row, raw, errors: [], eligibility, storeId, storeUnknown,
-    data: {
-      slug_fr: slugFr, slug_en: slugEn,
-      name_fr: raw.name_fr.trim(),
-      name_en: raw.name_en.trim(),
-      description_fr: raw.description_fr?.trim() || null,
-      description_en: raw.description_en?.trim() || null,
-      price,
-      category_id: cat!.id,
-      barcode: raw.barcode?.trim() || null,
-      hs_code: raw.hs_code?.trim() || null,
-      weight_kg: weight,
-      image_url: raw.image_url?.trim() || null,
-      is_active: true,
-      meta_title_fr: raw.meta_title_fr?.trim() || null,
-      meta_title_en: raw.meta_title_en?.trim() || null,
-      meta_description_fr: raw.meta_description_fr?.trim() || null,
-      meta_description_en: raw.meta_description_en?.trim() || null,
-    },
-  };
 }
 
 // ─── Categories editor ────────────────────────────────────────────────────
