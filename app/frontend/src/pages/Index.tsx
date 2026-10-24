@@ -97,6 +97,17 @@ export default function Index() {
           backgroundRepeat: 'no-repeat, no-repeat',
         }}
       >
+        {/* Translucent logo watermark over the map (md+: on mobile the text covers the map) */}
+        <img
+          src="/brand/luna-icon-hero.webp"
+          alt=""
+          aria-hidden="true"
+          width={420}
+          height={392}
+          decoding="async"
+          className="pointer-events-none absolute right-[6%] top-1/2 hidden h-auto w-[200px] -translate-y-1/2 select-none opacity-[.22] md:block lg:right-[9%] lg:w-[300px]"
+        />
+
         {/* Hero content */}
         <div className="relative mx-auto max-w-[1220px] px-4 pt-5 pb-[18px] md:px-[26px] md:py-10 lg:px-10 lg:pt-[84px] lg:pb-[100px]">
           <div className="min-w-0 max-w-full lg:max-w-[min(560px,58%)]">
