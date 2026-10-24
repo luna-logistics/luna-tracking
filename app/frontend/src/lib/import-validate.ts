@@ -7,11 +7,17 @@
  * Missing slugs and English names are filled rather than refused — the slug
  * comes from the name, name_en from name_fr (the admin's DeepL button
  * translates later, as for the rest of the catalogue).
+ *
+ * What the admin can complete in bulk later never blocks a row: a missing or
+ * unknown category is guessed from the store's category path, else the row
+ * goes to the "to sort" category (fallbackCategorySlug); an unknown store
+ * imports the product without a store. Only a name and a price are required.
  */
 import { isLunaEligibleProduct, type CustomProductType, type EligibilityResult } from './product-eligibility';
 import { normalizeCsvRow } from './store-import';
 import { parseDecimal, slugify } from './import-profile';
 import { resolveStore } from './import-csv';
+import { detectCategoryFromSource } from './category-detect';
 import type { ProductCategory, Store } from './products';
 
 export type ImportIssueCode =
@@ -44,10 +50,10 @@ export type ValidatedRow = {
   errors: ImportIssue[];
   eligibility: EligibilityResult;
   storeId: string | null;
-  /** store_slug was given but matches no Luna store → never imported (stores are never auto-created). */
+  /** store_slug was given but matches no Luna store → imported without a store (stores are never auto-created). */
   storeUnknown: boolean;
   /** Values filled in for the admin (shown as notes). */
-  filled: Array<'slug_fr' | 'slug_en' | 'name_en'>;
+  filled: Array<'slug_fr' | 'slug_en' | 'name_en' | 'category_guessed' | 'category_fallback'>;
   data?: ImportRowData;
 };
 
@@ -57,6 +63,8 @@ export function validateImportRow(
   stores: Pick<Store, 'id' | 'slug' | 'name'>[],
   /** Product types the admin created (product_types table). */
   customTypes: readonly CustomProductType[] = [],
+  /** Category of the rows Luna cannot place ("À classer"); null = such rows are errors. */
+  fallbackCategorySlug: string | null = null,
 ): ValidatedRow {
   const errors: ImportIssue[] = [];
   const filled: ValidatedRow['filled'] = [];
@@ -89,9 +97,15 @@ export function validateImportRow(
   if (weight !== null && Number.isNaN(weight)) errors.push({ code: 'bad_weight', value: raw.weight_kg });
 
   const catSlug = raw.category_slug?.trim() ?? '';
-  const cat = catSlug ? categories.find((c) => c.slug === catSlug) : undefined;
-  if (!catSlug) errors.push({ code: 'missing_category' });
-  else if (!cat) errors.push({ code: 'unknown_category', value: catSlug });
+  let cat = catSlug ? categories.find((c) => c.slug === catSlug) : undefined;
+  if (!cat) {
+    const guessed = detectCategoryFromSource(raw.source_category, nameFr, new Set(categories.map((c) => c.slug)));
+    const fallback = fallbackCategorySlug ? categories.find((c) => c.slug === fallbackCategorySlug) : undefined;
+    cat = guessed ? categories.find((c) => c.slug === guessed) : fallback;
+    if (cat) filled.push(guessed ? 'category_guessed' : 'category_fallback');
+    else if (!catSlug) errors.push({ code: 'missing_category' });
+    else errors.push({ code: 'unknown_category', value: catSlug });
+  }
 
   const base = { eligibility, storeId, storeUnknown, filled };
   if (errors.length) return { ...base, errors };

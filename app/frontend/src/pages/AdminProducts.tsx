@@ -21,6 +21,7 @@ import {
 } from '@/lib/import-csv';
 import { validateImportRow, type ImportIssue, type ImportRowData, type ValidatedRow } from '@/lib/import-validate';
 import { detectCategorySlug } from '@/lib/category-detect';
+import { recognizeColumns, type ColumnRecognition } from '@/lib/import-columns';
 import { BUILTIN_PRODUCT_TYPES, fetchProductTypes, isBuiltinType, productTypeLabel, withProductType, type ProductTypeDef } from '@/lib/product-types';
 import { ProductTypeSelect } from '@/components/ProductTypeSelect';
 import { ProductTypesEditor } from '@/components/ProductTypesEditor';
@@ -907,9 +908,11 @@ type MappingDraft = { prefix: string; action: 'map' | 'skip'; category_id: strin
 type RowResult = { ok: boolean; detail: string };
 type FileInfo = { delimiter: CsvDelimiter; encoding: string; unwrapped: number; eloshon: boolean };
 type RowFilter = 'all' | 'errors' | 'accepted' | 'to_verify' | 'excluded' | 'skipped';
-/** Issue groups shown in the "problems" panel: validation codes + unknown store. */
-type IssueKey = ImportIssue['code'] | 'store_unknown';
+/** Issue groups shown in the "problems" panel (validation codes). */
+type IssueKey = ImportIssue['code'];
 
+/** Category of the rows Luna cannot place: imported there, sorted in bulk later. */
+const FALLBACK_CATEGORY_SLUG = 'a-classer';
 /** Eligibility exclusions an admin may override with "accept fresh products". Frozen stays excluded. */
 const FRESH_EXCLUSION_CODES = new Set(['excluded_meat_seafood', 'excluded_dairy_fresh', 'excluded_refrigerated', 'excluded_cold_chain', 'excluded_fresh', 'excluded_produce_fresh', 'excluded_bakery']);
 /** Bulk-fix bar of the import preview, nothing chosen ('' / 'nochange' = leave as is). */
@@ -925,6 +928,8 @@ function CsvImport({ categories, brands, onDone, onBrandCreated }: { categories:
     const x = productTypes.find((p) => p.slug === slug);
     return x ? productTypeLabel(x, i18n.language) : slug ?? '';
   };
+  /** What Luna understood of the file's columns (shown above the preview). */
+  const [recognition, setRecognition] = useState<ColumnRecognition | null>(null);
   const [rawRows, setRawRows] = useState<Record<string, string>[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
   const [fileInfo, setFileInfo] = useState<FileInfo | null>(null);
@@ -991,7 +996,7 @@ function CsvImport({ categories, brands, onDone, onBrandCreated }: { categories:
     if (o.category_slug) merged.category_slug = o.category_slug;
     if (o.store_slug) merged.store_slug = o.store_slug;
     if (o.product_type) merged.product_type = o.product_type;
-    const v = validateImportRow(merged, categories, stores, customTypes);
+    const v = validateImportRow(merged, categories, stores, customTypes, FALLBACK_CATEGORY_SLUG);
     const errors = [...v.errors];
     if (profiled.priceIssue) errors.push({ code: profiled.priceIssue.code, csv: profiled.priceIssue.csv, ref: profiled.priceIssue.ref });
     let data = errors.length ? undefined : v.data;
@@ -1016,8 +1021,13 @@ function CsvImport({ categories, brands, onDone, onBrandCreated }: { categories:
   const onFile = async (file: File) => {
     try {
       const { text, encoding } = decodeCsvBytes(await file.arrayBuffer());
-      const parsed = parseImportCsv(text);
+      const csv = parseImportCsv(text);
+      // Labelled columns ("Nom", "Prix", "Marque"…) → Luna's, values cleaned,
+      // store read from the product link, non-product rows dropped.
+      const rec = recognizeColumns(csv.headers, csv.rows, stores);
+      const parsed = { ...csv, headers: rec.headers, rows: rec.rows };
       const eloshon = detectSourceFormat(parsed.headers) === 'eloshon';
+      setRecognition(rec);
       setHeaders(parsed.headers);
       setRawRows(parsed.rows);
       setFileInfo({ delimiter: parsed.delimiter, encoding, unwrapped: parsed.unwrapped, eloshon });
@@ -1039,27 +1049,25 @@ function CsvImport({ categories, brands, onDone, onBrandCreated }: { categories:
 
   const isSkipped = (r: ImportRow) => !!r.skip;
   const isFreshExclusion = (r: ImportRow) => r.eligibility.status === 'excluded' && FRESH_EXCLUSION_CODES.has(r.eligibility.code);
-  const canForce = (r: ImportRow) => r.errors.length === 0 && !isSkipped(r) && !r.storeUnknown
+  const canForce = (r: ImportRow) => r.errors.length === 0 && !isSkipped(r)
     && (r.eligibility.status === 'to_verify' || (allowFresh && isFreshExclusion(r)));
   // A row imports only if it is structurally valid, not skipped, its store
   // (when given) is known, and it is either accepted by the eligibility
   // filter or explicitly forced by the admin.
-  const importable = rows.filter((r) => r.errors.length === 0 && r.data && !isSkipped(r) && !r.storeUnknown
+  const importable = rows.filter((r) => r.errors.length === 0 && r.data && !isSkipped(r)
     && (r.eligibility.status === 'accepted' || (forced.has(r.index) && canForce(r))));
   const importableSet = new Set(importable.map((r) => r.index));
   const rejected = rows.filter((r) => r.errors.length === 0 && !isSkipped(r) && !importableSet.has(r.index));
 
-  const rowStatus = (r: ImportRow): 'accepted' | 'excluded' | 'to_verify' =>
-    r.storeUnknown ? 'to_verify' : r.eligibility.status;
-  const rowReason = (r: ImportRow): string =>
-    r.skip ?? (r.storeUnknown ? t('admin.imp_issue_store_unknown', { value: r.raw.store_slug?.trim() }) : r.eligibility.reason);
+  const rowStatus = (r: ImportRow): 'accepted' | 'excluded' | 'to_verify' => r.eligibility.status;
+  const rowReason = (r: ImportRow): string => r.skip ?? r.eligibility.reason;
   const issueText = (e: ImportIssue) => t(`admin.imp_issue_${e.code}`, { value: e.value ?? '', csv: e.csv, ref: e.ref });
   const matchesFilter = (r: ImportRow): boolean => {
     switch (rowFilter) {
       case 'all': return true;
       case 'skipped': return isSkipped(r);
-      case 'errors': return !isSkipped(r) && (r.errors.length > 0 || r.storeUnknown);
-      default: return !isSkipped(r) && r.errors.length === 0 && !r.storeUnknown && r.eligibility.status === rowFilter;
+      case 'errors': return !isSkipped(r) && r.errors.length > 0;
+      default: return !isSkipped(r) && r.errors.length === 0 && r.eligibility.status === rowFilter;
     }
   };
   const visibleRows = rows.filter(matchesFilter);
@@ -1076,9 +1084,20 @@ function CsvImport({ categories, brands, onDone, onBrandCreated }: { categories:
     for (const r of rows) {
       if (r.skip) continue;
       for (const e of r.errors) add(e.code, issueText(e), r.index);
-      if (r.storeUnknown) add('store_unknown', t('admin.imp_issue_store_unknown', { value: r.raw.store_slug?.trim() }), r.index);
     }
     return [...m.entries()].map(([key, g]) => ({ key, ...g })).sort((a, b) => b.indices.length - a.indices.length);
+  })();
+  // Imported anyway, to complete in bulk later (category "À classer", no store).
+  const laterGroups = (() => {
+    const fallback = rows.filter((r) => !r.skip && !r.errors.length && r.filled.includes('category_fallback')).map((r) => r.index);
+    const guessed = rows.filter((r) => !r.skip && !r.errors.length && r.filled.includes('category_guessed')).map((r) => r.index);
+    const noStore = rows.filter((r) => !r.skip && !r.errors.length && r.storeUnknown);
+    return [
+      { key: 'category_fallback', indices: fallback, text: t('admin.imp_later_category', { count: fallback.length }) },
+      { key: 'category_guessed', indices: guessed, text: t('admin.imp_later_guessed', { count: guessed.length }) },
+      { key: 'store_unknown', indices: noStore.map((r) => r.index),
+        text: t('admin.imp_later_store', { count: noStore.length, value: [...new Set(noStore.map((r) => r.raw.store_slug?.trim()))].slice(0, 3).join(', ') }) },
+    ].filter((g) => g.indices.length > 0);
   })();
 
   // Selection is kept by row index; "select all" acts on the visible rows.
@@ -1341,10 +1360,10 @@ function CsvImport({ categories, brands, onDone, onBrandCreated }: { categories:
   const categoryLabel = useMemo(() => new Map(categoryOptions.map((c) => [c.slug, c.label])), [categoryOptions]);
   const counts = {
     all: rows.length,
-    errors: rows.filter((r) => !isSkipped(r) && (r.errors.length > 0 || r.storeUnknown)).length,
-    accepted: rows.filter((r) => !isSkipped(r) && !r.errors.length && !r.storeUnknown && r.eligibility.status === 'accepted').length,
-    to_verify: rows.filter((r) => !isSkipped(r) && !r.errors.length && !r.storeUnknown && r.eligibility.status === 'to_verify').length,
-    excluded: rows.filter((r) => !isSkipped(r) && !r.errors.length && !r.storeUnknown && r.eligibility.status === 'excluded').length,
+    errors: rows.filter((r) => !isSkipped(r) && r.errors.length > 0).length,
+    accepted: rows.filter((r) => !isSkipped(r) && !r.errors.length && r.eligibility.status === 'accepted').length,
+    to_verify: rows.filter((r) => !isSkipped(r) && !r.errors.length && r.eligibility.status === 'to_verify').length,
+    excluded: rows.filter((r) => !isSkipped(r) && !r.errors.length && r.eligibility.status === 'excluded').length,
     skipped: rows.filter(isSkipped).length,
   };
   // Once the last row is fixed, show everything again instead of an empty table.
@@ -1367,6 +1386,40 @@ function CsvImport({ categories, brands, onDone, onBrandCreated }: { categories:
           {fileInfo.eloshon && ` · ${t('admin.imp_file_eloshon')}`}
           {fileInfo.unwrapped > 0 && ` · ${t('admin.imp_file_unwrapped', { count: fileInfo.unwrapped })}`}
         </p>
+      )}
+
+      {recognition && (recognition.renamed.length > 0 || recognition.storeFromLink > 0 || recognition.dropped.not_a_product > 0
+        || recognition.specsAsDescription > 0 || recognition.foreignLanguage) && (
+        <section aria-labelledby="imp-columns" className="mt-4 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-950">
+          <h3 id="imp-columns" className="font-semibold">{t('admin.imp_columns_title')}</h3>
+          <ul className="mt-1 list-disc space-y-0.5 pl-5">
+            {recognition.renamed.length > 0 && (
+              <li>{t('admin.imp_columns_renamed', { list: recognition.renamed.map((x) => `${x.from} → ${x.to}`).join(' · ') })}</li>
+            )}
+            {recognition.storeFromLink > 0 && <li>{t('admin.imp_columns_store_link', { count: recognition.storeFromLink })}</li>}
+            {recognition.specsAsDescription > 0 && <li>{t('admin.imp_columns_specs', { count: recognition.specsAsDescription })}</li>}
+            {recognition.dropped.not_a_product > 0 && <li>{t('admin.imp_columns_dropped', { count: recognition.dropped.not_a_product })}</li>}
+            {recognition.foreignLanguage && (
+              <li className="text-amber-900">{t('admin.imp_columns_language', { lang: recognition.foreignLanguage.toUpperCase() })}</li>
+            )}
+          </ul>
+        </section>
+      )}
+
+      {laterGroups.length > 0 && !diagnostic && (
+        <section aria-labelledby="imp-later" className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/60 p-4 text-sm">
+          <h3 id="imp-later" className="font-semibold text-luna-navy">{t('admin.imp_later_title')}</h3>
+          <ul className="mt-2 space-y-1">
+            {laterGroups.map((g) => (
+              <li key={g.key} className="flex flex-wrap items-center gap-2">
+                <span className="flex-1 min-w-[16rem] text-slate-700">{g.text}</span>
+                <Button type="button" size="sm" variant="outline" onClick={() => setSelectedRows(new Set(g.indices))}>
+                  {t('admin.imp_issue_select', { count: g.indices.length })}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {diagnostic && (
@@ -1748,7 +1801,7 @@ function CsvImport({ categories, brands, onDone, onBrandCreated }: { categories:
                         ) : rowReason(r)}
                         {r.eligibility.is_alcoholic && <span className="ml-1 text-slate-400">· {t('admin.imp_tag_alcohol')}</span>}
                         {r.eligibility.requires_cold_chain === true && <span className="ml-1 text-sky-600">· {t('admin.imp_tag_cold_chain')}</span>}
-                        {!hasErr && !skipped && !r.storeUnknown && r.eligibility.status === 'accepted' && r.eligibility.requires_cold_chain === null &&
+                        {!hasErr && !skipped && r.eligibility.status === 'accepted' && r.eligibility.requires_cold_chain === null &&
                           <span className="ml-1 text-amber-600">· {t('admin.imp_tag_storage_unknown')}</span>}
                         {!!r.profiled.notes.length && <span className="block text-slate-400">{r.profiled.notes.join(' · ')}</span>}
                       </td>

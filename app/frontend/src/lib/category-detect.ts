@@ -90,6 +90,56 @@ const HOUSEHOLD_RULES: Array<[string, RegExp]> = [
   ['all-purpose-cleaners', /nettoie|nettoyant|nett\.|degraiss|cuisine|multi|recur|desinf/],
 ];
 
+/** Non-food stores (MediaMarkt, Electro Dépôt, ICI Paris XL…): read on the
+ *  store's own category path first ("Ordinateur > Tablette", "Parfum >
+ *  Damesgeuren"), then on the name. Accessories before the devices they fit. */
+const SOURCE_RULES: Array<[string, RegExp]> = [
+  ['tv-accessories', /support (tv|mural)|meuble tv|barre de son|soundbar|home cinema|telecommande/],
+  ['phone-accessories', /coque|etui|protection (d )?ecran|verre trempe|chargeur|powerbank|batterie externe|accessoires? (smartphone|telephone|gsm)|magsafe/],
+  ['pc-accessories', /souris|clavier|webcam|moniteur|ecran pc|tapis de souris|accessoires? (pc|informatique|ordinateur)/],
+  ['printers-ink', /imprimante|cartouche|toner|printer/],
+  ['memory-cards-storage', /carte memoire|carte sd|micro ?sd|cle usb|disque dur|\bssd\b|stockage/],
+  ['networking', /routeur|repeteur|wi-?fi|reseau|mesh|powerline|cpl/],
+  ['cables-connectors', /cable|connecti|adaptateur|hdmi|rallonge/],
+  ['headphones', /ecouteur|casque|headphone|earbuds|airpods|oortjes|koptelefoon/],
+  ['audio-hifi', /enceinte|haut-?parleur|hi-?fi|radio|speaker|platine/],
+  ['gaming', /console|playstation|\bps5\b|xbox|nintendo|switch 2|gaming|jeux? video|manette/],
+  ['photo-video', /appareil photo|camera|camescope|objectif|drone|gopro/],
+  ['gsm-smartphones', /smartphone|\bgsm\b|iphone|telephone mobile|telephone portable|galaxy [asz]\d/],
+  ['landline-phones', /telephone fixe|dect/],
+  ['televisions', /televis|\btv\b|\btele\b|oled|qled|miniled/],
+  ['computers-tablets', /ordinateur|laptop|notebook|portable pc|pc portable|tablette|tablet|ipad|macbook|chromebook|pc de bureau|desktop/],
+  ['e-mobility', /trottinette|velo electrique|hoverboard|gyropode/],
+  ['fridges-freezers', /refrigerateur|frigo|congelateur|koelkast/],
+  ['laundry-care', /lave-?linge|machine a laver|seche-?linge|wasmachine|droogkast/],
+  ['vacuums', /aspirateur|nettoyeur vapeur|stofzuiger/],
+  ['coffee-tea', /cafetiere|machine a cafe|expresso|espresso|bouilloire|senseo|nespresso|dolce gusto/],
+  ['ovens-microwaves', /micro-?ondes|\bfour\b|oven/],
+  ['hobs-cookers', /plaque de cuisson|taque|cuisiniere|kookplaat/],
+  ['hoods', /hotte/],
+  ['food-processors', /robot|mixeur|blender|hachoir|batteur/],
+  ['hair-appliances', /seche-?cheveux|lisseur|boucleur|fohn|haardroger/],
+  ['grooming-appliances', /tondeuse|rasoir electrique|epilateur/],
+  ['fragrance', /parfum|eau de toilette|eau de parfum|cologne|\b(dames|heren)?geur(en)?\b|fragrance|body mist/],
+  ['makeup', /maquillage|make-?up|mascara|rouge a levres|lipstick|fond de teint|eyeliner|vernis|nagellak/],
+  ['face-care', /soin du visage|soins du visage|gezichtsverzorging|serum|creme de (jour|nuit)|contour des yeux/],
+  ['body-care', /soin du corps|soins du corps|lichaamsverzorging|creme pour le corps/],
+];
+
+/** Sub-category for a product from a non-food store: its category path first,
+ *  then its name. The most specific rule decides: when its category does not
+ *  exist in `allowed`, no vaguer rule is tried on the same text ("Ordinateur >
+ *  Souris" is never filed under computers). */
+export function detectCategoryFromSource(sourceCategory: string | null | undefined, name: string, allowed: Set<string>): string | null {
+  for (const text of [sourceCategory ?? '', name]) {
+    const n = normalizeName(text);
+    if (!n.trim()) continue;
+    const hit = SOURCE_RULES.find(([, rx]) => rx.test(n));
+    if (hit) return allowed.has(hit[0]) ? hit[0] : null;
+  }
+  return null;
+}
+
 /** Accent/punctuation-light normalisation that keeps the characters the rules rely on (. / % & -). */
 function normalizeName(s: string): string {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\u2019/g, "'");
