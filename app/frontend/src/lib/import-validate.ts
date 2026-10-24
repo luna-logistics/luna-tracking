@@ -8,7 +8,7 @@
  * comes from the name, name_en from name_fr (the admin's DeepL button
  * translates later, as for the rest of the catalogue).
  */
-import { isLunaEligibleProduct, type EligibilityResult } from './product-eligibility';
+import { isLunaEligibleProduct, type CustomProductType, type EligibilityResult } from './product-eligibility';
 import { normalizeCsvRow } from './store-import';
 import { parseDecimal, slugify } from './import-profile';
 import { resolveStore } from './import-csv';
@@ -55,10 +55,12 @@ export function validateImportRow(
   raw: Record<string, string>,
   categories: Pick<ProductCategory, 'id' | 'slug'>[],
   stores: Pick<Store, 'id' | 'slug' | 'name'>[],
+  /** Product types the admin created (product_types table). */
+  customTypes: readonly CustomProductType[] = [],
 ): ValidatedRow {
   const errors: ImportIssue[] = [];
   const filled: ValidatedRow['filled'] = [];
-  const eligibility = isLunaEligibleProduct(normalizeCsvRow(raw));
+  const eligibility = isLunaEligibleProduct(normalizeCsvRow(raw), customTypes);
 
   const storeSlug = raw.store_slug?.trim();
   const store = resolveStore(storeSlug, stores);

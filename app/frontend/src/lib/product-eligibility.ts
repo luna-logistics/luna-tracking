@@ -478,6 +478,10 @@ function classifyFood(corpus: Corpus, is_alcoholic: boolean, requires_cold_chain
   return R('to_verify', 'to_verify_insufficient', 'informations insuffisantes pour déterminer la conservation');
 }
 
+/** A type the admin created (table product_types): known, without keyword
+ *  rules. `auto_accept` = its products are accepted without review. */
+export type CustomProductType = { slug: string; auto_accept: boolean };
+
 /**
  * Classify one normalised product.
  *
@@ -486,8 +490,10 @@ function classifyFood(corpus: Corpus, is_alcoholic: boolean, requires_cold_chain
  *   2. type has no validated rules yet       → to_verify
  *   3. food → dedicated classifier (see classifyFood)
  *   4. other typed rules → generic exclude → accept → to_verify
+ *   5. a type the admin created (product_types) → accepted when it is
+ *      flagged auto_accept, else to_verify
  */
-export function isLunaEligibleProduct(p: NormalizedProduct): EligibilityResult {
+export function isLunaEligibleProduct(p: NormalizedProduct, customTypes: readonly CustomProductType[] = []): EligibilityResult {
   const corpus = buildCorpus(p);
 
   // is_alcoholic + requires_cold_chain are informational only (never change status).
@@ -500,6 +506,14 @@ export function isLunaEligibleProduct(p: NormalizedProduct): EligibilityResult {
   if (!type) {
     return { status: 'to_verify', code: 'to_verify_no_type',
       reason: 'informations insuffisantes — type de produit manquant', matched: [], is_alcoholic, requires_cold_chain };
+  }
+  // A type the admin created: no keyword rules, so either accepted as a
+  // whole (the admin's decision for that family) or left to verify.
+  const custom = Object.prototype.hasOwnProperty.call(ELIGIBILITY_RULES, type) ? undefined : customTypes.find((c) => c.slug === type);
+  if (custom) {
+    return custom.auto_accept
+      ? { status: 'accepted', code: 'accepted_type_auto', reason: `type « ${type} » accepté sans vérification (choix admin)`, matched: [], is_alcoholic, requires_cold_chain }
+      : { status: 'to_verify', code: 'to_verify_no_rules', reason: `aucune règle validée pour le type « ${type} »`, matched: [], is_alcoholic, requires_cold_chain };
   }
   // A type Luna hasn't declared at all (the rules map holds every known
   // type, including those with no rules yet).

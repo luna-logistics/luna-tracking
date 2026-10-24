@@ -21,6 +21,9 @@ import {
 } from '@/lib/import-csv';
 import { validateImportRow, type ImportIssue, type ImportRowData, type ValidatedRow } from '@/lib/import-validate';
 import { detectCategorySlug } from '@/lib/category-detect';
+import { BUILTIN_PRODUCT_TYPES, fetchProductTypes, isBuiltinType, productTypeLabel, withProductType, type ProductTypeDef } from '@/lib/product-types';
+import { ProductTypeSelect } from '@/components/ProductTypeSelect';
+import { ProductTypesEditor } from '@/components/ProductTypesEditor';
 import {
   applyImportProfile, categoryPrefixes, headerSignature, DEFAULT_RULES, slugify as slugifyImport,
   type CategoryMapping, type ImportProfile, type ProfiledRow,
@@ -47,7 +50,7 @@ import {
 import { cn } from '@/lib/utils';
 import { errorMessage } from '@/lib/errors';
 
-type Tab = 'list' | 'add' | 'import' | 'categories' | 'brands';
+type Tab = 'list' | 'add' | 'import' | 'categories' | 'brands' | 'types';
 
 export default function AdminProducts() {
   const { t } = useTranslation();
@@ -71,7 +74,7 @@ export default function AdminProducts() {
       <p className="mt-2 text-slate-600 max-w-3xl">{t('admin.products_intro')}</p>
 
       <div className="mt-6 border-b border-slate-200 flex flex-wrap gap-1">
-        {(['list', 'add', 'import', 'categories', 'brands'] as Tab[]).map((k) => (
+        {(['list', 'add', 'import', 'categories', 'brands', 'types'] as Tab[]).map((k) => (
           <button
             key={k}
             type="button"
@@ -115,6 +118,7 @@ export default function AdminProducts() {
         {tab === 'brands' && (
           <BrandsEditor brands={brands} products={products} onChanged={reload} />
         )}
+        {tab === 'types' && <ProductTypesEditor />}
       </div>
     </>
   );
@@ -894,27 +898,33 @@ type RowOverride = {
   name_en?: string; description_en?: string;
   category_slug?: string; store_slug?: string;
   /** Luna product type — a scraper's own value ("Alcool") is unknown to the eligibility filter. */
-  product_type?: ProductType;
+  product_type?: string;
   /** null = explicitly no brand. */
   brand_id?: string | null;
   skip?: boolean;
 };
-type MappingDraft = { prefix: string; action: 'map' | 'skip'; category_id: string; product_type: ProductType | '' };
+type MappingDraft = { prefix: string; action: 'map' | 'skip'; category_id: string; product_type: string };
 type RowResult = { ok: boolean; detail: string };
 type FileInfo = { delimiter: CsvDelimiter; encoding: string; unwrapped: number; eloshon: boolean };
 type RowFilter = 'all' | 'errors' | 'accepted' | 'to_verify' | 'excluded' | 'skipped';
 /** Issue groups shown in the "problems" panel: validation codes + unknown store. */
 type IssueKey = ImportIssue['code'] | 'store_unknown';
 
-const TYPE_KEYS: ProductType[] = ['food', 'hygiene', 'household', 'clothing', 'other'];
 /** Eligibility exclusions an admin may override with "accept fresh products". Frozen stays excluded. */
 const FRESH_EXCLUSION_CODES = new Set(['excluded_meat_seafood', 'excluded_dairy_fresh', 'excluded_refrigerated', 'excluded_cold_chain', 'excluded_fresh', 'excluded_produce_fresh', 'excluded_bakery']);
 /** Bulk-fix bar of the import preview, nothing chosen ('' / 'nochange' = leave as is). */
-const BULK_ROW_EMPTY = { category_slug: '', product_type: '' as ProductType | '', store_slug: '', brand: 'nochange' };
+const BULK_ROW_EMPTY = { category_slug: '', product_type: '', store_slug: '', brand: 'nochange' };
 const DELIMITER_LABEL: Record<CsvDelimiter, string> = { ',': ',', ';': ';', '\t': 'tab', '|': '|' };
 
 function CsvImport({ categories, brands, onDone, onBrandCreated }: { categories: ProductCategory[]; brands: Brand[]; onDone: () => void; onBrandCreated: (b: Brand) => void }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const [productTypes, setProductTypes] = useState<ProductTypeDef[]>(BUILTIN_PRODUCT_TYPES);
+  const addProductType = (x: ProductTypeDef) => setProductTypes((l) => withProductType(l, x));
+  const customTypes = useMemo(() => productTypes.filter((x) => !isBuiltinType(x.slug)), [productTypes]);
+  const typeLabel = (slug: string | null | undefined) => {
+    const x = productTypes.find((p) => p.slug === slug);
+    return x ? productTypeLabel(x, i18n.language) : slug ?? '';
+  };
   const [rawRows, setRawRows] = useState<Record<string, string>[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
   const [fileInfo, setFileInfo] = useState<FileInfo | null>(null);
@@ -941,14 +951,16 @@ function CsvImport({ categories, brands, onDone, onBrandCreated }: { categories:
   const [centsNoProfile, setCentsNoProfile] = useState(false);
   // Bulk category mapping (keyed by group path).
   const [pickedGroups, setPickedGroups] = useState<Set<string>>(new Set());
-  const [bulkMap, setBulkMap] = useState<{ category_id: string; product_type: ProductType | '' }>({ category_id: '', product_type: 'food' });
+  const [bulkMap, setBulkMap] = useState<{ category_id: string; product_type: string }>({ category_id: '', product_type: 'food' });
   // Bulk fixes on selected preview rows.
   const [bulkRow, setBulkRow] = useState(BULK_ROW_EMPTY);
   const [translating, setTranslating] = useState(false);
   const [results, setResults] = useState<Record<number, RowResult>>({});
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => { fetchStores().then(setStores); void fetchImportProfiles().then(setProfiles); }, []);
+  useEffect(() => {
+    fetchStores().then(setStores); void fetchImportProfiles().then(setProfiles); void fetchProductTypes().then(setProductTypes);
+  }, []);
   const profile = profiles.find((p) => p.id === profileId) ?? null;
   const profileStoreSlug = profile?.store_id ? stores.find((s) => s.id === profile.store_id)?.slug ?? null : null;
   const categorySlugById = useMemo(() => new Map(categories.map((c) => [c.id, c.slug])), [categories]);
@@ -979,7 +991,7 @@ function CsvImport({ categories, brands, onDone, onBrandCreated }: { categories:
     if (o.category_slug) merged.category_slug = o.category_slug;
     if (o.store_slug) merged.store_slug = o.store_slug;
     if (o.product_type) merged.product_type = o.product_type;
-    const v = validateImportRow(merged, categories, stores);
+    const v = validateImportRow(merged, categories, stores, customTypes);
     const errors = [...v.errors];
     if (profiled.priceIssue) errors.push({ code: profiled.priceIssue.code, csv: profiled.priceIssue.csv, ref: profiled.priceIssue.ref });
     let data = errors.length ? undefined : v.data;
@@ -994,7 +1006,7 @@ function CsvImport({ categories, brands, onDone, onBrandCreated }: { categories:
       row: i + 2, index: i, raw: merged, errors, eligibility: v.eligibility, storeId: v.storeId, storeUnknown: v.storeUnknown,
       profiled, skip, untranslated, filled: v.filled, data,
     };
-  }), [rawRows, profile, centsNoProfile, mappings, profileStoreSlug, categorySlugById, overrides, categories, brands, stores, t]);
+  }), [rawRows, profile, centsNoProfile, mappings, profileStoreSlug, categorySlugById, overrides, categories, brands, stores, customTypes, t]);
 
   const resetRowState = () => {
     setOverrides({}); setForced(new Set()); setResults({}); setDrafts({}); setSelectedRows(new Set()); setPickedGroups(new Set());
@@ -1466,10 +1478,9 @@ function CsvImport({ categories, brands, onDone, onBrandCreated }: { categories:
                   <option value="">{t('admin.imp_map_category')}…</option>
                   {categoryOptions.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
                 </select>
-                <select aria-label={t('admin.imp_map_type')} className={sel} value={bulkMap.product_type} onChange={(e) => setBulkMap((b) => ({ ...b, product_type: e.target.value as ProductType }))}>
-                  <option value="">{t('admin.imp_map_type')}…</option>
-                  {TYPE_KEYS.map((k) => <option key={k} value={k}>{t(`admin.imp_type_${k}`)}</option>)}
-                </select>
+                <ProductTypeSelect ariaLabel={t('admin.imp_map_type')} className={sel} value={bulkMap.product_type}
+                  onChange={(v) => setBulkMap((b) => ({ ...b, product_type: v }))}
+                  types={productTypes} onCreated={addProductType} placeholder={`${t('admin.imp_map_type')}…`} />
                 <Button type="button" size="sm" variant="navy" disabled={busy || pickedGroups.size === 0} onClick={() => saveMappingsBulk('map')}>
                   {t('admin.imp_map_bulk_apply', { count: pickedGroups.size })}
                 </Button>
@@ -1504,10 +1515,9 @@ function CsvImport({ categories, brands, onDone, onBrandCreated }: { categories:
                               <option value="">{t('admin.imp_map_category')}…</option>
                               {categoryOptions.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
                             </select>
-                            <select aria-label={t('admin.imp_map_type')} className={sel} value={d.product_type} onChange={(e) => setDraft(sc, { product_type: e.target.value as ProductType })}>
-                              <option value="">{t('admin.imp_map_type')}…</option>
-                              {TYPE_KEYS.map((k) => <option key={k} value={k}>{t(`admin.imp_type_${k}`)}</option>)}
-                            </select>
+                            <ProductTypeSelect ariaLabel={t('admin.imp_map_type')} className={sel} value={d.product_type}
+                              onChange={(v) => setDraft(sc, { product_type: v })}
+                              types={productTypes} onCreated={addProductType} placeholder={`${t('admin.imp_map_type')}…`} />
                           </>
                         )}
                         <Button type="button" size="sm" variant="navy" onClick={() => saveMapping(sc)} disabled={busy}>{t('admin.imp_map_save')}</Button>
@@ -1530,7 +1540,7 @@ function CsvImport({ categories, brands, onDone, onBrandCreated }: { categories:
                 <span className="font-mono text-xs text-slate-500 break-words flex-1 min-w-[16rem]">{m.source_category}</span>
                 <span>{m.action === 'skip'
                   ? t('admin.imp_map_action_skip')
-                  : `→ ${categories.find((c) => c.id === m.category_id)?.name_fr ?? '?'} · ${t(`admin.imp_type_${m.product_type}`)}`}</span>
+                  : `→ ${categories.find((c) => c.id === m.category_id)?.name_fr ?? '?'} · ${typeLabel(m.product_type)}`}</span>
                 <Button type="button" size="sm" variant="ghost" className="text-red-600" onClick={() => removeMapping(m)} aria-label={t('admin.imp_map_delete')}>
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
@@ -1607,10 +1617,9 @@ function CsvImport({ categories, brands, onDone, onBrandCreated }: { categories:
               </div>
               <div>
                 <Label htmlFor="imp-bulk-type" className="text-xs">{t('admin.imp_map_type')}</Label>
-                <select id="imp-bulk-type" className={cn(sel, 'block w-40')} value={bulkRow.product_type} onChange={(e) => setBulkRow((b) => ({ ...b, product_type: e.target.value as ProductType | '' }))}>
-                  <option value="">{t('admin.products_bulk_no_change')}</option>
-                  {TYPE_KEYS.map((k) => <option key={k} value={k}>{t(`admin.imp_type_${k}`)}</option>)}
-                </select>
+                <ProductTypeSelect id="imp-bulk-type" className={cn(sel, 'block w-40')} value={bulkRow.product_type}
+                  onChange={(v) => setBulkRow((b) => ({ ...b, product_type: v }))}
+                  types={productTypes} onCreated={addProductType} placeholder={t('admin.products_bulk_no_change')} />
               </div>
               <div>
                 <Label htmlFor="imp-bulk-store" className="text-xs">{t('admin.products_col_store')}</Label>
