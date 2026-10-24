@@ -98,15 +98,22 @@ export default function Index() {
         }}
       >
         {/* Translucent logo watermark over the map (md+: on mobile the text covers the map) */}
-        <img
-          src="/brand/luna-icon-hero.webp"
-          alt=""
+        <div
           aria-hidden="true"
-          width={420}
-          height={392}
-          decoding="async"
-          className="pointer-events-none absolute right-[6%] top-1/2 hidden h-auto w-[200px] -translate-y-1/2 select-none opacity-[.22] md:block lg:right-[9%] lg:w-[300px]"
-        />
+          className="pointer-events-none absolute right-[6%] top-[8%] hidden select-none flex-col items-center opacity-[.25] md:flex lg:right-[9%] lg:top-[7%]"
+        >
+          <img
+            src="/brand/luna-icon-hero.webp"
+            alt=""
+            width={420}
+            height={392}
+            decoding="async"
+            className="h-auto w-[170px] lg:w-[240px]"
+          />
+          <span className="mt-2 whitespace-nowrap text-[22px] font-semibold uppercase tracking-[.12em] text-white lg:text-[30px]">
+            Luna Logistics
+          </span>
+        </div>
 
         {/* Hero content */}
         <div className="relative mx-auto max-w-[1220px] px-4 pt-5 pb-[18px] md:px-[26px] md:py-10 lg:px-10 lg:pt-[84px] lg:pb-[100px]">
