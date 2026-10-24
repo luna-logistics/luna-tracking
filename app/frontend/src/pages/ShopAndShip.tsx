@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   ShoppingCart, Plus, Minus, X, CheckCircle2, ArrowRight, ArrowDown,
-  HelpCircle, Package, MapPinned, ShieldCheck, Info, Search,
+  HelpCircle, Package, MapPinned, ShieldCheck, Info, Search, CreditCard, Landmark,
 } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
@@ -17,8 +17,10 @@ import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchActiveProducts, fetchProductCategories, fetchBrands, productName, productSlug, categoryName, brandName, type Product, type ProductCategory, type Brand } from '@/lib/products';
 import { fetchDestinationCities, type DestinationCity } from '@/lib/cities';
-import { createOrder, OrderRejectedError } from '@/lib/orders';
+import { createOrder, OrderRejectedError, type PaymentMethod } from '@/lib/orders';
 import { initiatePayment } from '@/lib/payment';
+import { fetchBankTransferDetails, type BankTransferDetails } from '@/lib/bank-transfer';
+import { BankTransferInstructions } from '@/components/BankTransferInstructions';
 import { productUrl, urlFor } from '@/lib/url/routes';
 import { useContent, useSiteImage } from '@/contexts/SiteContentContext';
 import { Ed } from '@/components/Ed';
@@ -63,6 +65,15 @@ export default function ShopAndShip() {
   const [view, setView] = useState<'catalog' | 'checkout' | 'success'>('catalog');
   const [submitting, setSubmitting] = useState(false);
   const [afterSubmitMessage, setAfterSubmitMessage] = useState<string | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
+  const [bankDetails, setBankDetails] = useState<BankTransferDetails | null>(null);
+  // Set when the order was placed with a bank transfer: the success view shows
+  // the amount, reference and account to wire to.
+  const [transferOrder, setTransferOrder] = useState<{ id: string; total: number } | null>(null);
+
+  useEffect(() => {
+    if (view === 'checkout' && !bankDetails) void fetchBankTransferDetails().then(setBankDetails);
+  }, [view, bankDetails]);
 
   useEffect(() => {
     Promise.all([fetchActiveProducts(), fetchProductCategories(), fetchBrands(), fetchDestinationCities()])
@@ -158,6 +169,7 @@ export default function ShopAndShip() {
         recipient_city_id: String(form.get('recipient_city_id') ?? '') || null,
         recipient_address: String(form.get('recipient_address') ?? ''),
         notes: String(form.get('notes') ?? '') || null,
+        payment_method: paymentMethod,
       });
       // Order row confirmed — fire before the payment step (which may redirect away).
       trackEvent('courses_order_submitted', {
@@ -165,7 +177,18 @@ export default function ShopAndShip() {
         line_count: items.length,
         value: Number(order.total),
         currency: 'EUR',
+        payment_method: paymentMethod,
       });
+      if (paymentMethod === 'bank_transfer') {
+        // No online step: the order waits in `pending_payment` until an admin
+        // sees the transfer and marks it paid.
+        setTransferOrder({ id: order.id, total: Number(order.total) });
+        setAfterSubmitMessage(null);
+        clear();
+        setView('success');
+        return;
+      }
+      setTransferOrder(null);
       const pay = await initiatePayment(order, lang);
       if (pay.status === 'redirect') { window.location.href = pay.url; return; }
       setAfterSubmitMessage(pay.status === 'deferred' ? pay.message : (pay.message || t('common.error_generic')));
@@ -564,9 +587,43 @@ export default function ShopAndShip() {
                       <Label htmlFor="notes">{t('shop.checkout_notes')}</Label>
                       <Textarea id="notes" name="notes" rows={2} className="mt-1.5" />
                     </div>
+                    <fieldset>
+                      <legend className="text-lg font-semibold text-luna-ink">{t('shop.checkout_payment_title')}</legend>
+                      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                        {([
+                          { value: 'card', icon: CreditCard, label: t('shop.checkout_payment_card'), hint: t('shop.checkout_payment_card_hint') },
+                          { value: 'bank_transfer', icon: Landmark, label: t('shop.checkout_payment_transfer'), hint: t('shop.checkout_payment_transfer_hint') },
+                        ] as const).map((m) => {
+                          const Icon = m.icon;
+                          const selected = paymentMethod === m.value;
+                          return (
+                            <label
+                              key={m.value}
+                              className={cn(
+                                'flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-luna-sky',
+                                selected ? 'border-luna-sky bg-[#F0F8FD]' : 'border-[#DCE5F0] hover:border-luna-sky/60',
+                              )}
+                            >
+                              <input
+                                type="radio" name="payment_method" value={m.value} checked={selected}
+                                onChange={() => setPaymentMethod(m.value)} className="mt-1 accent-luna-navy"
+                              />
+                              <span>
+                                <span className="flex items-center gap-2 font-semibold text-luna-ink">
+                                  <Icon className="h-4 w-4" aria-hidden="true" /> {m.label}
+                                </span>
+                                <span className="mt-1 block text-xs leading-relaxed text-luna-body">{m.hint}</span>
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </fieldset>
                     <div className="flex flex-wrap gap-3">
                       <Button type="submit" variant="navy" size="lg" disabled={submitting}>
-                        {submitting ? t('shop.checkout_submitting') : t('shop.checkout_submit')}
+                        {submitting
+                          ? t('shop.checkout_submitting')
+                          : paymentMethod === 'bank_transfer' ? t('shop.checkout_submit_transfer') : t('shop.checkout_submit_card')}
                       </Button>
                       <Button type="button" variant="outline" onClick={() => setView('catalog')}>
                         ← {t('shop.detail_back_to_catalog')}
@@ -582,7 +639,15 @@ export default function ShopAndShip() {
             <div className="mx-auto max-w-3xl rounded-xl border-2 border-luna-aqua bg-white p-8 text-center shadow-sm">
               <CheckCircle2 className="mx-auto h-10 w-10 text-luna-sky" aria-hidden="true" />
               <h2 className="mt-3 text-xl font-semibold text-luna-ink">{t('shop.checkout_success_title')}</h2>
-              <p className="mt-2 text-sm text-luna-body">{t('shop.checkout_success_body')}</p>
+              <p className="mt-2 text-sm text-luna-body">
+                {transferOrder ? t('shop.checkout_success_body_transfer') : t('shop.checkout_success_body')}
+              </p>
+              {transferOrder && (
+                <BankTransferInstructions
+                  details={bankDetails} orderId={transferOrder.id} total={transferOrder.total}
+                  className="mx-auto mt-5 max-w-md"
+                />
+              )}
               {afterSubmitMessage && (
                 <p className="mt-3 inline-block rounded-md border border-luna-aqua/30 bg-luna-aqua/10 px-4 py-2 text-sm text-luna-ink">
                   {afterSubmitMessage}

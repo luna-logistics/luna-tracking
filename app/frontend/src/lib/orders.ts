@@ -14,6 +14,10 @@ export function nextStatus(s: OrderStatus): OrderStatus | null {
   return flow[i + 1];
 }
 
+/** 'card' = Stripe Checkout; 'bank_transfer' = the customer wires the total
+ *  and an admin marks the order paid by hand. */
+export type PaymentMethod = 'card' | 'bank_transfer';
+
 export type OrderItem = {
   product_id: string;
   slug: string;
@@ -33,6 +37,7 @@ export type Order = {
   recipient_city_id: string | null;
   recipient_address: string;
   notes: string | null;
+  payment_method: PaymentMethod;
   created_at: string;
 };
 

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/sonner';
 import { fetchAllOrders, updateOrderStatus, nextStatus, type Order } from '@/lib/orders';
 import { OrderStatusBadge } from '@/components/OrderStatusBadge';
+import { orderPaymentReference } from '@/lib/bank-transfer';
 import { fetchDestinationCities, type DestinationCity } from '@/lib/cities';
 
 export default function AdminOrders() {
@@ -79,7 +80,14 @@ export default function AdminOrders() {
                         <div className="text-xs text-slate-500">{cityName(o.recipient_city_id)} · {o.recipient_phone}</div>
                       </td>
                       <td className="px-4 py-3 text-right font-semibold text-luna-navy">{Number(o.total).toFixed(2)} €</td>
-                      <td className="px-4 py-3"><OrderStatusBadge status={o.status} /></td>
+                      <td className="px-4 py-3">
+                        <OrderStatusBadge status={o.status} />
+                        <div className="mt-1 text-xs text-slate-500 whitespace-nowrap">
+                          {o.payment_method === 'bank_transfer'
+                            ? `${t('admin.orders_payment_transfer')} · ${orderPaymentReference(o.id)}`
+                            : t('admin.orders_payment_card')}
+                        </div>
+                      </td>
                       <td className="px-4 py-3 text-right whitespace-nowrap space-x-2">
                         <Button size="sm" variant="outline" onClick={() => toggle(o.id)}>
                           {t('admin.orders_view_items')}

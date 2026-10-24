@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, MapPin, Package, Store, ShoppingCart, Boxes,
   KeyRound, FileText, Newspaper, UserCog, LogOut, ExternalLink, FilePlus,
-  MessageSquare, Calculator, Settings2,
+  MessageSquare, Calculator, Settings2, Landmark,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
@@ -33,6 +33,7 @@ export function AdminShell() {
     { to: '/admin/produits',               label: t('admin.sidebar_products'),        icon: Package,         permission: 'products' },
     { to: '/admin/magasins',               label: t('admin.sidebar_stores'),          icon: Store,           permission: 'products' },
     { to: '/admin/commandes',              label: t('admin.sidebar_orders'),          icon: ShoppingCart,    permission: 'orders' },
+    { to: '/admin/paiements',              label: t('admin.sidebar_payments'),        icon: Landmark,        permission: 'admins' },
     { to: '/admin/demandes-reexpedition',  label: t('admin.sidebar_forwarding'),      icon: Boxes,           permission: 'forwarding' },
     { to: '/admin/auth-sociale',           label: t('admin.sidebar_auth_providers'),  icon: KeyRound,        permission: 'auth_providers' },
     { to: '/admin/contenus',               label: t('admin.sidebar_content'),         icon: FileText,        permission: 'content' },

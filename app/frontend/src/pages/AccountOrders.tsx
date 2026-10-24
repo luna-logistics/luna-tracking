@@ -1,13 +1,15 @@
 import { trackEventOnce } from '@/lib/analytics';
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle2, CreditCard, Info, Loader2, Package } from 'lucide-react';
+import { CheckCircle2, CreditCard, Info, Landmark, Loader2, Package } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/sonner';
 import { fetchMyOrders, type Order } from '@/lib/orders';
 import { initiatePayment } from '@/lib/payment';
+import { fetchBankTransferDetails, orderPaymentReference, type BankTransferDetails } from '@/lib/bank-transfer';
+import { BankTransferInstructions } from '@/components/BankTransferInstructions';
 import { OrderStatusBadge } from '@/components/OrderStatusBadge';
 import { urlFor } from '@/lib/url/routes';
 
@@ -18,6 +20,14 @@ export default function AccountOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState<string | null>(null);
+  const [bankDetails, setBankDetails] = useState<BankTransferDetails | null>(null);
+  const [transferOpen, setTransferOpen] = useState<string | null>(null);
+
+  // Only needed when an order awaits a bank transfer.
+  const awaitsTransfer = orders.some((o) => o.status === 'pending_payment' && o.payment_method === 'bank_transfer');
+  useEffect(() => {
+    if (awaitsTransfer && !bankDetails) void fetchBankTransferDetails().then(setBankDetails);
+  }, [awaitsTransfer, bankDetails]);
 
   // Return from Stripe Checkout: ?paiement=ok|annule&commande=<id>. The order
   // turns "paid" only when the webhook lands, which can take a few seconds —
@@ -115,8 +125,10 @@ export default function AccountOrders() {
             <tbody className="divide-y divide-slate-100">
               {orders.map((o) => {
                 const itemCount = o.items.reduce((s, it) => s + (it.quantity || 0), 0);
+                const transferPending = o.status === 'pending_payment' && o.payment_method === 'bank_transfer';
                 return (
-                  <tr key={o.id} className="hover:bg-slate-50">
+                  <Fragment key={o.id}>
+                  <tr className="hover:bg-slate-50">
                     <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
                       {new Date(o.created_at).toLocaleDateString(lang === 'en' ? 'en-GB' : 'fr-BE')}
                     </td>
@@ -139,12 +151,34 @@ export default function AccountOrders() {
                             {paying === o.id
                               ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
                               : <CreditCard className="h-3.5 w-3.5" aria-hidden="true" />}
-                            {t('account_orders.pay')}
+                            {transferPending ? t('account_orders.pay_by_card') : t('account_orders.pay')}
+                          </Button>
+                        )}
+                        {transferPending && (
+                          <Button
+                            size="sm" variant="outline" aria-expanded={transferOpen === o.id}
+                            onClick={() => setTransferOpen((cur) => (cur === o.id ? null : o.id))}
+                          >
+                            <Landmark className="h-3.5 w-3.5" aria-hidden="true" />
+                            {t('account_orders.transfer_details')}
                           </Button>
                         )}
                       </div>
+                      {transferPending && (
+                        <div className="mt-1 text-xs text-slate-500">
+                          {t('account_orders.transfer_awaited', { reference: orderPaymentReference(o.id) })}
+                        </div>
+                      )}
                     </td>
                   </tr>
+                  {transferPending && transferOpen === o.id && (
+                    <tr>
+                      <td colSpan={4} className="px-4 pb-4">
+                        <BankTransferInstructions details={bankDetails} orderId={o.id} total={Number(o.total)} className="max-w-md" />
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                 );
               })}
             </tbody>
